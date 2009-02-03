@@ -1,0 +1,10 @@
+#summary Mosaic engine that uses Flickr images as tiles.
+#labels Featured
+
+= Flickr™ Mosaic =
+
+Choose an image from your hard drive or capture from webcam, then select Flickr™ options for tiling and see how it building your mosaic using photos from Flickr™ service.
+Thanks to Flash 10 features we can do all this operations including mosaic save without any server-side sruff.
+
+
+= More soon =
