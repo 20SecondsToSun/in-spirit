@@ -6,7 +6,7 @@
 [http://www.flickr.com/photos/_inspirit/3048111248/ http://farm4.static.flickr.com/3052/3048111248_d0edf21916_m.jpg]
 
 Choose an image from your hard drive or capture from webcam, then select Flickr™ options for tiling and see how it building your mosaic using photos from Flickr™ service.
-Thanks to Flash 10 features we can do all this operations including mosaic save without any server-side sruff.
+Thanks to Flash 10 features we can do all this operations including result mosaic save without any server-side sruff.
 
 
 = More soon =
