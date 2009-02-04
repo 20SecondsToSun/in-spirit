@@ -9,7 +9,7 @@ Choose an image from your hard drive or capture from webcam, then select Flickrâ
 Thanks to Flash 10 features we can do all this operations including result mosaic save without any server-side stuff.
 *[http://www.inspirit.ru/exchange/mosaic Working Example]*
 
-== How to ==
+== How To ==
 
 *[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FlickrMosaic Complete project code available in my repository]*
 
