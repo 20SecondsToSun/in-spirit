@@ -10,4 +10,6 @@ Thanks to Flash 10 features we can do all this operations including result mosai
 *[http://www.inspirit.ru/exchange/mosaic Working Example]*
 
 
-= More soon =
+= How to =
+
+*[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FlickrMosaic Complete project code available in my repository]*
