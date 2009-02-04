@@ -14,5 +14,5 @@ Thanks to Flash 10 features we can do all this operations including result mosai
 *[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FlickrMosaic Complete project code available in my repository]*
 
 == Change Log ==
-  * 2009.02.4 - *v1.0*
+  * 2009.02.04 - *v1.0*
     * Initial release
