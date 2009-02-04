@@ -15,4 +15,8 @@ Thanks to Flash 10 features we can do all this operations including result mosai
 
 == Change Log ==
   * 2009.02.04 - *v1.0*
-    * Initial release
+    * Initial public release
+  * 2008.12.15 - *v0.1*
+    * Completly rewritten in AS3 for new Flash10 features. No more server side.
+  * 2007.07.20 - *v0.01*
+    * First release. Flash 8. AS2 code.
