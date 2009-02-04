@@ -7,6 +7,7 @@
 
 Choose an image from your hard drive or capture from webcam, then select Flickr™ options for tiling and see how it is building your mosaic using photos from Flickr™ service.
 Thanks to Flash 10 features we can do all this operations including result mosaic save without any server-side stuff.
+*[http://www.inspirit.ru/exchange/mosaic Working Example]*
 
 
 = More soon =
