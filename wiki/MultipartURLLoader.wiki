@@ -12,6 +12,8 @@ So the only way was to build your own custom URLLoader class (not socket) to sen
 *[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/MultipartURLLoader Complete source code and test usage example with small PHP script available in my repository]*
 
 == Change Log ==
+  * 2009.02.09 - *v1.2.1*
+    * Changed 'useWeakReference' to false (thanx to zlatko)
   * 2009.01.20 - *v1.2*
     * Added clearVariables and clearFiles methods
     * Small code refactoring
