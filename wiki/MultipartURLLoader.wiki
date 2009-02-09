@@ -13,7 +13,7 @@ So the only way was to build your own custom URLLoader class (not socket) to sen
 
 == Change Log ==
   * 2009.02.09 - *v1.2.1*
-    * Changed 'useWeakReference' to false (thanx to zlatko)
+    * Changed 'useWeakReference' to false (thanx to zlatko). It appears that on some servers setting 'useWeakReference' to true completely disables this event
   * 2009.01.20 - *v1.2*
     * Added clearVariables and clearFiles methods
     * Small code refactoring
