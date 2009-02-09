@@ -1,3 +1,22 @@
 #summary Custom URLLoader class (not socket) to send multipart form data.
 #labels Featured
 
+= Multipart URLLoader Class =
+
+During one of the projects I faced a problem to upload multipart/form-data to server using Flash. I need to do it using ActionScript only. The idea was to send to server an image generated in flash and several variables but all this data had to be POST.
+I found several projects that were using Flash Socket to send multipart requests to server but the problem was that sockets required custom server configuration to work. As you understand we cant ask remote service to reconfigure their system only because we need it.
+So the only way was to build your own custom URLLoader class (not socket) to send multipart form data.
+*Unfortunately there is a problem getting progress event. We cant show any progress during sending data to server because flash doesn't support it. (the same problem with sockets)*
+
+== How To ==
+*[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/MultipartURLLoader Complete source code and test usage example with small PHP script available in my repository]*
+
+== Change Log ==
+  * 2009.01.20 - *v1.2*
+    * Added clearVariables and clearFiles methods
+    * Small code refactoring
+    * Public methods documentation
+  * 2009.01.19 - *v1.1*
+    * Added options for MIME-types (default is application/octet-stream).
+  * 2009.01.15 - *v1.0*
+    * Initial release.
