@@ -3,7 +3,7 @@
 
 = Multipart URLLoader Class =
 
-During one of the projects I faced a problem to upload multipart/form-data to server using Flash. I need to do it using ActionScript only. The idea was to send to server an image generated in flash and several variables but all this data had to be POST.
+During one of the projects I faced a problem to upload multipart/form-data to server using Flash. I need to do it using Actionscript only. The idea was to send to server an image generated in flash and several variables but all this data had to be POST.
 I found several projects that were using Flash Socket to send multipart requests to server but the problem was that sockets required custom server configuration to work. As you understand we cant ask remote service to reconfigure their system only because we need it.
 So the only way was to build your own custom URLLoader class (not socket) to send multipart form data.
 *Unfortunately there is a problem getting progress event. We cant show any progress during sending data to server because flash doesn't support it. (the same problem with sockets)*
