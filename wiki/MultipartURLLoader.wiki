@@ -19,6 +19,7 @@ So the only way was to build your own custom URLLoader class (not socket) to sen
     * Added events for asynchronous method.
     * Added dataFormat property for returned server data.
     * Removed 'Cache-Control' from headers and added custom requestHeaders array property.
+    * Added getter for the URLLoader class used to send data.
   * 2009.02.09 - *v1.2.1*
     * Changed 'useWeakReference' to false (thanx to zlatko). It appears that on some servers setting 'useWeakReference' to true completely disables this event
   * 2009.01.20 - *v1.2*
