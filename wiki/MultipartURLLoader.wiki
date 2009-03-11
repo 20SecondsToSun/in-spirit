@@ -12,6 +12,13 @@ So the only way was to build your own custom URLLoader class (not socket) to sen
 *[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/MultipartURLLoader Complete source code and test usage example with small PHP script available in my repository]*
 
 == Change Log ==
+  * 2009.03.05 - *v1.3*
+    * Added Async property. Now you can prepare data asynchronous before sending it. 
+    * It will prevent flash player from freezing while constructing request data.
+    * You can specify the amount of bytes to write per iteration through BLOCK_SIZE static property.
+    * Added events for asynchronous method.
+    * Added dataFormat property for returned server data.
+    * Removed 'Cache-Control' from headers and added custom requestHeaders array property.
   * 2009.02.09 - *v1.2.1*
     * Changed 'useWeakReference' to false (thanx to zlatko). It appears that on some servers setting 'useWeakReference' to true completely disables this event
   * 2009.01.20 - *v1.2*
