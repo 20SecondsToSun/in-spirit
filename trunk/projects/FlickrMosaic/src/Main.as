@@ -137,6 +137,11 @@ package
 			canvas.savePoster();
 		}
 		
+		public function set enableControls(val:Boolean):void
+		{
+			controls.enabled = val;
+		}
+		
 		public function onOpenImagePress(e:Event):void
 		{
 			LocalFile.openFile(onFileSelected);

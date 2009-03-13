@@ -10,12 +10,11 @@
 
 	import flash.utils.ByteArray;
 	
-	import mx.graphics.codec.JPEGEncoder;
-	
-	import ru.inspirit.utils.PNGEnc;
+	import ru.inspirit.utils.JPGEncoder;
+	import ru.inspirit.utils.PNGEncoder;
 
 	/**
-	* Open/Save local files
+	* Open/Save local files for Flash 10
 	* @author Eugene Zatepyakin
 	*/
 	public class LocalFile
@@ -26,10 +25,8 @@
 		private static var onData:Function;
 		private static var onOpenCancel:Function;
 		
-		private static const j_encoder : JPEGEncoder = new JPEGEncoder(100);
-
-		public function LocalFile() { }
-
+		private static const j_encoder : JPGEncoder = new JPGEncoder(100);
+		
 		public static function openFile(onOpen:Function, onSelectCancel:Function = null):void
 		{
 			fr = new FileReference();
@@ -57,7 +54,7 @@
 			var ba : ByteArray;
 			var fn:String = name + "." + type;
 			if(type == "png"){
-				ba = PNGEnc.encode(data, opaque);
+				ba = PNGEncoder.encode(data, opaque);
 			} else {
 				ba = j_encoder.encode(data);
 			}
@@ -76,16 +73,14 @@
 
 		private static function onCancel(e:Event):void
 		{
-			if (onOpenCancel != null) onOpenCancel.apply( null, [e] );
-			onOpenCancel = null;
+			if(onOpenCancel != null) onOpenCancel();
 			fr = null;
 		}
 
 		private static function onLoadComplete(e:Event):void
 		{
 			var data:ByteArray = fr.data;
-			onData.apply( null, [data]);
-			onData = null;
+			onData(data);
 			fr = null;
 		}
 

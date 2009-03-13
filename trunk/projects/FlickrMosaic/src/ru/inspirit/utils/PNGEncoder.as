@@ -1,21 +1,21 @@
+/**
+* Original implemetation by Tinic Uro
+* @see http://www.kaourantin.net/2005/10/png-encoder-in-as3.html
+* 
+* Optimized by Aral
+* @see http://www.5etdemi.com/blog/archives/2006/12/as3-png-encoder-faster-better/
+* 
+* Small refactoring by Eugene Zatepyakin 
+*/
+
 package ru.inspirit.utils
 {
 	import flash.utils.ByteArray;
 	import flash.display.BitmapData;
 	import flash.utils.getTimer;
 	import flash.geom.Rectangle;
-	
-	/**
-	* Original implemetation by Tinic Uro
-	* @see http://www.kaourantin.net/2005/10/png-encoder-in-as3.html
-	* 
-	* Optimized by Aral
-	* @see http://www.5etdemi.com/blog/archives/2006/12/as3-png-encoder-faster-better/
-	* 
-	* Small refactoring by Eugene Zatepyakin 
-	*/
 
-	public class PNGEnc {
+	public class PNGEncoder {
 
 	    public static function encode(img:BitmapData, type:uint = 0):ByteArray 
 		{
@@ -56,9 +56,6 @@ package ru.inspirit.utils
 	        // Build IEND chunk
 	        writeChunk(png,0x49454E44,null);
 	        // return PNG
-
-
-
 	        return png;
 	    }
 

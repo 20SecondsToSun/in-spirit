@@ -169,7 +169,7 @@
 					dispatchEvent(new TileBankEvent("AllTilesLoaded"));
 				}
 			}
-			trace("loading: ", que.length);
+			//trace("loading: ", que.length);
 		}
 		
 		public function clear():void
