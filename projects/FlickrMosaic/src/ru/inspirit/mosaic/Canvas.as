@@ -6,6 +6,7 @@
 	import flash.display.Sprite;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
+	import flash.events.ProgressEvent;
 	import flash.events.TimerEvent;
 	import flash.geom.ColorTransform;
 	import flash.geom.Matrix;
@@ -18,6 +19,7 @@
 	import flash.utils.Timer;
 	import flash.text.TextField;
 	import ru.inspirit.ui.KeyboardShortcut;
+	import ru.inspirit.utils.JPGEncoder;
 	import ru.inspirit.utils.LocalFile;
 	import ru.inspirit.utils.Random;
 	
@@ -30,8 +32,8 @@
 	public class Canvas extends Sprite
 	{
 		
-		private const maxImageWidth:int = 530;
-		private const maxImageHeight:int = 530;
+		private const maxImageWidth:int = 800;
+		private const maxImageHeight:int = 550;
 		private const maxBitmap:int = 4000;
 		
 		private var maxZoom:Number;
@@ -62,6 +64,8 @@
 		private var totalTiles:int;
 		
 		private var _owner:Main;
+		private var je:JPGEncoder;
+		private var originalImage:BitmapData;
 		
 		public function Canvas(own:Main) 
 		{
@@ -98,6 +102,13 @@
 			txt.selectable = false;
 			txt.y = 8;
 			tilingInfo.addChild(txt);
+			
+			var emptyBtn:Sprite = new Sprite();
+			emptyBtn.graphics.beginFill(0x000000, 0);
+			emptyBtn.graphics.drawRoundRect(0, 0, 200, 50, 10);
+			emptyBtn.graphics.endFill();
+			tilingInfo.addChild(emptyBtn);
+			
 			tilingInfo.visible = false;
 			addChild(tilingInfo);
 			
@@ -110,6 +121,10 @@
 			tileTimer = new Timer(10);
 			tileTimer.addEventListener(TimerEvent.TIMER, tileTick);
 			
+			je = new JPGEncoder(90);
+			je.addEventListener(ProgressEvent.PROGRESS, onEncodingProgress);
+			je.addEventListener(Event.COMPLETE, onEncodingComplete);
+			
 			root.stage.addEventListener(Event.RESIZE, onResize);
 			
 			// Keyboard shortcuts for zooming
@@ -121,14 +136,20 @@
 		public function setPixelSize(s:int):void
 		{
 			if (source != null) source.dispose();
-			source = new BitmapData(img.width, img.height, true, 0x00FFFFFF);
-			var tmp_bmp:BitmapData = new BitmapData(int(img.width/s + .5), int(img.height/s + .5), true, 0x00FFFFFF);
-			tmp_bmp.draw(img.bitmapData, new Matrix(1/s, 0, 0, 1/s, 0, 0));
+			var tmp_bmp:BitmapData = new BitmapData(int(img.width/s - .5), int(img.height/s - .5), false, 0xFFFFFF);
+			tmp_bmp.draw(img.bitmapData, new Matrix(1 / s, 0, 0, 1 / s, 0, 0));
+			
+			source = new BitmapData(tmp_bmp.width*s, tmp_bmp.height*s, false, 0xFFFFFF);
 			source.draw(tmp_bmp, new Matrix(s, 0, 0, s, 0, 0));
-			//
+			
+			var newImg:BitmapData = source.clone();
+			var k:Number = Math.max(source.width/originalImage.width, source.height/originalImage.height);
+			newImg.draw(originalImage, new Matrix(k, 0, 0, k, 0, 0));
+			
 			tmp_bmp.dispose();
 			tmp_bmp = null;
 			pixelImage.bitmapData = source;
+			img.bitmapData = newImg;
 			//
 			maxZoom = 75 / s;
 			//
@@ -260,27 +281,22 @@
 		{
 			var w:Number = int(source.width * maxZoom);
 			var h:Number = int(source.height * maxZoom);
-			var bmp:BitmapData;
-			var k:Number;
 			var z:Number = img.scaleY;
-			// not sure if we need this resize to exact dimensions
+			// resize to exact dimensions
 			img.width = pixelImage.width = w;
 			img.height = pixelImage.height = h;
 			tileSprite.scaleX = tileSprite.scaleY = 1;
 			layers.scrollRect = null;
-			//
-			if(w > maxBitmap || h > maxBitmap){
-				if ((w/maxBitmap)<(h/maxBitmap)) {
-					k = (maxBitmap / h);
-				} else {
-					k = (maxBitmap / w);
-				}
-				bmp = new BitmapData(int(w * k + .5), int(h * k + .5), false, 0xFFFFFF);
-				bmp.draw(layers, new Matrix(1 * k, 0, 0, 1 * k, 0, 0));
-			} else {
-				bmp = new BitmapData(w, h, false, 0xFFFFFF);
-				bmp.draw(layers);
-			}
+			
+			var bmp1:BitmapData = new BitmapData(tile_TL.width, tile_TL.height, false, 0x000000);
+			var bmp2:BitmapData = new BitmapData(tile_TR.width, tile_TR.height, false, 0x000000);
+			var bmp3:BitmapData = new BitmapData(tile_BL.width, tile_BL.height, false, 0x000000);
+			var bmp4:BitmapData = new BitmapData(tile_BR.width, tile_BR.height, false, 0x000000);
+			bmp1.draw(layers, new Matrix(1, 0, 0, 1, 0, 0), null, null, bmp1.rect);
+			bmp2.draw(layers, new Matrix(1, 0, 0, 1, -tile_TL.width, 0)), null, null, bmp2.rect;
+			bmp3.draw(layers, new Matrix(1, 0, 0, 1, 0, -tile_TL.height), null, null, bmp3.rect);
+			bmp4.draw(layers, new Matrix(1, 0, 0, 1, -tile_BL.width, -tile_TR.height), null, null, bmp4.rect);
+			
 			// resize back
 			img.scaleX = img.scaleY = z;
 			pixelImage.scaleX = pixelImage.scaleY = z;
@@ -288,21 +304,53 @@
 			tileSprite.height = img.height;
 			layers.scrollRect = scrollR;
 			//
-			LocalFile.saveImage(bmp, "mosaic", "png", 1);
-			//
-			bmp.dispose();
-			bmp = null;
+			if (Main.pixelSize < 10) {
+				je.PixelsPerIteration = 64;
+			} else {
+				je.PixelsPerIteration = 128;
+			}
+			je.encodeMultiToOne([
+								[bmp1, bmp2],
+								[bmp3, bmp4]
+								]);
+			tilingInfo.visible = true;
+			_owner.enableControls = false;
+		}
+		
+		private function onEncodingComplete(e:Event):void 
+		{
+			(tilingInfo.getChildByName("_txt") as TextField).text = 'ENCODING POSTER COMPLETE\nCLICK HERE TO SAVE IT';
+			tilingInfo.buttonMode = true;
+			tilingInfo.addEventListener(MouseEvent.CLICK, processSave);
+		}
+		
+		private function processSave(e:MouseEvent):void 
+		{
+			LocalFile.saveFile(je.ImageData, 'mosaic.jpg');
+			
+			tilingInfo.buttonMode = false;
+			tilingInfo.removeEventListener(MouseEvent.CLICK, processSave);
+			tilingInfo.visible = false;
+			
+			_owner.enableControls = true;
+		}
+		
+		private function onEncodingProgress(e:ProgressEvent):void 
+		{
+			(tilingInfo.getChildByName("_txt") as TextField).text = 'ENCODING POSTER\nPROGRESS: ' + Math.round(e.bytesLoaded/e.bytesTotal * 100) + '%';
 		}
 		
 		private function zoomCanvas(delta:Number = 0):void
 		{
-			var z:Number = img.scaleX;
+			var z:Number = pixelImage.scaleX;
 			z += delta;
 			z = Math.max(z, 1);
 			z = Math.min(z, maxZoom);
 			//
-			img.scaleX = img.scaleY = z;
 			pixelImage.scaleX = pixelImage.scaleY = z;
+			//img.scaleX = img.scaleY = z;
+			img.width = pixelImage.width;
+			img.height = pixelImage.height;
 			tileSprite.width = img.width;
 			tileSprite.height = img.height;
 			onResize();
@@ -344,6 +392,7 @@
 		public function setImage(bmp:BitmapData):void
 		{
 			img.bitmapData = fitImage(bmp);
+			originalImage = img.bitmapData.clone();
 			clear();
 			onResize();
 		}

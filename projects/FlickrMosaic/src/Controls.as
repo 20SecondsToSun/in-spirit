@@ -12,6 +12,7 @@
 	import flash.display.Graphics;
 	import flash.display.Sprite;
 	import flash.events.Event;
+	import flash.events.MouseEvent;
 	import flash.events.StatusEvent;
 	import flash.media.Video;
 	import flash.media.Camera;
@@ -49,6 +50,7 @@
 		private var radio_flickr_options_pool:RadioButton;
 		private var radio_flickr_options_tags:RadioButton;
 		private var radio_flickr_options_user:RadioButton;
+		private var _enabled:Boolean = true;
 		
 		private var tmp_data:Object = { };
 		
@@ -103,7 +105,7 @@
 			tileNumberSlider.width = pixelSizeSlider.width = 250;
 			tileNumberSlider.backClick = pixelSizeSlider.backClick = true;
 			tileNumberSlider.setSliderParams(50, 500, 100);
-			pixelSizeSlider.setSliderParams(5, 50, 10);
+			pixelSizeSlider.setSliderParams(10, 20, 10);
 			tileNumberSlider.labelPrecision = 0;
 			pixelSizeSlider.labelPrecision = 0;
 			
@@ -130,6 +132,22 @@
 			//
 			stage.addEventListener(Event.RESIZE, onResize);
 			onResize();
+		}
+		
+		public function set enabled(val:Boolean):void
+		{
+			if (!val) {
+				fader = new Sprite();
+				fader.graphics.beginFill(0x000000, .5);
+				fader.graphics.drawRect(0, 0, stage.stageWidth, panel.height);
+				addChild(fader);
+				panel.alpha = .5;
+			} else {
+				removeChild(fader);
+				fader = null;
+				panel.alpha = 1;
+			}
+			_enabled = val;
 		}
 		
 		private function onSavePoster(e:Event):void
@@ -420,9 +438,13 @@
 				fader.width = w;
 				fader.height = h;
 			}
+			if (!_enabled) {
+				fader.width = w;
+				fader.height = panel.height;
+			}
 		}
 		
-		public function drawSep(g:Graphics, x:int):void
+		private function drawSep(g:Graphics, x:int):void
 		{
 			g.lineStyle(1, 0x999999, 1, true, "normal", "SQUARE");
 			g.moveTo(x, 5);
