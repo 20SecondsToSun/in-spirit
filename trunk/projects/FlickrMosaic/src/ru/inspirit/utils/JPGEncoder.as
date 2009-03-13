@@ -229,6 +229,12 @@ package ru.inspirit.utils
 			internalMultiEncode(imgs);
 		}
 		
+		public function cleanUp():void
+		{
+			clearTimeout(asyncLoopId);
+			byteout.clear();
+		}
+		
 		private function internalMultiEncode(imgs:Array):void
 		{
 			if (Working) {

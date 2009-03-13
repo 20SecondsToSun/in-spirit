@@ -328,6 +328,8 @@
 		{
 			LocalFile.saveFile(je.ImageData, 'mosaic.jpg');
 			
+			je.cleanUp();
+			
 			tilingInfo.buttonMode = false;
 			tilingInfo.removeEventListener(MouseEvent.CLICK, processSave);
 			tilingInfo.visible = false;
