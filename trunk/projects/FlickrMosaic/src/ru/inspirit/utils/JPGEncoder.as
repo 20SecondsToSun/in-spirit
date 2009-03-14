@@ -237,12 +237,12 @@ package ru.inspirit.utils
 			internalMultiEncode(imgs);
 		}
 		
-		public function cleanUp():void
+		public function cleanUp(disposeBitmapData:Boolean = false):void
 		{
 			asyncTimer.stop();
 			byteout.clear();
-			if (MultiSource.length) {
-				buffer.dispose();
+			if(buffer) buffer.dispose();
+			if (MultiSource.length && disposeBitmapData) {
 				clearSources();
 			}
 		}
@@ -488,9 +488,6 @@ package ru.inspirit.utils
 			if(_async){
 				dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, TotalSize, TotalSize));
 				dispatchEvent(new Event(Event.COMPLETE));
-				if (MultiSource.length) {
-					clearSources();
-				}
 			}
 			
 			Working = false;

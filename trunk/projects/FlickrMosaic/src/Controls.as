@@ -17,6 +17,7 @@
 	import flash.media.Video;
 	import flash.media.Camera;
 	import ru.inspirit.flickr.Flickr;
+	import ru.inspirit.mosaic.TileLayer;
 	
 	/**
 	* Control Panel.
@@ -105,19 +106,27 @@
 			tileNumberSlider.width = pixelSizeSlider.width = 250;
 			tileNumberSlider.backClick = pixelSizeSlider.backClick = true;
 			tileNumberSlider.setSliderParams(50, 500, 100);
-			pixelSizeSlider.setSliderParams(10, 20, 10);
+			pixelSizeSlider.setSliderParams(5, 20, 10);
 			tileNumberSlider.labelPrecision = 0;
 			pixelSizeSlider.labelPrecision = 0;
 			
 			drawSep(g, 455);
 			
-			startBtn = new PushButton(alls, 465, 5, "LOAD & RENDER", onStartPress);
+			lb = new Label(alls, 465, 3, "OVERLAY METHOD");
+			var gr:RadioButtonGroup = new RadioButtonGroup();
+			new RadioButton(alls, 465, 22, "CLEAR", false, onDrawMethodChanged, gr);
+			new RadioButton(alls, 515, 22, "BLEND", true, onDrawMethodChanged, gr);
+			new RadioButton(alls, 465, 38, "COLORIZE", false, onDrawMethodChanged, gr);
+			
+			drawSep(g, 565);
+			
+			startBtn = new PushButton(alls, 575, 5, "LOAD & RENDER", onStartPress);
 			startBtn.setSize(90, 20);
-			var render_btn:PushButton = new PushButton(alls, 465, 30, "RENDER", onRenderPress);
+			var render_btn:PushButton = new PushButton(alls, 575, 30, "RENDER", onRenderPress);
 			render_btn.name = "render_btn";
 			render_btn.setSize(90, 20);
 			
-			var save_btn:PushButton = new PushButton(alls, 565, 5, "SAVE", onSavePoster);
+			var save_btn:PushButton = new PushButton(alls, 675, 5, "SAVE", onSavePoster);
 			save_btn.name = "save_btn";
 			save_btn.setSize(50, 45);
 			//
@@ -132,6 +141,18 @@
 			//
 			stage.addEventListener(Event.RESIZE, onResize);
 			onResize();
+		}
+		
+		private function onDrawMethodChanged(e:Event):void
+		{
+			var r:RadioButton = RadioButton(e.currentTarget);
+			if (r.label == 'CLEAR') {
+				TileLayer.DRAW_STYLE = 'clear';
+			} else if (r.label == 'BLEND') {
+				TileLayer.DRAW_STYLE = 'blend';
+			} else {
+				TileLayer.DRAW_STYLE = 'colorize';
+			}
 		}
 		
 		public function set enabled(val:Boolean):void
@@ -419,7 +440,7 @@
 			var h:Number = stage.stageHeight;
 			var alls:Sprite = panel.content.getChildByName("all_controls") as Sprite;
 			panel.width = w;
-			alls.x = int((w - 625) * .5);
+			alls.x = int((w - 734 ) * .5);
 			//
 			var g:Graphics = (panel.content.getChildByName("txtr") as Sprite).graphics;
 			g.clear();

@@ -41,7 +41,7 @@
 		public var layers:Sprite;
 		public var img:Bitmap;
 		public var pixelImage:Bitmap;
-		public var tileSprite:Sprite;
+		public var tileSprite:TileLayer;
 		
 		public var renderedImage:Sprite;
 		
@@ -79,7 +79,7 @@
 			layers = new Sprite();
 			img = new Bitmap();
 			pixelImage = new Bitmap();
-			tileSprite = new Sprite();
+			tileSprite = new TileLayer();
 			//
 			imageLoader = new Loader();
 			imageLoader.contentLoaderInfo.addEventListener(Event.COMPLETE, onImageLoaded);
@@ -99,6 +99,7 @@
 			txt.defaultTextFormat = new flash.text.TextFormat("_sans", 12, 0xFFFFFF, false, false, false, null, null, "center");
 			txt.text = "TILING";
 			txt.width = 200;
+			txt.height = 42;
 			txt.selectable = false;
 			txt.y = 8;
 			tilingInfo.addChild(txt);
@@ -115,8 +116,8 @@
 			scrollR = new Rectangle(0, 0, stage.stageWidth, stage.stageHeight - y);
 			layers.scrollRect = scrollR;
 			
-			pixelImage.blendMode = "screen";
-			tileSprite.blendMode = "multiply";
+			//pixelImage.blendMode = "screen";
+			//tileSprite.blendMode = "multiply";
 			
 			tileTimer = new Timer(10);
 			tileTimer.addEventListener(TimerEvent.TIMER, tileTick);
@@ -172,7 +173,9 @@
 				r = 0;
 			}
 			//
-			buildTileHolder();
+			tileSprite.buildLayer(source.width, source.height, maxZoom);
+			tileSprite.width = img.width;
+			tileSprite.height = img.height;
 			//
 			tilingInfo.visible = true;
 			//
@@ -183,79 +186,21 @@
 			addEventListener(MouseEvent.MOUSE_WHEEL, mouseZoom);
 		}
 		
-		/**
-		* This workaround was made to allow resizing result mosaic at the maximum size
-		* we cant draw all tiles in one Bitmap cause of size restrictions.
-		*/
-		private function buildTileHolder():void
-		{
-			var w:Number = source.width * maxZoom;
-			var h:Number = source.height * maxZoom;
-			var px:int = Math.floor(source.width / Main.pixelSize);
-			var py:int = Math.floor(source.height / Main.pixelSize);
-			var halfW:int = Math.ceil(px / 2);
-			var halfH:int = Math.ceil(py / 2);
-			var tl_w:Number = halfW * 75;
-			var tr_w:Number = w - tl_w;
-			var tl_h:Number = halfH * 75;
-			var bl_h:Number = h - tl_h;
-			//
-			var r_tl:BitmapData = new BitmapData(tl_w, tl_h, true, 0x00FFFFFF);
-			var r_tr:BitmapData = new BitmapData(tr_w, tl_h, true, 0x00FFFFFF);
-			var r_bl:BitmapData = new BitmapData(tl_w, bl_h, true, 0x00FFFFFF);
-			var r_br:BitmapData = new BitmapData(tr_w, bl_h, true, 0x00FFFFFF);
-			//
-			tile_TL = new Bitmap(r_tl);
-			tile_TR = new Bitmap(r_tr);
-			tile_BL = new Bitmap(r_bl);
-			tile_BR = new Bitmap(r_br);
-			//
-			tile_TR.x = tile_BR.x = tl_w;
-			tile_BL.y = tile_BR.y = tl_h;
-			//
-			tileSprite.addChild(tile_TL);
-			tileSprite.addChild(tile_TR);
-			tileSprite.addChild(tile_BL);
-			tileSprite.addChild(tile_BR);
-			//
-			tileSprite.width = img.width;
-			tileSprite.height = img.height;
-		}
-		
 		private function setTilePlace(ind:int):void
 		{
 			var p:Object = tileQue[ind];
 			var c:uint = source.getPixel32(p.x*Main.pixelSize + 1, p.y*Main.pixelSize + 1);
 			var t:TileItem;
-			var bmp:BitmapData;
-			var tx:int;
-			var ty:int;
 			var ts:int = 75;
+			
 			t = TileBank.findTile(c);
+			
 			if (t != null) {
-			//	var bmp:BitmapData = new BitmapData(t._bmp.width, t._bmp.height, true, c);
-			//	var k:Number = .4;
-			//	var ct:ColorTransform = new ColorTransform(1, 1, 1, 1, (c >> 16 & 0xff)*k, (c >> 8 & 0xff)*k, (c & 0xff)*k, 0);
-			//	bmp.draw(t._bmp, null, ct);
-				tx = p.x * ts;
-				ty = p.y * ts;
-				if ((tx + ts) <= tile_TL.width && (ty + ts) <= tile_TL.height) {
-					bmp = tile_TL.bitmapData;
-				} else if ((tx + ts) <= tile_TL.width && (ty + ts) > tile_TL.height) {
-					bmp = tile_BL.bitmapData;
-					ty -= tile_TL.height;
-				} else if ((tx + ts) > tile_TL.width && (ty + ts) <= tile_TL.height) {
-					bmp = tile_TR.bitmapData;
-					tx -= tile_TL.width;
-				} else if ((tx + ts) > tile_TL.width && (ty + ts) > tile_TL.height) {
-					bmp = tile_BR.bitmapData;
-					tx -= tile_TL.width;
-					ty -= tile_TL.height;
-				}
-				bmp.copyPixels(t._bmp, t._bmp.rect, new Point(tx, ty));
+				tileSprite.placeTile(p.x * ts, p.y * ts, t, c, img.bitmapData);
 			}
+			
 			tileQue.splice(ind, 1);
-			//
+			
 			(tilingInfo.getChildByName("_txt") as TextField).text = "TILING " + (totalTiles) + " / " + (totalTiles - tileQue.length) + "\nuse scroll wheel to zoom in/out";
 		}
 		
@@ -282,37 +227,26 @@
 			var w:Number = int(source.width * maxZoom);
 			var h:Number = int(source.height * maxZoom);
 			var z:Number = img.scaleY;
-			// resize to exact dimensions
-			img.width = pixelImage.width = w;
-			img.height = pixelImage.height = h;
-			tileSprite.scaleX = tileSprite.scaleY = 1;
-			layers.scrollRect = null;
 			
-			var bmp1:BitmapData = new BitmapData(tile_TL.width, tile_TL.height, false, 0x000000);
-			var bmp2:BitmapData = new BitmapData(tile_TR.width, tile_TR.height, false, 0x000000);
-			var bmp3:BitmapData = new BitmapData(tile_BL.width, tile_BL.height, false, 0x000000);
-			var bmp4:BitmapData = new BitmapData(tile_BR.width, tile_BR.height, false, 0x000000);
-			bmp1.draw(layers, new Matrix(1, 0, 0, 1, 0, 0), null, null, bmp1.rect);
-			bmp2.draw(layers, new Matrix(1, 0, 0, 1, -tile_TL.width, 0)), null, null, bmp2.rect;
-			bmp3.draw(layers, new Matrix(1, 0, 0, 1, 0, -tile_TL.height), null, null, bmp3.rect);
-			bmp4.draw(layers, new Matrix(1, 0, 0, 1, -tile_BL.width, -tile_TR.height), null, null, bmp4.rect);
+			var arr:Array = tileSprite.getEncodeArray();
+			var e_arr:Array = [];
+			var b:Bitmap;
+			for (var i:uint = 0; i < arr.length; i++) {
+				e_arr[i] = [];
+				for (var j:uint = 0; j < arr[i].length; j++) {
+					b = Bitmap(arr[i][j]);
+					e_arr[i][j] = b.bitmapData;
+				}
+			}
 			
-			// resize back
-			img.scaleX = img.scaleY = z;
-			pixelImage.scaleX = pixelImage.scaleY = z;
-			tileSprite.width = img.width;
-			tileSprite.height = img.height;
-			layers.scrollRect = scrollR;
-			//
 			if (Main.pixelSize < 10) {
-				je.PixelsPerIteration = 64;
+				je.PixelsPerIteration = 96;
 			} else {
 				je.PixelsPerIteration = 128;
 			}
-			je.encodeMultiToOne([
-								[bmp1, bmp2],
-								[bmp3, bmp4]
-								]);
+			
+			je.encodeMultiToOne(e_arr);
+			
 			tilingInfo.visible = true;
 			_owner.enableControls = false;
 		}
@@ -322,6 +256,26 @@
 			(tilingInfo.getChildByName("_txt") as TextField).text = 'ENCODING POSTER COMPLETE\nCLICK HERE TO SAVE IT';
 			tilingInfo.buttonMode = true;
 			tilingInfo.addEventListener(MouseEvent.CLICK, processSave);
+			tilingInfo.addEventListener(MouseEvent.MOUSE_OVER, onSaveBtnOver);
+			tilingInfo.addEventListener(MouseEvent.MOUSE_OUT, onSaveBtnOut);
+		}
+		
+		private function onSaveBtnOver(e:MouseEvent):void
+		{
+			tilingInfo.graphics.clear();
+			tilingInfo.graphics.beginFill(0xFFFFFF, .8);
+			tilingInfo.graphics.drawRoundRect(0, 0, 200, 50, 10);
+			tilingInfo.graphics.endFill();
+			(tilingInfo.getChildByName("_txt") as TextField).textColor = 0x000000;
+		}
+		
+		private function onSaveBtnOut(e:MouseEvent):void
+		{
+			tilingInfo.graphics.clear();
+			tilingInfo.graphics.beginFill(0x000000, .8);
+			tilingInfo.graphics.drawRoundRect(0, 0, 200, 50, 10);
+			tilingInfo.graphics.endFill();
+			(tilingInfo.getChildByName("_txt") as TextField).textColor = 0xFFFFFF;
 		}
 		
 		private function processSave(e:MouseEvent):void 
@@ -332,6 +286,8 @@
 			
 			tilingInfo.buttonMode = false;
 			tilingInfo.removeEventListener(MouseEvent.CLICK, processSave);
+			tilingInfo.removeEventListener(MouseEvent.MOUSE_OVER, onSaveBtnOver);
+			tilingInfo.removeEventListener(MouseEvent.MOUSE_OUT, onSaveBtnOut);
 			tilingInfo.visible = false;
 			
 			_owner.enableControls = true;
@@ -339,7 +295,7 @@
 		
 		private function onEncodingProgress(e:ProgressEvent):void 
 		{
-			(tilingInfo.getChildByName("_txt") as TextField).text = 'ENCODING POSTER\nPROGRESS: ' + Math.round(e.bytesLoaded/e.bytesTotal * 100) + '%';
+			(tilingInfo.getChildByName("_txt") as TextField).text = 'ENCODING POSTER\nCOMPLETED: ' + Math.round(e.bytesLoaded/e.bytesTotal * 100) + '%';
 		}
 		
 		private function zoomCanvas(delta:Number = 0):void
@@ -440,19 +396,16 @@
 		
 		public function clearTiles():void
 		{
-			var b:Bitmap;
-			while (tileSprite.numChildren) {
-				b = tileSprite.removeChildAt(0) as Bitmap;
-				b.bitmapData.dispose();
-			}
+			tileSprite.destroy();
 		}
 		
 		public function clear():void
 		{
 			tileTimer.stop();
 			if (source != null) source.dispose();
-			//
+			
 			clearTiles();
+			
 			img.scaleX = img.scaleY = pixelImage.scaleX = pixelImage.scaleY = tileSprite.scaleX = tileSprite.scaleY = 1;
 			tilingInfo.visible = false;
 		}
