@@ -46,13 +46,18 @@ package ru.inspirit.utils
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
 	import flash.events.ProgressEvent;
+	import flash.events.TimerEvent;
+	import flash.geom.Point;
+	import flash.geom.Rectangle;
 	import flash.utils.ByteArray;
 	import flash.utils.clearInterval;
 	import flash.utils.clearTimeout;
 	import flash.utils.setTimeout;
+	import flash.utils.Timer;
 
 	public class JPGEncoder extends EventDispatcher
 	{
+		private const origin:Point = new Point();
 	    public static const CONTENT_TYPE:String = "image/jpeg";
 
 	    private var ZigZag:Array = [
@@ -149,6 +154,7 @@ package ru.inspirit.utils
 	    private var DCV:Number = 0;
 		
 		private var _async:Boolean = false;
+		private var asyncTimer:Timer;
 	    private var SrcWidth:int = 0;
 	    private var SrcHeight:int = 0;
 	    private var Source:Object = null;
@@ -158,14 +164,13 @@ package ru.inspirit.utils
 	    private var NextProgressAt:int = 0;
 	    private var CurrentTotalPos:int = 0;
 	    private var Working:Boolean = false;
-		private var asyncLoopId:Number;
 		
-		private var MultiThread:Boolean = false;
 		private var MultiSource:Array;
 		private var MultiIndX:uint = 0;
 		private var MultiIndY:uint = 0;
-		private var ox:uint = 0;
-		private var oy:uint = 0;
+		private var buffer:BitmapData;
+		private var xpos:uint = 0;
+		private var ypos:uint = 0;
 
 	    public function JPGEncoder(quality:Number=50)
 	    {
@@ -185,6 +190,9 @@ package ru.inspirit.utils
 		  initHuffmanTbl();
 		  initCategoryNumber();
 		  initQuantTables(sf);
+		  
+		  // Init Async timer
+		  asyncTimer = new Timer(10);
 	    }
 		
 	    public function get PixelsPerIteration():int
@@ -231,25 +239,33 @@ package ru.inspirit.utils
 		
 		public function cleanUp():void
 		{
-			clearTimeout(asyncLoopId);
+			asyncTimer.stop();
 			byteout.clear();
+			if (MultiSource.length) {
+				buffer.dispose();
+				clearSources();
+			}
 		}
 		
 		private function internalMultiEncode(imgs:Array):void
 		{
 			if (Working) {
-				clearTimeout(asyncLoopId);
+				asyncTimer.stop();
+				if (asyncTimer.hasEventListener(TimerEvent.TIMER)) {
+					asyncTimer.removeEventListener(TimerEvent.TIMER, EncodeTick);
+					asyncTimer.removeEventListener(TimerEvent.TIMER, MultiEncodeTick);
+				}
 			}
 			
 			_async = true;
 			Working = true;
-			MultiThread = true;
 			MultiSource = imgs;
 			MultiIndX = 0;
 			MultiIndY = 0;
-			ox = 0;
-			oy = 0;
+			xpos = ypos = 0;
 			Source = MultiSource[MultiIndY][MultiIndX];
+			buffer = new BitmapData(PixelsPerIter * 8, 8, true, 0x00000000);
+			
 			SrcWidth = 0;
 			SrcHeight = 0;
 			
@@ -269,18 +285,22 @@ package ru.inspirit.utils
 			StartEncode();
 			
 			dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, 0, TotalSize));
-			asyncLoopId = setTimeout(AsyncLoop, 10, 0, 0);
+			asyncTimer.addEventListener(TimerEvent.TIMER, MultiEncodeTick);
+			asyncTimer.start();
 		}
 
 	    private function internalEncode(newSource:Object, width:int, height:int, async:Boolean = false):void
 	    {
 			if (Working) {
-				clearTimeout(asyncLoopId);
+				asyncTimer.stop();
+				if (asyncTimer.hasEventListener(TimerEvent.TIMER)) {
+					asyncTimer.removeEventListener(TimerEvent.TIMER, EncodeTick);
+					asyncTimer.removeEventListener(TimerEvent.TIMER, MultiEncodeTick);
+				}
 			}
 			
 			_async = async;
 			Working = true;
-			MultiThread = false;
 			Source = newSource;
 			SrcWidth = width;
 			SrcHeight = height;
@@ -288,19 +308,21 @@ package ru.inspirit.utils
 			PercentageInc = TotalSize/100;
 			NextProgressAt = PercentageInc;
 			CurrentTotalPos = 0;
+			xpos = ypos = 0;
 			
 			StartEncode();
 			
 			if (async) {
 				
 				dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, 0, TotalSize));
-				asyncLoopId = setTimeout(AsyncLoop, 10, 0, 0);
+				asyncTimer.addEventListener(TimerEvent.TIMER, EncodeTick);
+				asyncTimer.start();
 				
 			} else {
 				
-				for (var ypos:int = 0; ypos < height; ypos += 8) {
-					for (var xpos:int = 0; xpos < width; xpos += 8) {
-						RGB2YUV(Source, xpos, ypos);
+				for (var y:int = 0; y < height; y += 8) {
+					for (var x:int = 0; x < width; x += 8) {
+						RGB2YUV(Source, x, y);
 						DCY = processDU(YDU, fdtbl_Y, DCY, YDC_HT, YAC_HT);
 						DCU = processDU(UDU, fdtbl_UV, DCU, UVDC_HT, UVAC_HT);
 						DCV = processDU(VDU, fdtbl_UV, DCV, UVDC_HT, UVAC_HT);
@@ -333,52 +355,110 @@ package ru.inspirit.utils
 			bytenew = 0;
 			bytepos = 7;
 	    }
-
-	    private function AsyncLoop(xpos:int, ypos:int):void
-	    {
-			for(var i:int=0; i < PixelsPerIter; i++)
+		
+		private function MultiEncodeTick(e:TimerEvent):void
+		{
+			fillBuffer();
+			
+			for(var i:uint = 0; i < PixelsPerIter; i++)
 			{
-				if (MultiThread) {
-					RGB2YUV(Source, ox, oy, Source.width, Source.height);
-				} else {
-					RGB2YUV(Source, xpos, ypos, SrcWidth, SrcHeight);
-				}
+				RGB2YUV(buffer, i * 8, 0, buffer.width, buffer.height);
+				
 				DCY = processDU(YDU, fdtbl_Y, DCY, YDC_HT, YAC_HT);
 				DCU = processDU(UDU, fdtbl_UV, DCU, UVDC_HT, UVAC_HT);
 				DCV = processDU(VDU, fdtbl_UV, DCV, UVDC_HT, UVAC_HT);
-
+				
 				xpos += 8;
-				ox += 8;
+				if ( xpos >= Source.width ) {
+					if ( MultiIndX < MultiSource[MultiIndY].length - 1 ) {
+						xpos = xpos - Source.width;
+						MultiIndX += 1;
+						Source = MultiSource[MultiIndY][MultiIndX];
+					} else {
+						xpos = 0;
+						ypos += 8;
+						MultiIndX = 0;
+						Source = MultiSource[MultiIndY][MultiIndX];
+						if ( ypos >= Source.height ) {
+							if ( MultiIndY < MultiSource.length - 1 ) {
+								ypos = ypos - Source.height;
+								MultiIndY += 1;
+							} else {
+								asyncTimer.stop();
+								FinishEncode();
+								return;
+							}
+						}
+						Source = MultiSource[MultiIndY][MultiIndX];
+						break;
+					}
+				}
+				
+				CurrentTotalPos += 64;
+				
+				if( CurrentTotalPos >= NextProgressAt ) {
+					dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, CurrentTotalPos, TotalSize));
+					NextProgressAt += PercentageInc;
+				}
+			}
+		}
+		
+		private function fillBuffer():void
+		{
+			buffer.fillRect(buffer.rect, 0x00000000);
+			
+			var bmp:BitmapData = BitmapData(Source);
+			var ox:uint = xpos;
+			var oy:uint = ypos;
+			var pw:uint = buffer.width;
+			var w:uint = Math.min(pw, bmp.width - ox);
+			var h:uint = Math.min(8, bmp.height - oy);
+			
+			buffer.copyPixels(bmp, new Rectangle(ox, oy, w, h), origin, bmp, new Point(ox, oy), true);
+			
+			if ( w < pw ) {
+				if ( MultiIndX < MultiSource[MultiIndY].length - 1 ) {
+					bmp = BitmapData(MultiSource[MultiIndY][MultiIndX + 1]);
+					buffer.copyPixels(bmp, new Rectangle(0, oy, pw - w, h), new Point(w, 0), bmp, new Point(0, oy), true);
+				}
+			}
+			
+			if ( h < 8 ) {
+				if ( MultiIndY < MultiSource.length - 1 ) {
+					bmp = BitmapData(MultiSource[MultiIndY + 1][MultiIndX]);
+					buffer.copyPixels(bmp, new Rectangle(ox, 0, w, 8 - h), new Point(0, h), bmp, new Point(ox, 0), true);
+				}
+			}
+			
+			if ( w < pw && h < 8 ) {
+				if ( MultiIndX < MultiSource[MultiIndY].length - 1 && MultiIndY < MultiSource.length - 1 ) {
+					bmp = BitmapData(MultiSource[MultiIndY + 1][MultiIndX + 1]);
+					buffer.copyPixels(bmp, new Rectangle(0, 0, pw - w, 8 - h), new Point(w, h), bmp, origin, true);
+				}
+			}
+		}
+		
+	    private function EncodeTick(e:TimerEvent):void
+	    {
+			for (var i:uint = 0; i < PixelsPerIter; i++) 
+			{
+				RGB2YUV(Source, xpos, ypos, SrcWidth, SrcHeight);
+				DCY = processDU(YDU, fdtbl_Y, DCY, YDC_HT, YAC_HT);
+				DCU = processDU(UDU, fdtbl_UV, DCU, UVDC_HT, UVAC_HT);
+				DCV = processDU(VDU, fdtbl_UV, DCV, UVDC_HT, UVAC_HT);
+				
+				xpos += 8;
 				
 				if(xpos >= SrcWidth)
 				{
 					xpos = 0;
 					ypos += 8;
-					
-					if (MultiThread) {
-						ox = 0;
-						oy += 8;
-						MultiIndX = 0;
-						Source = MultiSource[MultiIndY][MultiIndX];
-						if (oy >= Source.height && MultiIndY < MultiSource.length-1) {
-							oy = oy - Source.height;
-							MultiIndY += 1;
-							Source = MultiSource[MultiIndY][MultiIndX];
-						}
-					}
-				}
-				
-				if (MultiThread) {
-					if (ox >= Source.width && MultiIndX < MultiSource[0].length-1) {
-						ox = ox - Source.width;
-						MultiIndX += 1;
-						Source = MultiSource[MultiIndY][MultiIndX];
-					}
 				}
 				
 				if(ypos >= SrcHeight)
 				{
-					asyncLoopId = setTimeout(FinishEncode, 10);
+					asyncTimer.stop();
+					FinishEncode();
 					return;
 				}
 
@@ -390,8 +470,6 @@ package ru.inspirit.utils
 					NextProgressAt += PercentageInc;
 				}
 			}
-
-			asyncLoopId = setTimeout(AsyncLoop, 10, xpos, ypos);
 	    }
 
 	    private function FinishEncode():void
@@ -410,7 +488,7 @@ package ru.inspirit.utils
 			if(_async){
 				dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, TotalSize, TotalSize));
 				dispatchEvent(new Event(Event.COMPLETE));
-				if (MultiThread) {
+				if (MultiSource.length) {
 					clearSources();
 				}
 			}
@@ -428,6 +506,7 @@ package ru.inspirit.utils
 					MultiSource[i][j] = null;
 				}
 			}
+			MultiSource = [];
 		}
 
 	    private function initQuantTables(sf:int):void
@@ -893,48 +972,23 @@ package ru.inspirit.utils
 		  }
 		  return DC;
 	    }
-
-	    private function RGB2YUV(source:Object, xpos:int, ypos:int, width:int=0, height:int=0):void
+		
+		private function RGB2YUV(source:Object, xp:int, yp:int, width:int=0, height:int=0):void
 	    {
 			var pos:int = 0;
 			var P:uint;
-			
-			if(MultiThread){
-				var w:uint = Math.min(8, source.width - xpos);
-				var h:uint = Math.min(8, source.height - ypos);
-				
-				var nextX:Object;
-				var nextY:Object;
-				var nextXY:Object;
-				
-				if (w < 8) {
-					nextX = MultiSource[MultiIndY][Math.min(MultiIndX + 1, MultiSource[0].length)];
-				}
-				if (h < 8) {
-					nextY = MultiSource[Math.min(MultiIndY + 1, MultiSource.length - 1)][MultiIndX];
-				}
-				if (w < 8 && h < 8) {
-					nextXY = MultiSource[Math.min(MultiIndY + 1, MultiSource.length - 1)][Math.min(MultiIndX + 1, MultiSource[0].length)];
-				}
-			}
+			var R:Number;
+			var G:Number;
+			var B:Number;
 			
 			for (var y:int = 0; y < 8; y++)
 			{
 				for (var x:int = 0; x < 8; x++)
 				{
-					if (MultiThread && nextXY && y >= h && x >= w) {
-						P = getPixel32(nextXY, x - w, y - h, width, height);
-					} else if (MultiThread && nextX && x >= w) {
-						P = getPixel32(nextX, x - w, ypos + y, width, height);
-					} else if (MultiThread && nextY && y >= h) {
-						P = getPixel32(nextY, xpos + x, y - h, width, height);
-					} else {
-						P = getPixel32(source, xpos + x, ypos + y, width, height);
-					}
-					
-					var R:Number = Number((P>>16)&0xFF);
-					var G:Number = Number((P>> 8)&0xFF);
-					var B:Number = Number((P    )&0xFF);
+					P = getPixel32(source, xp + x, yp + y, width, height);
+					R = Number((P>>16)&0xFF);
+					G = Number((P>> 8)&0xFF);
+					B = Number((P    )&0xFF);
 					YDU[pos]=((( 0.29900)*R+( 0.58700)*G+( 0.11400)*B))-128;
 					UDU[pos]=(((-0.16874)*R+(-0.33126)*G+( 0.50000)*B));
 					VDU[pos]=((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B));
