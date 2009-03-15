@@ -405,6 +405,7 @@ package ru.inspirit.utils
 		
 		private function fillBuffer():void
 		{
+			buffer.lock();
 			buffer.fillRect(buffer.rect, 0x00000000);
 			
 			var bmp:BitmapData = BitmapData(Source);
@@ -416,26 +417,58 @@ package ru.inspirit.utils
 			
 			buffer.copyPixels(bmp, new Rectangle(ox, oy, w, h), origin, bmp, new Point(ox, oy), true);
 			
+			var i:uint = 0;
+			var tx:uint = w;
+			var nw:uint;
 			if ( w < pw ) {
+				while (tx < pw) {
+					if ( MultiIndX + i < MultiSource[MultiIndY].length - 1 ) {
+						i += 1;
+						bmp = BitmapData(MultiSource[MultiIndY][MultiIndX + i]);
+						nw = Math.min(pw - tx, bmp.width);
+						buffer.copyPixels(bmp, new Rectangle(0, oy, nw, h), new Point(tx, 0), bmp, new Point(0, oy), true);
+						tx += nw;
+					} else {
+						break;
+					}
+				}
+				/*
 				if ( MultiIndX < MultiSource[MultiIndY].length - 1 ) {
 					bmp = BitmapData(MultiSource[MultiIndY][MultiIndX + 1]);
 					buffer.copyPixels(bmp, new Rectangle(0, oy, pw - w, h), new Point(w, 0), bmp, new Point(0, oy), true);
-				}
+				}*/
 			}
 			
 			if ( h < 8 ) {
 				if ( MultiIndY < MultiSource.length - 1 ) {
 					bmp = BitmapData(MultiSource[MultiIndY + 1][MultiIndX]);
 					buffer.copyPixels(bmp, new Rectangle(ox, 0, w, 8 - h), new Point(0, h), bmp, new Point(ox, 0), true);
+					
+					i = 0;
+					tx = w;
+					while (tx < pw) {
+						if ( MultiIndX + i < MultiSource[MultiIndY + 1].length - 1 ) {
+							i += 1;
+							bmp = BitmapData(MultiSource[MultiIndY + 1][MultiIndX + i]);
+							nw = Math.min(pw - tx, bmp.width);
+							buffer.copyPixels(bmp, new Rectangle(0, 0, nw, 8 - h), new Point(tx, h), bmp, origin, true);
+							tx += nw;
+						} else {
+							break;
+						}
+					}
+					
 				}
 			}
 			
+			/*
 			if ( w < pw && h < 8 ) {
 				if ( MultiIndX < MultiSource[MultiIndY].length - 1 && MultiIndY < MultiSource.length - 1 ) {
 					bmp = BitmapData(MultiSource[MultiIndY + 1][MultiIndX + 1]);
 					buffer.copyPixels(bmp, new Rectangle(0, 0, pw - w, 8 - h), new Point(w, h), bmp, origin, true);
 				}
-			}
+			}*/
+			buffer.unlock();
 		}
 		
 	    private function EncodeTick(e:TimerEvent):void
