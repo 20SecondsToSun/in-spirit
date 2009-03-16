@@ -19,6 +19,10 @@ Thanks to Flash 10 features we can do all this operations including result mosai
 *[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FlickrMosaic Complete project code available in my repository]*
 
 == Change Log ==
+  * 2009.03.15 - *v1.1*
+    * Additional speed improvements.
+    * Added new Overlay Methods to render options.
+    * Output mosaic image now encoding to JPG file without any scale and maximum size restrictions. You also will see the progress ticking besides complete Flash Player freezing in old version.
   * 2009.02.04 - *v1.0*
     * Initial public release
   * 2008.12.15 - *v0.1*
