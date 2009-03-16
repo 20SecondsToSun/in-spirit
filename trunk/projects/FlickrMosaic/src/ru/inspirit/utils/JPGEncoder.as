@@ -37,6 +37,7 @@
  * Added Multi BitmapData instances to one JPEG ByteArray encoding
  * 
  * @author Eugene Zatepyakin
+ * @link http://blog.inspirit.ru
  */
 
 package ru.inspirit.utils

@@ -1,8 +1,10 @@
 ﻿package ru.inspirit.mosaic 
 {
+	import com.gskinner.geom.ColorMatrix;
 	import flash.display.Bitmap;
 	import flash.display.BitmapData;
 	import flash.display.Sprite;
+	import flash.filters.ColorMatrixFilter;
 	import flash.geom.ColorTransform;
 	import flash.geom.Matrix;
 	import flash.geom.Point;
@@ -18,14 +20,17 @@
 	{
 		private const maxBitmapWidth:uint = 4000;
 		private const maxBitmapHeight:uint = 4000;
+		private const origin:Point = new Point();
 		
 		public static var DRAW_STYLE:String = 'blend';
 		
 		private var _data:Array;
+		private var _cm:ColorMatrix;
 		
 		public function TileLayer() 
 		{
 			_data = new Array();
+			_cm = new ColorMatrix();
 		}
 		
 		public function placeTile(tx:uint, ty:uint, t:TileItem, c:uint, img:BitmapData):void
@@ -120,8 +125,21 @@
 			var d:uint = ( 0xFF * 0xFF * 3 );
 			var k:Number = ColorUtils.getDistance(c1, c2) / d * 10;
 			var ct:ColorTransform = new ColorTransform(1, 1, 1, 1, (c1 >> 16 & 0xFF) * k, (c1 >> 8 & 0xFF) * k, (c1 & 0xFF) * k, 0);
-			var b:BitmapData = new BitmapData(bmp.width, bmp.height, false, 0x000000);
-			b.draw(bmp, null, ct);
+			var b:BitmapData = bmp.clone();
+			
+			b.colorTransform( b.rect, ct );
+			
+			// additional color adjustments
+			_cm.reset();
+			_cm.adjustContrast(100 * k);
+			if (c1 < 0xFFFFFFFF * .5) {
+				_cm.adjustBrightness(100 * k);
+			} else {
+				_cm.adjustBrightness(-100 * k);
+			}
+			var cmf:ColorMatrixFilter = new ColorMatrixFilter(_cm);
+			b.applyFilter(b, b.rect, origin, cmf);
+			
 			return b;
 		}
 		

@@ -1,5 +1,6 @@
 ﻿package 
 {
+	import flash.display.ColorCorrection;
 	import flash.display.DisplayObject;
 	import flash.display.MovieClip;
 	import flash.events.Event;
@@ -51,6 +52,7 @@
 		{
 			stage.scaleMode = StageScaleMode.NO_SCALE;
 			stage.align = StageAlign.TOP_LEFT;
+			stage.colorCorrection = ColorCorrection.ON;
 			
 			var myContextMenu:ContextMenu = new ContextMenu();
 			myContextMenu.hideBuiltInItems();
