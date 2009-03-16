@@ -85,7 +85,7 @@
 			imageLoader.contentLoaderInfo.addEventListener(Event.COMPLETE, onImageLoaded);
 			
 			layers.addChild(img);
-			layers.addChild(pixelImage);
+			//layers.addChild(pixelImage); // there is no need to show this layer
 			layers.addChild(tileSprite);
 			addChild(layers);
 			
@@ -115,9 +115,6 @@
 			
 			scrollR = new Rectangle(0, 0, stage.stageWidth, stage.stageHeight - y);
 			layers.scrollRect = scrollR;
-			
-			//pixelImage.blendMode = "screen";
-			//tileSprite.blendMode = "multiply";
 			
 			tileTimer = new Timer(10);
 			tileTimer.addEventListener(TimerEvent.TIMER, tileTick);
@@ -269,7 +266,7 @@
 			(tilingInfo.getChildByName("_txt") as TextField).textColor = 0x000000;
 		}
 		
-		private function onSaveBtnOut(e:MouseEvent):void
+		private function onSaveBtnOut(e:MouseEvent = null):void
 		{
 			tilingInfo.graphics.clear();
 			tilingInfo.graphics.beginFill(0x000000, .8);
@@ -284,6 +281,7 @@
 			
 			je.cleanUp();
 			
+			onSaveBtnOut();
 			tilingInfo.buttonMode = false;
 			tilingInfo.removeEventListener(MouseEvent.CLICK, processSave);
 			tilingInfo.removeEventListener(MouseEvent.MOUSE_OVER, onSaveBtnOver);
@@ -300,15 +298,12 @@
 		
 		private function zoomCanvas(delta:Number = 0):void
 		{
-			var z:Number = pixelImage.scaleX;
+			var z:Number = img.scaleX;
 			z += delta;
 			z = Math.max(z, 1);
 			z = Math.min(z, maxZoom);
-			//
-			pixelImage.scaleX = pixelImage.scaleY = z;
-			//img.scaleX = img.scaleY = z;
-			img.width = pixelImage.width;
-			img.height = pixelImage.height;
+			
+			img.scaleX = img.scaleY = z;
 			tileSprite.width = img.width;
 			tileSprite.height = img.height;
 			onResize();
@@ -406,7 +401,8 @@
 			
 			clearTiles();
 			
-			img.scaleX = img.scaleY = pixelImage.scaleX = pixelImage.scaleY = tileSprite.scaleX = tileSprite.scaleY = 1;
+			img.scaleX = img.scaleY = 1;
+			tileSprite.scaleX = tileSprite.scaleY = 1;
 			tilingInfo.visible = false;
 		}
 		
