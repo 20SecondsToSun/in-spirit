@@ -64,12 +64,8 @@
 						c = a << 24 | (rgb.r * 0xFF) << 16 | (rgb.g * 0xFF) << 8 | rgb.b * 0xFF;
 					}
 					
-					if (lines) {
-						//drawLine(bmp, int(p.px - Main.mx + .5), int(p.py - Main.my + .5), int(p.x + .5), int(p.y + .5), c);
-						drawLine(bmp, int(p.x - p.vx - Main.mx + .5), int(p.y - p.vy - Main.my + .5), int(p.x + .5), int(p.y + .5), c);
-					} else {
-						drawLine(bmp, int(p.x - p.vx + .5), int(p.y - p.vy + .5), int(p.x + .5), int(p.y + .5), c);
-					}
+					drawLine(bmp, int(p.x - p.vx - Main.mx + .5), int(p.y - p.vy - Main.my + .5), int(p.x + .5), int(p.y + .5), c);
+					
 				}
 				p = p.next;
 			}
