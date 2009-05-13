@@ -3,13 +3,7 @@
 
 = Fluid Solver Class =
 
-<table>
-<tr><td>
-[http://farm4.static.flickr.com/3410/3516964725_897a34676c_m.jpg]
-</td><td>
-[http://farm4.static.flickr.com/3627/3516964839_5c16e1c015_m.jpg]
-</td></tr>
-</table>
+[http://blog.inspirit.ru/wp-content/uploads/fluidsolver/screen.jpg]
 
 This is a class for solving real-time fluid dynamics simulations based on Navier-Stokes equations and code from Jos Stam's paper [http://www.dgp.toronto.edu/people/stam/reality/Research/pdf/GDC03.pdf "Real-Time Fluid Dynamics for Games"]
 
