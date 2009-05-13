@@ -1,0 +1,13 @@
+#summary AS3 class to solve real-time fluid dynamics simulations.
+#labels Featured
+
+= Fluid Solver Class =
+
+This is a class for solving real-time fluid dynamics simulations based on Navier-Stokes equations and code from Jos Stam's paper [http://www.dgp.toronto.edu/people/stam/reality/Research/pdf/GDC03.pdf "Real-Time Fluid Dynamics for Games"]
+
+Original implementation in C++ done by [http://www.memo.tv Memo Akten]
+
+*[http://blog.inspirit.ru/?p=248 Test demonstration application]*
+
+== How To ==
+*[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FluidSolver Complete source code and test usage example available in my repository]*
