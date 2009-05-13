@@ -18,7 +18,7 @@
 		private var isw:Number;
 		private var ish:Number;
 		
-		public var x:Number, y:Number, px:Number, py:Number;
+		public var x:Number, y:Number;
 		public var vx:Number, vy:Number;
 		public var radius:Number;
 		public var alpha:Number;
@@ -38,8 +38,8 @@
 		
 		public function init(x:Number = 0, y:Number = 0):void
 		{
-			this.x = px = x;
-			this.y = py = y;
+			this.x = x;
+			this.y = y;
 			vx = vy = 0;
 			radius = 5;
 			alpha = Random.float(.3, 1);
@@ -49,9 +49,6 @@
 		public function update():void
 		{
 			if (alpha == 0) return;
-			
-			px = x;
-			py = y;
 			
 			const fluidIndex:int = fs.getIndexForNormalizedPosition(x * isw, y * ish);
 			
@@ -64,7 +61,6 @@
 			if (x < 0) {
 				if (fs.wrapX) {
 					x += sw;
-					px = x;
 				} else {
 					x = 1;
 					vx *= -1;
@@ -73,7 +69,6 @@
 			else if (x > sw) {
 				if (fs.wrapX) {
 					x -= sw;
-					px = x;
 				} else {
 					x = sw - 1;
 					vx *= -1;
@@ -83,7 +78,6 @@
 			if (y < 0) {
 				if (fs.wrapY) {
 					y += sh;
-					py = y;
 				} else {
 					y = 1;
 					vy *= -1;
@@ -92,7 +86,6 @@
 			else if (y > sh) {
 				if (fs.wrapY) {
 					y -= sh;
-					py = y;
 				} else {
 					y = sh - 1;
 					vy *= -1;
