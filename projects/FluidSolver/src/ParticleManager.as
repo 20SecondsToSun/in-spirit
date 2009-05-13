@@ -1,10 +1,10 @@
 ﻿package  
 {
-	import flash.display.BitmapData;
-	import ru.inspirit.utils.Random;
-	import flash.display.Graphics;
 	import ru.inspirit.utils.ColorUtils;
 	import ru.inspirit.utils.NumberUtils;
+	import ru.inspirit.utils.Random;
+
+	import flash.display.BitmapData;
 
 	/**
 	 * Particle manager implementing simple LinkedList
@@ -15,7 +15,6 @@
 		public static const MAX_PARTICLES:uint = 5000;
 		public static const VMAX:Number = 0.013;
 		public static const VMAX2:Number = VMAX * VMAX;
-		public static const LSCALE:uint = 1;
 		
 		
 		public var head:Particle;
@@ -68,7 +67,7 @@
 					if (lines) {
 						drawLine(bmp, int(p.px - Main.mx + .5), int(p.py - Main.my + .5), int(p.x + .5), int(p.y + .5), c);
 					} else {
-						drawLine(bmp, int(p.x + .5), int(p.y + .5), int(p.x - (p.x - p.px) * LSCALE + .5), int(p.y - (p.y - p.py) * LSCALE + .5), c);
+						drawLine(bmp, int(p.x - p.vx + .5), int(p.y - p.vy + .5), int(p.x + .5), int(p.y + .5), c);
 					}
 				}
 				p = p.next;

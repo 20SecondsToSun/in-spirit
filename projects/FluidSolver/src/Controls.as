@@ -5,12 +5,11 @@
 	import com.bit101.components.Label;
 	import com.bit101.components.Panel;
 	import com.bit101.components.Style;
+
 	import flash.display.Sprite;
-	import flash.text.TextField;
 	import flash.events.Event;
 	import flash.utils.getTimer;
-	import flash.system.System;
-	
+
 	/**
 	 * ...
 	 * @author Eugene Zatepyakin
