@@ -64,7 +64,7 @@
 						c = a << 24 | (rgb.r * 0xFF) << 16 | (rgb.g * 0xFF) << 8 | rgb.b * 0xFF;
 					}
 					
-					drawLine(bmp, int(p.x - p.vx - Main.mx + .5), int(p.y - p.vy - Main.my + .5), int(p.x + .5), int(p.y + .5), c);
+					line(bmp, int(p.x - p.vx - Main.mx + .5), int(p.y - p.vy - Main.my + .5), int(p.x + .5), int(p.y + .5), c);
 					
 				}
 				p = p.next;
@@ -106,53 +106,43 @@
 			tail.init(x, y);
 		}
 		
-		public static function drawLine(bmp:BitmapData, x0:int, y0:int, x1:int, y1:int, color:uint):void
-		{
-			var ay:int = y1 - y0;
-			ay = (ay ^ (ay >> 31)) - (ay >> 31);//abs
-			var ax:int = x1 - x0;
-			ax = (ax ^ (ax >> 31)) - (ax >> 31);
-			var steep:Boolean = Boolean(ay > ax);
-			if (steep) {
-				x0 ^= y0;
-				y0 ^= x0;
-				x0 ^= y0;
-				
-				x1 ^= y1;
-				y1 ^= x1;
-				x1 ^= y1;
-			}
-			if (x0 > x1) {
-				x0 ^= x1;
-				x1 ^= x0;
-				x0 ^= x1;
-				
-				y0 ^= y1;
-				y1 ^= y0;
-				y0 ^= y1;
-			}
-			var deltax:int = x1 - x0;
-			var deltay:int = y1 - y0;
-			deltay = (deltay ^ (deltay >> 31)) - (deltay >> 31);
+		public static function line(bmp:BitmapData, x0:int, y0:int, x1:int, y1:int, c:uint):void
+		{	
+			var x:int = x0;
+			var y:int = y0;		
+			var dx:int = x1 - x0;
+			var dy:int = y1 - y0;
+			var xinc:int = ( dx > 0 ) ? 1 : -1;
+			var yinc:int = ( dy > 0 ) ? 1 : -1;
+			var cumul:int;
+			var i:int;			
 			
-			var error:int = deltax >> 1;
-			var ystep:int;
-			var y:int = y0;
-			if (y0 < y1) {
-				ystep = 1;
-			} else {
-				ystep = -1;
-			}
-			for (var x:int = x0; x <= x1; ++x) {
-				if (steep) {
-					bmp.setPixel32(y, x, color);
-				} else {
-					bmp.setPixel32(x, y, color);
+			dx = (dx ^ (dx >> 31)) - (dx >> 31);//abs
+			dy = (dy ^ (dy >> 31)) - (dy >> 31);
+			
+			bmp.setPixel32(x, y, c);
+			
+			if ( dx > dy ) {
+				cumul = dx >> 1 ;
+		  		for ( i = 1; i <= dx; ++i ) {
+					x += xinc;
+					cumul += dy;
+					if (cumul >= dx){
+			  			cumul -= dx;
+			  			y += yinc;
+					}
+					bmp.setPixel32(x, y, c);
 				}
-				error = error - deltay;
-				if (error < 0) {
-					y = y + ystep;
-					error = error + deltax;
+			} else {
+		  		cumul = dy >> 1;
+		  		for ( i = 1; i <= dy; ++i ) {
+					y += yinc;
+					cumul += dx;
+					if ( cumul >= dy ) {
+			  			cumul -= dy;
+			  			x += xinc;
+					}
+					bmp.setPixel32(x, y, c);
 				}
 			}
 		}
