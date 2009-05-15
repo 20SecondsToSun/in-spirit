@@ -58,33 +58,42 @@
 			sl.labelPrecision = 4;
 			sl.width = 180;
 			
-			sl = new HUISlider(p, 270, 5, 'FADE', onFadeChange);
+			sl = new HUISlider(p, 265, 5, 'FADE', onFadeChange);
 			sl.setSliderParams(.001, .01, .007);
 			sl.labelPrecision = 3;
 			sl.width = 180;
 			
-			sl = new HUISlider(p, 270, 18, 'PREC', onIterChange);
+			sl = new HUISlider(p, 265, 18, 'PREC', onIterChange);
 			sl.setSliderParams(1, 10, 10);
 			sl.labelPrecision = 0;
 			sl.width = 180;
 			
-			lb = new Label(p, 450, 5, 'COLOR DIFFUSION');
-			sl = new HUISlider(p, 443, 18, '', onColorDiffChange);
+			lb = new Label(p, 440, 5, 'COLOR DIFFUSION');
+			sl = new HUISlider(p, 433, 18, '', onColorDiffChange);
 			sl.setSliderParams(0, .001, 0);
 			sl.labelPrecision = 4;
 			sl.width = 150;
 			
-			var chk:CheckBox = new CheckBox(p, 600, 9, 'WRAP-X', onWrapChange);
+			lb = new Label(p, 580, 5, 'VORTICITY CONF');
+			var chk:CheckBox = new CheckBox(p, 580, 22, 'ENABLE', onVorticityChange);
+			chk.name = 'vort';
+			
+			chk = new CheckBox(p, 675, 9, 'WRAP-X', onWrapChange);
 			chk.name = 'wx';
-			chk = new CheckBox(p, 600, 22, 'WRAP-Y', onWrapChange);
+			chk = new CheckBox(p, 675, 22, 'WRAP-Y', onWrapChange);
 			chk.name = 'wy';
 			
-			chk = new CheckBox(p, 690, 9, 'SCROLL-X', onScrollChange);
+			chk = new CheckBox(p, 730, 9, 'SCROLL-X', onScrollChange);
 			chk.name = 'sx';
-			chk = new CheckBox(p, 690, 22, 'SCROLL-Y', onScrollChange);
+			chk = new CheckBox(p, 730, 22, 'SCROLL-Y', onScrollChange);
 			chk.name = 'sy';
 			
 			addEventListener(Event.ENTER_FRAME, countFrameTime);
+		}
+		
+		private function onVorticityChange(e:Event):void
+		{
+			Main.fSolver.vorticityConfinement = CheckBox(p.getChildByName('vort')).selected;
 		}
 		
 		private function onScrollChange(e:Event):void

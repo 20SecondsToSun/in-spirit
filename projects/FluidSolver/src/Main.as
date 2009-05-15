@@ -95,6 +95,7 @@
 			fSolver.fadeSpeed = .007;
 			fSolver.deltaT = .5;
 			fSolver.viscosity = .00015;
+			fSolver.vorticityConfinement = false;
 			
 			var dw:Number = sw / fluid.width;
 			var dh:Number = sh / fluid.height;
