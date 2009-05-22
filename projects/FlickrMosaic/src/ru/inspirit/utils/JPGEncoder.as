@@ -271,10 +271,10 @@ package ru.inspirit.utils
 			SrcHeight = 0;
 			
 			var i:uint;
-			for (i = 0; i < MultiSource[0].length; i++) {
+			for (i = 0; i < MultiSource[0].length; ++i) {
 				SrcWidth += (MultiSource[0][i] as BitmapData).width;
 			}
-			for (i = 0; i < MultiSource.length; i++) {
+			for (i = 0; i < MultiSource.length; ++i) {
 				SrcHeight += (MultiSource[i][0] as BitmapData).height;
 			}
 			
@@ -361,7 +361,7 @@ package ru.inspirit.utils
 		{
 			fillBuffer();
 			
-			for(var i:uint = 0; i < PixelsPerIter; i++)
+			for(var i:uint = 0; i < PixelsPerIter; ++i)
 			{
 				RGB2YUV(buffer, i * 8, 0, buffer.width, buffer.height);
 				
@@ -474,7 +474,7 @@ package ru.inspirit.utils
 		
 	    private function EncodeTick(e:TimerEvent):void
 	    {
-			for (var i:uint = 0; i < PixelsPerIter; i++) 
+			for (var i:uint = 0; i < PixelsPerIter; ++i) 
 			{
 				RGB2YUV(Source, xpos, ypos, SrcWidth, SrcHeight);
 				DCY = processDU(YDU, fdtbl_Y, DCY, YDC_HT, YAC_HT);
@@ -530,8 +530,8 @@ package ru.inspirit.utils
 		private function clearSources():void
 		{
 			var bmp:BitmapData;
-			for (var i:uint = 0; i < MultiSource.length; i++) {
-				for (var j:uint = 0; j < MultiSource[0].length; j++) {
+			for (var i:uint = 0; i < MultiSource.length; ++i) {
+				for (var j:uint = 0; j < MultiSource[0].length; ++j) {
 					bmp = BitmapData(MultiSource[i][j]);
 					bmp.dispose();
 					MultiSource[i][j] = null;
@@ -555,14 +555,14 @@ package ru.inspirit.utils
 			49, 64, 78, 87,103,121,120,101,
 			72, 92, 95, 98,112,100,103, 99
 		  ];
-		  for (i = 0; i < 64; i++) {
-			t = Math.floor((YQT[i]*sf+50)/100);
+		  for (i = 0; i < 64; ++i) {
+			t = int((YQT[i]*sf+50)/100);
 			if (t < 1) {
 			    t = 1;
 			} else if (t > 255) {
 			    t = 255;
 			}
-			YTable[ZigZag[i]] = t;
+			YTable[int(ZigZag[i])] = t;
 		  }
 		  var UVQT:Array = [
 			17, 18, 24, 47, 99, 99, 99, 99,
@@ -574,14 +574,14 @@ package ru.inspirit.utils
 			99, 99, 99, 99, 99, 99, 99, 99,
 			99, 99, 99, 99, 99, 99, 99, 99
 		  ];
-		  for (i = 0; i < 64; i++) {
-			t = Math.floor((UVQT[i]*sf+50)/100);
+		  for (i = 0; i < 64; ++i) {
+			t = int((UVQT[i]*sf+50)/100);
 			if (t < 1) {
 			    t = 1;
 			} else if (t > 255) {
 			    t = 255;
 			}
-			UVTable[ZigZag[i]] = t;
+			UVTable[int(ZigZag[i])] = t;
 		  }
 		  var aasf:Array = [
 			1.0, 1.387039845, 1.306562965, 1.175875602,
@@ -589,12 +589,12 @@ package ru.inspirit.utils
 		  ];
 
 		  i = 0;
-		  for (var row:int = 0; row < 8; row++)
+		  for (var row:int = 0; row < 8; ++row)
 		  {
-			for (var col:int = 0; col < 8; col++)
+			for (var col:int = 0; col < 8; ++col)
 			{
-			    fdtbl_Y[i]  = (1.0 / (YTable [ZigZag[i]] * aasf[row] * aasf[col] * 8.0));
-			    fdtbl_UV[i] = (1.0 / (UVTable[ZigZag[i]] * aasf[row] * aasf[col] * 8.0));
+			    fdtbl_Y[i]  = (1.0 / (YTable [int(ZigZag[i])] * aasf[row] * aasf[col] * 8.0));
+			    fdtbl_UV[i] = (1.0 / (UVTable[int(ZigZag[i])] * aasf[row] * aasf[col] * 8.0));
 			    i++;
 			}
 		  }
@@ -606,13 +606,13 @@ package ru.inspirit.utils
 		  var codevalue:int = 0;
 		  var pos_in_table:int = 0;
 		  var HT:Array = new Array();
-		  for (var k:int = 1; k <= 16; k++)
+		  for (var k:int = 1; k <= 16; ++k)
 		  {
-			for (var j:int = 1; j <= nrcodes[k]; j++)
+			for (var j:int = 1; j <= nrcodes[k]; ++j)
 			{
-			    HT[std_table[pos_in_table]] = new BitString();
-			    HT[std_table[pos_in_table]].val = codevalue;
-			    HT[std_table[pos_in_table]].len = k;
+			    HT[int(std_table[pos_in_table])] = new BitString();
+			    HT[int(std_table[pos_in_table])].val = codevalue;
+			    HT[int(std_table[pos_in_table])].len = k;
 			    pos_in_table++;
 			    codevalue++;
 			}
@@ -634,24 +634,24 @@ package ru.inspirit.utils
 		  var nr:int;
 		  var nrlower:int = 1;
 		  var nrupper:int = 2;
-		  for (var cat:int = 1; cat <= 15; cat++)
+		  for (var cat:int = 1; cat <= 15; ++cat)
 		  {
 			//Positive numbers
-			for (nr = nrlower; nr < nrupper; nr++)
+			for (nr = nrlower; nr < nrupper; ++nr)
 			{
-			    category[32767+nr] = cat;
-			    bitcode[32767+nr] = new BitString();
-			    bitcode[32767+nr].len = cat;
-			    bitcode[32767+nr].val = nr;
+			    category[int(32767+nr)] = cat;
+			    bitcode[int(32767+nr)] = new BitString();
+			    bitcode[int(32767+nr)].len = cat;
+			    bitcode[int(32767+nr)].val = nr;
 			}
 
 			//Negative numbers
-			for (nr = -(nrupper-1); nr <= -nrlower; nr++)
+			for (nr = -(nrupper-1); nr <= -nrlower; ++nr)
 			{
-			    category[32767+nr] = cat;
-			    bitcode[32767+nr] = new BitString();
-			    bitcode[32767+nr].len = cat;
-			    bitcode[32767+nr].val = nrupper-1+nr;
+			    category[int(32767+nr)] = cat;
+			    bitcode[int(32767+nr)] = new BitString();
+			    bitcode[int(32767+nr)].len = cat;
+			    bitcode[int(32767+nr)].val = nrupper-1+nr;
 			}
 			nrlower <<= 1;
 			nrupper <<= 1;
@@ -706,16 +706,16 @@ package ru.inspirit.utils
 		  /* Pass 1: process rows. */
 		  var dataOff:int=0;
 		  var i:int;
-		  for (i = 0; i < 8; i++)
+		  for (i = 0; i < 8; ++i)
 		  {
-			var tmp0:Number = data[dataOff+0] + data[dataOff+7];
-			var tmp7:Number = data[dataOff+0] - data[dataOff+7];
-			var tmp1:Number = data[dataOff+1] + data[dataOff+6];
-			var tmp6:Number = data[dataOff+1] - data[dataOff+6];
-			var tmp2:Number = data[dataOff+2] + data[dataOff+5];
-			var tmp5:Number = data[dataOff+2] - data[dataOff+5];
-			var tmp3:Number = data[dataOff+3] + data[dataOff+4];
-			var tmp4:Number = data[dataOff+3] - data[dataOff+4];
+			var tmp0:Number = data[dataOff] + data[int(dataOff+7)];
+			var tmp7:Number = data[dataOff] - data[int(dataOff+7)];
+			var tmp1:Number = data[int(dataOff+1)] + data[int(dataOff+6)];
+			var tmp6:Number = data[int(dataOff+1)] - data[int(dataOff+6)];
+			var tmp2:Number = data[int(dataOff+2)] + data[int(dataOff+5)];
+			var tmp5:Number = data[int(dataOff+2)] - data[int(dataOff+5)];
+			var tmp3:Number = data[int(dataOff+3)] + data[int(dataOff+4)];
+			var tmp4:Number = data[int(dataOff+3)] - data[int(dataOff+4)];
 
 			/* Even part */
 			var tmp10:Number = tmp0 + tmp3;    /* phase 2 */
@@ -723,12 +723,12 @@ package ru.inspirit.utils
 			var tmp11:Number = tmp1 + tmp2;
 			var tmp12:Number = tmp1 - tmp2;
 
-			data[dataOff+0] = tmp10 + tmp11; /* phase 3 */
-			data[dataOff+4] = tmp10 - tmp11;
+			data[dataOff] = tmp10 + tmp11; /* phase 3 */
+			data[int(dataOff+4)] = tmp10 - tmp11;
 
 			var z1:Number = (tmp12 + tmp13) * 0.707106781; /* c4 */
-			data[dataOff+2] = tmp13 + z1; /* phase 5 */
-			data[dataOff+6] = tmp13 - z1;
+			data[int(dataOff+2)] = tmp13 + z1; /* phase 5 */
+			data[int(dataOff+6)] = tmp13 - z1;
 
 			/* Odd part */
 			tmp10 = tmp4 + tmp5; /* phase 2 */
@@ -744,26 +744,26 @@ package ru.inspirit.utils
 			var z11:Number = tmp7 + z3;    /* phase 5 */
 			var z13:Number = tmp7 - z3;
 
-			data[dataOff+5] = z13 + z2;    /* phase 6 */
-			data[dataOff+3] = z13 - z2;
-			data[dataOff+1] = z11 + z4;
-			data[dataOff+7] = z11 - z4;
+			data[int(dataOff+5)] = z13 + z2;    /* phase 6 */
+			data[int(dataOff+3)] = z13 - z2;
+			data[int(dataOff+1)] = z11 + z4;
+			data[int(dataOff+7)] = z11 - z4;
 
 			dataOff += 8; /* advance pointer to next row */
 		  }
 
 		  /* Pass 2: process columns. */
 		  dataOff = 0;
-		  for (i = 0; i < 8; i++)
+		  for (i = 0; i < 8; ++i)
 		  {
-			tmp0 = data[dataOff+ 0] + data[dataOff+56];
-			tmp7 = data[dataOff+ 0] - data[dataOff+56];
-			tmp1 = data[dataOff+ 8] + data[dataOff+48];
-			tmp6 = data[dataOff+ 8] - data[dataOff+48];
-			tmp2 = data[dataOff+16] + data[dataOff+40];
-			tmp5 = data[dataOff+16] - data[dataOff+40];
-			tmp3 = data[dataOff+24] + data[dataOff+32];
-			tmp4 = data[dataOff+24] - data[dataOff+32];
+			tmp0 = data[dataOff] + data[int(dataOff+56)];
+			tmp7 = data[dataOff] - data[int(dataOff+56)];
+			tmp1 = data[int(dataOff+ 8)] + data[int(dataOff+48)];
+			tmp6 = data[int(dataOff+ 8)] - data[int(dataOff+48)];
+			tmp2 = data[int(dataOff+16)] + data[int(dataOff+40)];
+			tmp5 = data[int(dataOff+16)] - data[int(dataOff+40)];
+			tmp3 = data[int(dataOff+24)] + data[int(dataOff+32)];
+			tmp4 = data[int(dataOff+24)] - data[int(dataOff+32)];
 
 			/* Even part */
 			tmp10 = tmp0 + tmp3;    /* phase 2 */
@@ -771,12 +771,12 @@ package ru.inspirit.utils
 			tmp11 = tmp1 + tmp2;
 			tmp12 = tmp1 - tmp2;
 
-			data[dataOff+ 0] = tmp10 + tmp11; /* phase 3 */
-			data[dataOff+32] = tmp10 - tmp11;
+			data[dataOff] = tmp10 + tmp11; /* phase 3 */
+			data[int(dataOff+32)] = tmp10 - tmp11;
 
 			z1 = (tmp12 + tmp13) * 0.707106781; /* c4 */
-			data[dataOff+16] = tmp13 + z1; /* phase 5 */
-			data[dataOff+48] = tmp13 - z1;
+			data[int(dataOff+16)] = tmp13 + z1; /* phase 5 */
+			data[int(dataOff+48)] = tmp13 - z1;
 
 			/* Odd part */
 			tmp10 = tmp4 + tmp5; /* phase 2 */
@@ -792,19 +792,19 @@ package ru.inspirit.utils
 			z11 = tmp7 + z3;    /* phase 5 */
 			z13 = tmp7 - z3;
 
-			data[dataOff+40] = z13 + z2; /* phase 6 */
-			data[dataOff+24] = z13 - z2;
-			data[dataOff+ 8] = z11 + z4;
-			data[dataOff+56] = z11 - z4;
+			data[int(dataOff+40)] = z13 + z2; /* phase 6 */
+			data[int(dataOff+24)] = z13 - z2;
+			data[int(dataOff+ 8)] = z11 + z4;
+			data[int(dataOff+56)] = z11 - z4;
 
 			dataOff++; /* advance pointer to next column */
 		  }
 
 		  // Quantize/descale the coefficients
-		  for (i = 0; i < 64; i++)
+		  for (i = 0; i < 64; ++i)
 		  {
 			// Apply the quantization and scaling factor & Round to nearest integer
-			data[i] = Math.round((data[i]*fdtbl[i]));
+			data[i] = int((data[i]*fdtbl[i]) + .5);
 		  }
 		  return data;
 	    }
@@ -855,14 +855,14 @@ package ru.inspirit.utils
 		  writeByte(0);
 		  var i:int;
 
-		  for (i = 0; i < 64; i++)
+		  for (i = 0; i < 64; ++i)
 		  {
 			writeByte(YTable[i]);
 		  }
 
 		  writeByte(1);
 
-		  for (i = 0; i < 64; i++)
+		  for (i = 0; i < 64; ++i)
 		  {
 			writeByte(UVTable[i]);
 		  }
@@ -876,45 +876,45 @@ package ru.inspirit.utils
 		  writeWord(0x01A2); // length
 
 		  writeByte(0); // HTYDCinfo
-		  for (i = 0; i < 16; i++)
+		  for (i = 0; i < 16; ++i)
 		  {
 			writeByte(std_dc_luminance_nrcodes[i+1]);
 		  }
 
-		  for (i = 0; i <= 11; i++)
+		  for (i = 0; i <= 11; ++i)
 		  {
 			writeByte(std_dc_luminance_values[i]);
 		  }
 
 		  writeByte(0x10); // HTYACinfo
-		  for (i = 0; i < 16; i++)
+		  for (i = 0; i < 16; ++i)
 		  {
 			writeByte(std_ac_luminance_nrcodes[i+1]);
 		  }
 
-		  for (i = 0; i<=161; i++)
+		  for (i = 0; i<=161; ++i)
 		  {
 			writeByte(std_ac_luminance_values[i]);
 		  }
 
 		  writeByte(1); // HTUDCinfo
-		  for (i = 0; i < 16; i++)
+		  for (i = 0; i < 16; ++i)
 		  {
 			writeByte(std_dc_chrominance_nrcodes[i+1]);
 		  }
 
-		  for (i = 0; i <= 11; i++)
+		  for (i = 0; i <= 11; ++i)
 		  {
 			writeByte(std_dc_chrominance_values[i]);
 		  }
 
 		  writeByte(0x11); // HTUACinfo
-		  for (i = 0; i < 16; i++)
+		  for (i = 0; i < 16; ++i)
 		  {
 			writeByte(std_ac_chrominance_nrcodes[i+1]);
 		  }
 
-		  for (i = 0; i <= 161; i++)
+		  for (i = 0; i <= 161; ++i)
 		  {
 			writeByte(std_ac_chrominance_values[i]);
 		  }
@@ -945,9 +945,9 @@ package ru.inspirit.utils
 
 		  var DU_DCT:Array = fDCTQuant(CDU, fdtbl);
 		  //ZigZag reorder
-		  for (i = 0; i < 64; i++)
+		  for (i = 0; i < 64; ++i)
 		  {
-			DU[ZigZag[i]] = DU_DCT[i];
+			DU[int(ZigZag[i])] = DU_DCT[i];
 		  }
 
 		  var Diff:int = DU[0] - DC; DC = DU[0];
@@ -958,8 +958,8 @@ package ru.inspirit.utils
 		  }
 		  else
 		  {
-			writeBits(HTDC[category[32767+Diff]]);
-			writeBits(bitcode[32767+Diff]);
+			writeBits(HTDC[int(category[int(32767+Diff)])]);
+			writeBits(bitcode[int(32767+Diff)]);
 		  }
 		  //Encode ACs
 		  var end0pos:int = 63;
@@ -992,8 +992,8 @@ package ru.inspirit.utils
 			    nrzeroes = int(nrzeroes&0xF);
 			}
 
-			writeBits(HTAC[nrzeroes * 16 + category[32767 + DU[i]]]);
-			writeBits(bitcode[32767 + DU[i]]);
+			writeBits(HTAC[int(nrzeroes * 16 + category[int(32767 + DU[i])])]);
+			writeBits(bitcode[int(32767 + DU[i])]);
 			i++;
 		  }
 
@@ -1012,9 +1012,9 @@ package ru.inspirit.utils
 			var G:Number;
 			var B:Number;
 			
-			for (var y:int = 0; y < 8; y++)
+			for (var y:int = 0; y < 8; ++y)
 			{
-				for (var x:int = 0; x < 8; x++)
+				for (var x:int = 0; x < 8; ++x)
 				{
 					P = getPixel32(source, xp + x, yp + y, width, height);
 					R = Number((P>>16)&0xFF);
@@ -1042,7 +1042,7 @@ package ru.inspirit.utils
 		  else if (source is ByteArray)
 		  {
 			var byteArray:ByteArray = source as ByteArray;
-			byteArray.position = ((y * width) * 4) + (x * 4);
+			byteArray.position = int(((y * width) * 4) + (x * 4));
 			return byteArray.readUnsignedInt();
 		  }
 		  else
