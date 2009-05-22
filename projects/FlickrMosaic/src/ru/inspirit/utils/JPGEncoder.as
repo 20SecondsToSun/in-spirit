@@ -525,8 +525,8 @@ package ru.inspirit.utils {
 		private function clearSources():void
 		{
 			var bmp:BitmapData;
-			for (var i:uint = 0; i < MultiSource.length; ++i) {
-				for (var j:uint = 0; j < MultiSource[0].length; ++j) {
+			for (var i:int = 0; i < MultiSource.length; ++i) {
+				for (var j:int = 0; j < MultiSource[0].length; ++j) {
 					bmp = BitmapData(MultiSource[i][j]);
 					bmp.dispose();
 					MultiSource[i][j] = null;
@@ -600,7 +600,7 @@ package ru.inspirit.utils {
 	    {
 		  var codevalue:int = 0;
 		  var pos_in_table:int = 0;
-		  var HT:Array = new Array();
+		  var HT:Array = new Array(251);
 		  for (var k:int = 1; k <= 16; ++k)
 		  {
 			for (var j:int = 1; j <= nrcodes[k]; ++j)
@@ -852,14 +852,14 @@ package ru.inspirit.utils {
 
 		  for (i = 0; i < 64; ++i)
 		  {
-			writeByte(YTable[i]);
+			writeByte(int(YTable[i]));
 		  }
 
 		  writeByte(1);
 
 		  for (i = 0; i < 64; ++i)
 		  {
-			writeByte(UVTable[i]);
+			writeByte(int(UVTable[i]));
 		  }
 	    }
 
