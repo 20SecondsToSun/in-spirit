@@ -40,9 +40,7 @@
  * @link http://blog.inspirit.ru
  */
 
-package ru.inspirit.utils
-{
-
+package ru.inspirit.utils {
 	import flash.display.BitmapData;
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
@@ -51,10 +49,7 @@ package ru.inspirit.utils
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
 	import flash.utils.ByteArray;
-	import flash.utils.clearInterval;
-	import flash.utils.clearTimeout;
-	import flash.utils.setTimeout;
-	import flash.utils.Timer;
+	import flash.utils.Timer;	
 
 	public class JPGEncoder extends EventDispatcher
 	{
@@ -185,7 +180,7 @@ package ru.inspirit.utils
 		  if (quality < 50)
 			sf = int(5000 / quality);
 		  else
-			sf = int(200 - quality * 2);
+			sf = int(200 - quality << 1);
 
 		  // Create tables
 		  initHuffmanTbl();
@@ -985,14 +980,14 @@ package ru.inspirit.utils
 
 			if (nrzeroes >= 16)
 			{
-			    for (var nrmarker:int=1; nrmarker <= nrzeroes>>4; nrmarker++) // nrzeroes / 16
+			    for (var nrmarker:int=1; nrmarker <= nrzeroes>>4; ++nrmarker)
 			    {
 				  writeBits(M16zeroes);
 			    }
 			    nrzeroes = int(nrzeroes&0xF);
 			}
 
-			writeBits(HTAC[int(nrzeroes << 4 + category[int(32767 + DU[i])])]);
+			writeBits(HTAC[int((nrzeroes << 4) + category[int(32767 + DU[i])])]);
 			writeBits(bitcode[int(32767 + DU[i])]);
 			i++;
 		  }
