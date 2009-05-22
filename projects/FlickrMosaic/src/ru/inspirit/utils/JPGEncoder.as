@@ -32,10 +32,10 @@
 
 /**
  * Original idea of asynchronous encoding by Paraniod Ferret Productions
- * 
+ *
  * Merged sync and async functionality
  * Added Multi BitmapData instances to one JPEG ByteArray encoding
- * 
+ *
  * @author Eugene Zatepyakin
  * @link http://blog.inspirit.ru
  */
@@ -153,7 +153,7 @@ package ru.inspirit.utils
 	    private var DCY:Number = 0;
 	    private var DCU:Number = 0;
 	    private var DCV:Number = 0;
-		
+
 		private var _async:Boolean = false;
 		private var asyncTimer:Timer;
 	    private var SrcWidth:int = 0;
@@ -165,7 +165,7 @@ package ru.inspirit.utils
 	    private var NextProgressAt:int = 0;
 	    private var CurrentTotalPos:int = 0;
 	    private var Working:Boolean = false;
-		
+
 		private var MultiSource:Array;
 		private var MultiIndX:uint = 0;
 		private var MultiIndY:uint = 0;
@@ -191,63 +191,63 @@ package ru.inspirit.utils
 		  initHuffmanTbl();
 		  initCategoryNumber();
 		  initQuantTables(sf);
-		  
+
 		  // Init Async timer
 		  asyncTimer = new Timer(10);
 	    }
-		
+
 	    public function get PixelsPerIteration():int
-	    { 
+	    {
 			return PixelsPerIter;
 		}
-		
+
 	    public function set PixelsPerIteration(val:int):void
-	    { 
-			PixelsPerIter = val; 
+	    {
+			PixelsPerIter = val;
 		}
-		
+
 	    public function get ImageData():ByteArray
-	    { 
-			return byteout; 
-		}
-		
-	    public function encodeByteArray(raw:ByteArray, width:int, height:int):ByteArray
-	    { 
-			internalEncode(raw, width, height); 
+	    {
 			return byteout;
 		}
-		
+
+	    public function encodeByteArray(raw:ByteArray, width:int, height:int):ByteArray
+	    {
+			internalEncode(raw, width, height);
+			return byteout;
+		}
+
 		public function encodeByteArrayAsync(raw:ByteArray, width:int, height:int):void
-	    { 
+	    {
 			internalEncode(raw, width, height, true);
 		}
-		
+
 	    public function encode(image:BitmapData):ByteArray
-	    { 
+	    {
 			internalEncode(image, image.width, image.height);
 			return byteout;
 		}
-		
+
 		public function encodeAsync(image:BitmapData):void
 		{
 			internalEncode(image, image.width, image.height, true);
 		}
-		
+
 		public function encodeMultiToOne(imgs:Array):void
 		{
 			internalMultiEncode(imgs);
 		}
-		
+
 		public function cleanUp(disposeBitmapData:Boolean = false):void
 		{
 			asyncTimer.stop();
-			byteout.clear();
+			//byteout.clear();
 			if(buffer) buffer.dispose();
 			if (MultiSource.length && disposeBitmapData) {
 				clearSources();
 			}
 		}
-		
+
 		private function internalMultiEncode(imgs:Array):void
 		{
 			if (Working) {
@@ -257,7 +257,7 @@ package ru.inspirit.utils
 					asyncTimer.removeEventListener(TimerEvent.TIMER, MultiEncodeTick);
 				}
 			}
-			
+
 			_async = true;
 			Working = true;
 			MultiSource = imgs;
@@ -266,10 +266,10 @@ package ru.inspirit.utils
 			xpos = ypos = 0;
 			Source = MultiSource[MultiIndY][MultiIndX];
 			buffer = new BitmapData(PixelsPerIter * 8, 8, true, 0x00000000);
-			
+
 			SrcWidth = 0;
 			SrcHeight = 0;
-			
+
 			var i:uint;
 			for (i = 0; i < MultiSource[0].length; ++i) {
 				SrcWidth += (MultiSource[0][i] as BitmapData).width;
@@ -277,14 +277,14 @@ package ru.inspirit.utils
 			for (i = 0; i < MultiSource.length; ++i) {
 				SrcHeight += (MultiSource[i][0] as BitmapData).height;
 			}
-			
+
 			TotalSize = SrcWidth*SrcHeight;
 			PercentageInc = TotalSize/100;
 			NextProgressAt = PercentageInc;
 			CurrentTotalPos = 0;
-			
+
 			StartEncode();
-			
+
 			dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, 0, TotalSize));
 			asyncTimer.addEventListener(TimerEvent.TIMER, MultiEncodeTick);
 			asyncTimer.start();
@@ -299,7 +299,7 @@ package ru.inspirit.utils
 					asyncTimer.removeEventListener(TimerEvent.TIMER, MultiEncodeTick);
 				}
 			}
-			
+
 			_async = async;
 			Working = true;
 			Source = newSource;
@@ -310,17 +310,17 @@ package ru.inspirit.utils
 			NextProgressAt = PercentageInc;
 			CurrentTotalPos = 0;
 			xpos = ypos = 0;
-			
+
 			StartEncode();
-			
+
 			if (async) {
-				
+
 				dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, 0, TotalSize));
 				asyncTimer.addEventListener(TimerEvent.TIMER, EncodeTick);
 				asyncTimer.start();
-				
+
 			} else {
-				
+
 				for (var y:int = 0; y < height; y += 8) {
 					for (var x:int = 0; x < width; x += 8) {
 						RGB2YUV(Source, x, y);
@@ -329,7 +329,7 @@ package ru.inspirit.utils
 						DCV = processDU(VDU, fdtbl_UV, DCV, UVDC_HT, UVAC_HT);
 					}
 				}
-				
+
 				FinishEncode();
 			}
 	    }
@@ -340,7 +340,7 @@ package ru.inspirit.utils
 			byteout = new ByteArray();
 			bytenew = 0;
 			bytepos = 7;
-			
+
 			// Add JPEG headers
 			writeWord(0xFFD8); // SOI
 			writeAPP0();
@@ -348,27 +348,27 @@ package ru.inspirit.utils
 			writeSOF0(SrcWidth, SrcHeight);
 			writeDHT();
 			writeSOS();
-			
+
 			DCY = 0;
 			DCV = 0;
 			DCU = 0;
-			
+
 			bytenew = 0;
 			bytepos = 7;
 	    }
-		
+
 		private function MultiEncodeTick(e:TimerEvent):void
 		{
 			fillBuffer();
-			
+
 			for(var i:uint = 0; i < PixelsPerIter; ++i)
 			{
 				RGB2YUV(buffer, i * 8, 0, buffer.width, buffer.height);
-				
+
 				DCY = processDU(YDU, fdtbl_Y, DCY, YDC_HT, YAC_HT);
 				DCU = processDU(UDU, fdtbl_UV, DCU, UVDC_HT, UVAC_HT);
 				DCV = processDU(VDU, fdtbl_UV, DCV, UVDC_HT, UVAC_HT);
-				
+
 				xpos += 8;
 				if ( xpos >= Source.width ) {
 					if ( MultiIndX < MultiSource[MultiIndY].length - 1 ) {
@@ -394,30 +394,30 @@ package ru.inspirit.utils
 						break;
 					}
 				}
-				
+
 				CurrentTotalPos += 64;
-				
+
 				if( CurrentTotalPos >= NextProgressAt ) {
 					dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, CurrentTotalPos, TotalSize));
 					NextProgressAt += PercentageInc;
 				}
 			}
 		}
-		
+
 		private function fillBuffer():void
 		{
 			buffer.lock();
 			buffer.fillRect(buffer.rect, 0x00000000);
-			
+
 			var bmp:BitmapData = BitmapData(Source);
 			var ox:uint = xpos;
 			var oy:uint = ypos;
 			var pw:uint = buffer.width;
 			var w:uint = Math.min(pw, bmp.width - ox);
 			var h:uint = Math.min(8, bmp.height - oy);
-			
+
 			buffer.copyPixels(bmp, new Rectangle(ox, oy, w, h), origin, bmp, new Point(ox, oy), true);
-			
+
 			var i:uint = 0;
 			var tx:uint = w;
 			var nw:uint;
@@ -439,12 +439,12 @@ package ru.inspirit.utils
 					buffer.copyPixels(bmp, new Rectangle(0, oy, pw - w, h), new Point(w, 0), bmp, new Point(0, oy), true);
 				}*/
 			}
-			
+
 			if ( h < 8 ) {
 				if ( MultiIndY < MultiSource.length - 1 ) {
 					bmp = BitmapData(MultiSource[MultiIndY + 1][MultiIndX]);
 					buffer.copyPixels(bmp, new Rectangle(ox, 0, w, 8 - h), new Point(0, h), bmp, new Point(ox, 0), true);
-					
+
 					i = 0;
 					tx = w;
 					while (tx < pw) {
@@ -458,10 +458,10 @@ package ru.inspirit.utils
 							break;
 						}
 					}
-					
+
 				}
 			}
-			
+
 			/*
 			if ( w < pw && h < 8 ) {
 				if ( MultiIndX < MultiSource[MultiIndY].length - 1 && MultiIndY < MultiSource.length - 1 ) {
@@ -471,24 +471,24 @@ package ru.inspirit.utils
 			}*/
 			buffer.unlock();
 		}
-		
+
 	    private function EncodeTick(e:TimerEvent):void
 	    {
-			for (var i:uint = 0; i < PixelsPerIter; ++i) 
+			for (var i:uint = 0; i < PixelsPerIter; ++i)
 			{
 				RGB2YUV(Source, xpos, ypos, SrcWidth, SrcHeight);
 				DCY = processDU(YDU, fdtbl_Y, DCY, YDC_HT, YAC_HT);
 				DCU = processDU(UDU, fdtbl_UV, DCU, UVDC_HT, UVAC_HT);
 				DCV = processDU(VDU, fdtbl_UV, DCV, UVDC_HT, UVAC_HT);
-				
+
 				xpos += 8;
-				
+
 				if(xpos >= SrcWidth)
 				{
 					xpos = 0;
 					ypos += 8;
 				}
-				
+
 				if(ypos >= SrcHeight)
 				{
 					asyncTimer.stop();
@@ -497,7 +497,7 @@ package ru.inspirit.utils
 				}
 
 				CurrentTotalPos += 64;
-				
+
 				if(CurrentTotalPos >= NextProgressAt)
 				{
 					dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, CurrentTotalPos, TotalSize));
@@ -516,17 +516,17 @@ package ru.inspirit.utils
 				fillbits.val = (1 << (bytepos + 1)) - 1;
 				writeBits(fillbits);
 			}
-			
+
 			writeWord(0xFFD9);
-			
+
 			if(_async){
 				dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, TotalSize, TotalSize));
 				dispatchEvent(new Event(Event.COMPLETE));
 			}
-			
+
 			Working = false;
 	    }
-		
+
 		private function clearSources():void
 		{
 			var bmp:BitmapData;
@@ -543,7 +543,7 @@ package ru.inspirit.utils
 	    private function initQuantTables(sf:int):void
 	    {
 		  var i:int = 0;
-		  var t:Number;
+		  var t:int;
 
 		  var YQT:Array = [
 			16, 11, 10, 16, 24, 40, 51, 61,
@@ -616,7 +616,7 @@ package ru.inspirit.utils
 			    pos_in_table++;
 			    codevalue++;
 			}
-			codevalue *= 2;
+			codevalue <<= 1;
 		  }
 		  return HT;
 	    }
@@ -878,45 +878,45 @@ package ru.inspirit.utils
 		  writeByte(0); // HTYDCinfo
 		  for (i = 0; i < 16; ++i)
 		  {
-			writeByte(std_dc_luminance_nrcodes[i+1]);
+			writeByte(int(std_dc_luminance_nrcodes[i+1]));
 		  }
 
 		  for (i = 0; i <= 11; ++i)
 		  {
-			writeByte(std_dc_luminance_values[i]);
+			writeByte(int(std_dc_luminance_values[i]));
 		  }
 
 		  writeByte(0x10); // HTYACinfo
 		  for (i = 0; i < 16; ++i)
 		  {
-			writeByte(std_ac_luminance_nrcodes[i+1]);
+			writeByte(int(std_ac_luminance_nrcodes[i+1]));
 		  }
 
 		  for (i = 0; i<=161; ++i)
 		  {
-			writeByte(std_ac_luminance_values[i]);
+			writeByte(int(std_ac_luminance_values[i]));
 		  }
 
 		  writeByte(1); // HTUDCinfo
 		  for (i = 0; i < 16; ++i)
 		  {
-			writeByte(std_dc_chrominance_nrcodes[i+1]);
+			writeByte(int(std_dc_chrominance_nrcodes[i+1]));
 		  }
 
 		  for (i = 0; i <= 11; ++i)
 		  {
-			writeByte(std_dc_chrominance_values[i]);
+			writeByte(int(std_dc_chrominance_values[i]));
 		  }
 
 		  writeByte(0x11); // HTUACinfo
 		  for (i = 0; i < 16; ++i)
 		  {
-			writeByte(std_ac_chrominance_nrcodes[i+1]);
+			writeByte(int(std_ac_chrominance_nrcodes[i+1]));
 		  }
 
 		  for (i = 0; i <= 161; ++i)
 		  {
-			writeByte(std_ac_chrominance_values[i]);
+			writeByte(int(std_ac_chrominance_values[i]));
 		  }
 	    }
 
@@ -978,21 +978,21 @@ package ru.inspirit.utils
 		  while (i <= end0pos)
 		  {
 			var startpos:int = i;
-			for (; (DU[i]==0) && (i<=end0pos); i++)
+			for (; (DU[i]==0) && (i<=end0pos); ++i)
 			{
 			}
 			var nrzeroes:int = i-startpos;
 
 			if (nrzeroes >= 16)
 			{
-			    for (var nrmarker:int=1; nrmarker <= nrzeroes/16; nrmarker++)
+			    for (var nrmarker:int=1; nrmarker <= nrzeroes>>4; nrmarker++) // nrzeroes / 16
 			    {
 				  writeBits(M16zeroes);
 			    }
 			    nrzeroes = int(nrzeroes&0xF);
 			}
 
-			writeBits(HTAC[int(nrzeroes * 16 + category[int(32767 + DU[i])])]);
+			writeBits(HTAC[int(nrzeroes << 4 + category[int(32767 + DU[i])])]);
 			writeBits(bitcode[int(32767 + DU[i])]);
 			i++;
 		  }
@@ -1003,23 +1003,23 @@ package ru.inspirit.utils
 		  }
 		  return DC;
 	    }
-		
+
 		private function RGB2YUV(source:Object, xp:int, yp:int, width:int=0, height:int=0):void
 	    {
 			var pos:int = 0;
 			var P:uint;
-			var R:Number;
-			var G:Number;
-			var B:Number;
-			
+			var R:int;
+			var G:int;
+			var B:int;
+
 			for (var y:int = 0; y < 8; ++y)
 			{
 				for (var x:int = 0; x < 8; ++x)
 				{
 					P = getPixel32(source, xp + x, yp + y, width, height);
-					R = Number((P>>16)&0xFF);
-					G = Number((P>> 8)&0xFF);
-					B = Number((P    )&0xFF);
+					R = int((P>>16)&0xFF);
+					G = int((P>> 8)&0xFF);
+					B = int((P    )&0xFF);
 					YDU[pos]=((( 0.29900)*R+( 0.58700)*G+( 0.11400)*B))-128;
 					UDU[pos]=(((-0.16874)*R+(-0.33126)*G+( 0.50000)*B));
 					VDU[pos]=((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B));
@@ -1042,7 +1042,7 @@ package ru.inspirit.utils
 		  else if (source is ByteArray)
 		  {
 			var byteArray:ByteArray = source as ByteArray;
-			byteArray.position = int(((y * width) * 4) + (x * 4));
+			byteArray.position = int(((y * width) << 2) + (x << 2));
 			return byteArray.readUnsignedInt();
 		  }
 		  else
