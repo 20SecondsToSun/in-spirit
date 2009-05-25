@@ -175,7 +175,7 @@ package utils {
 		private var xpos:uint = 0;
 		private var ypos:uint = 0;
 
-	    public function JPGEncoder(quality:int=50)
+	    public function JPGEncoder(quality:int = 50)
 	    {
 		  if (quality <= 0)
 			quality = 1;
@@ -187,7 +187,7 @@ package utils {
 		  if (quality < 50)
 			sf = int(5000 / quality);
 		  else
-			sf = int(200 - quality << 1);
+			sf = int(200 - (quality << 1));
 
 		  // Create tables
 		  initHuffmanTbl();
