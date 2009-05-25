@@ -1,4 +1,4 @@
-/*
+﻿/*
   Copyright (c) 2008, Adobe Systems Incorporated
   All rights reserved.
 
@@ -40,7 +40,14 @@
  * @link http://blog.inspirit.ru
  */
 
-package ru.inspirit.utils {
+/**
+ * Some speed optimizations added
+ *
+ * @author USACD
+ * @link http://www.usacd.com
+ */
+
+package utils {
 	import flash.display.BitmapData;
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
@@ -49,7 +56,7 @@ package ru.inspirit.utils {
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
 	import flash.utils.ByteArray;
-	import flash.utils.Timer;	
+	import flash.utils.Timer;
 
 	public class JPGEncoder extends EventDispatcher
 	{
@@ -168,7 +175,7 @@ package ru.inspirit.utils {
 		private var xpos:uint = 0;
 		private var ypos:uint = 0;
 
-	    public function JPGEncoder(quality:Number=50)
+	    public function JPGEncoder(quality:int=50)
 	    {
 		  if (quality <= 0)
 			quality = 1;
@@ -260,16 +267,18 @@ package ru.inspirit.utils {
 			MultiIndY = 0;
 			xpos = ypos = 0;
 			Source = MultiSource[MultiIndY][MultiIndX];
-			buffer = new BitmapData(PixelsPerIter * 8, 8, true, 0x00000000);
+			buffer = new BitmapData(PixelsPerIter << 3, 8, true, 0x00000000);
 
 			SrcWidth = 0;
 			SrcHeight = 0;
 
 			var i:uint;
-			for (i = 0; i < MultiSource[0].length; ++i) {
+			var iMultiSource0Len:int = MultiSource[0].length;
+			for (i = 0; i < iMultiSource0Len; ++i) {
 				SrcWidth += (MultiSource[0][i] as BitmapData).width;
 			}
-			for (i = 0; i < MultiSource.length; ++i) {
+			var iMultiSourceLen:int = MultiSource.length;
+			for (i = 0; i < iMultiSourceLen; ++i) {
 				SrcHeight += (MultiSource[i][0] as BitmapData).height;
 			}
 
@@ -358,7 +367,7 @@ package ru.inspirit.utils {
 
 			for(var i:uint = 0; i < PixelsPerIter; ++i)
 			{
-				RGB2YUV(buffer, i * 8, 0, buffer.width, buffer.height);
+				RGB2YUV(buffer, i << 3, 0, buffer.width, buffer.height);
 
 				DCY = processDU(YDU, fdtbl_Y, DCY, YDC_HT, YAC_HT);
 				DCU = processDU(UDU, fdtbl_UV, DCU, UVDC_HT, UVAC_HT);
@@ -368,7 +377,7 @@ package ru.inspirit.utils {
 				if ( xpos >= Source.width ) {
 					if ( MultiIndX < MultiSource[MultiIndY].length - 1 ) {
 						xpos = xpos - Source.width;
-						MultiIndX += 1;
+						MultiIndX++;
 						Source = MultiSource[MultiIndY][MultiIndX];
 					} else {
 						xpos = 0;
@@ -378,7 +387,7 @@ package ru.inspirit.utils {
 						if ( ypos >= Source.height ) {
 							if ( MultiIndY < MultiSource.length - 1 ) {
 								ypos = ypos - Source.height;
-								MultiIndY += 1;
+								MultiIndY++;
 							} else {
 								asyncTimer.stop();
 								FinishEncode();
@@ -419,7 +428,7 @@ package ru.inspirit.utils {
 			if ( w < pw ) {
 				while (tx < pw) {
 					if ( MultiIndX + i < MultiSource[MultiIndY].length - 1 ) {
-						i += 1;
+						i++;
 						bmp = BitmapData(MultiSource[MultiIndY][MultiIndX + i]);
 						nw = Math.min(pw - tx, bmp.width);
 						buffer.copyPixels(bmp, new Rectangle(0, oy, nw, h), new Point(tx, 0), bmp, new Point(0, oy), true);
@@ -444,7 +453,7 @@ package ru.inspirit.utils {
 					tx = w;
 					while (tx < pw) {
 						if ( MultiIndX + i < MultiSource[MultiIndY + 1].length - 1 ) {
-							i += 1;
+							i++;
 							bmp = BitmapData(MultiSource[MultiIndY + 1][MultiIndX + i]);
 							nw = Math.min(pw - tx, bmp.width);
 							buffer.copyPixels(bmp, new Rectangle(0, 0, nw, 8 - h), new Point(tx, h), bmp, origin, true);
@@ -507,8 +516,8 @@ package ru.inspirit.utils {
 			if (bytepos >= 0)
 			{
 				var fillbits:BitString = new BitString();
-				fillbits.len = bytepos + 1;
-				fillbits.val = (1 << (bytepos + 1)) - 1;
+				fillbits.len = ++bytepos;
+				fillbits.val = (1 << bytepos) - 1;
 				writeBits(fillbits);
 			}
 
@@ -525,8 +534,10 @@ package ru.inspirit.utils {
 		private function clearSources():void
 		{
 			var bmp:BitmapData;
-			for (var i:int = 0; i < MultiSource.length; ++i) {
-				for (var j:int = 0; j < MultiSource[0].length; ++j) {
+			var iMultiSourceLen:int = MultiSource.length;
+			for (var i:int = 0; i < iMultiSourceLen; ++i) {
+				var iMultiSource0Len:int = MultiSource[0].length;
+				for (var j:int = 0; j < iMultiSource0Len; ++j) {
 					bmp = BitmapData(MultiSource[i][j]);
 					bmp.dispose();
 					MultiSource[i][j] = null;
@@ -605,11 +616,12 @@ package ru.inspirit.utils {
 		  {
 			for (var j:int = 1; j <= nrcodes[k]; ++j)
 			{
-			    HT[int(std_table[pos_in_table])] = new BitString();
-			    HT[int(std_table[pos_in_table])].val = codevalue;
-			    HT[int(std_table[pos_in_table])].len = k;
-			    pos_in_table++;
-			    codevalue++;
+			    var std_table_pos:int = int(std_table[pos_in_table]);
+			    HT[std_table_pos] = new BitString();
+			    HT[std_table_pos].val = codevalue;
+			    HT[std_table_pos].len = k;
+			    ++pos_in_table;
+			    ++codevalue;
 			}
 			codevalue <<= 1;
 		  }
@@ -629,24 +641,27 @@ package ru.inspirit.utils {
 		  var nr:int;
 		  var nrlower:int = 1;
 		  var nrupper:int = 2;
+			var nr32767:int;
 		  for (var cat:int = 1; cat <= 15; ++cat)
 		  {
 			//Positive numbers
 			for (nr = nrlower; nr < nrupper; ++nr)
 			{
-			    category[int(32767+nr)] = cat;
-			    bitcode[int(32767+nr)] = new BitString();
-			    bitcode[int(32767+nr)].len = cat;
-			    bitcode[int(32767+nr)].val = nr;
+			    nr32767 = int(32767+nr);
+			    category[nr32767] = cat;
+			    bitcode[nr32767] = new BitString();
+			    bitcode[nr32767].len = cat;
+			    bitcode[nr32767].val = nr;
 			}
 
 			//Negative numbers
 			for (nr = -(nrupper-1); nr <= -nrlower; ++nr)
 			{
-			    category[int(32767+nr)] = cat;
-			    bitcode[int(32767+nr)] = new BitString();
-			    bitcode[int(32767+nr)].len = cat;
-			    bitcode[int(32767+nr)].val = nrupper-1+nr;
+			    nr32767 = int(32767+nr);
+			    category[nr32767] = cat;
+			    bitcode[nr32767] = new BitString();
+			    bitcode[nr32767].len = cat;
+			    bitcode[nr32767].val = nrupper-1+nr;
 			}
 			nrlower <<= 1;
 			nrupper <<= 1;
@@ -664,8 +679,8 @@ package ru.inspirit.utils {
 			{
 			    bytenew |= uint(1 << bytepos);
 			}
-			posval--;
-			bytepos--;
+			--posval;
+			--bytepos;
 			if (bytepos < 0)
 			{
 			    if (bytenew == 0xFF)
@@ -792,7 +807,7 @@ package ru.inspirit.utils {
 			data[int(dataOff+ 8)] = z11 + z4;
 			data[int(dataOff+56)] = z11 - z4;
 
-			dataOff++; /* advance pointer to next column */
+			++dataOff; /* advance pointer to next column */
 		  }
 
 		  // Quantize/descale the coefficients
@@ -989,7 +1004,7 @@ package ru.inspirit.utils {
 
 			writeBits(HTAC[int((nrzeroes << 4) + category[int(32767 + DU[i])])]);
 			writeBits(bitcode[int(32767 + DU[i])]);
-			i++;
+			++i;
 		  }
 
 		  if (end0pos != 63)
