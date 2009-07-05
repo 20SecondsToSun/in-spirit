@@ -1,0 +1,117 @@
+<languageVersion: 1.0;>
+kernel GaussBlur
+<
+	namespace: "ru.inspirit";
+	vendor: "Eugene Zatepyakin";
+	version: 1;
+	description: "Your Description";
+>
+{
+	input image3 src;
+	output pixel3 trg;
+	
+	parameter float weight0
+    <
+        minValue: float( -1.0 );
+        maxValue: float( 1.0 );
+        defaultValue: float( 0.0 );
+    >;
+    parameter float weight1
+    <
+        minValue: float( -1.0 );
+        maxValue: float( 1.0 );
+        defaultValue: float( 0.0 );
+    >;
+    parameter float weight2
+    <
+        minValue: float( -1.0 );
+        maxValue: float( 1.0 );
+        defaultValue: float( 0.0 );
+    >;
+    parameter float weight3
+    <
+        minValue: float( -1.0 );
+        maxValue: float( 1.0 );
+        defaultValue: float( 0.0 );
+    >;
+    parameter float weight4
+    <
+        minValue: float( -1.0 );
+        maxValue: float( 1.0 );
+        defaultValue: float( 0.0 );
+    >;
+    parameter float weight5
+    <
+        minValue: float( -1.0 );
+        maxValue: float( 1.0 );
+        defaultValue: float( 0.0 );
+    >;
+    parameter float weight6
+    <
+        minValue: float( -1.0 );
+        maxValue: float( 1.0 );
+        defaultValue: float( 0.0 );
+    >;
+
+	void evaluatePixel()
+	{
+		float3 p;
+		float accx = float(0.0);
+		float accy = float(0.0);
+		float2 pos = outCoord();
+		
+		p = sampleNearest(src, pos);
+		accx += p.x * weight0;
+		accy = accx;
+		
+		// X DIRECTION
+		p = sampleNearest(src, pos + float2( 1.0, 0.0 ));
+		accx += weight1 * (p.x + sampleNearest(src, pos + float2( -1.0, 0.0 )).x);
+		
+		// Y DIRECTION
+		p = sampleNearest(src, pos + float2( 0.0, 1.0 ));
+		accy +=  weight1 * (p.x + sampleNearest(src, pos + float2( 0.0, -1.0 )).x);
+		
+		// X DIRECTION
+		p = sampleNearest(src, pos + float2( 2.0, 0.0 ));
+		accx +=  weight2 * (p.x + sampleNearest(src, pos + float2( -1.0, 0.0 )).x);
+		
+		// Y DIRECTION
+		p = sampleNearest(src, pos + float2( 0.0, 2.0 ));
+		accy +=  weight2 * (p.x + sampleNearest(src, pos + float2( 0.0, -2.0 )).x);
+		
+		// X DIRECTION
+		p = sampleNearest(src, pos + float2( 3.0, 0.0 ));
+		accx +=  weight3 * (p.x + sampleNearest(src, pos + float2( -3.0, 0.0 )).x);
+		
+		// Y DIRECTION
+		p = sampleNearest(src, pos + float2( 0.0, 3.0 ));
+		accy +=  weight3 * (p.x + sampleNearest(src, pos + float2( 0.0, -3.0 )).x);
+		
+		// X DIRECTION
+		p = sampleNearest(src, pos + float2( 4.0, 0.0 ));
+		accx +=  weight4 * (p.x + sampleNearest(src, pos + float2( -4.0, 0.0 )).x);
+		
+		// Y DIRECTION
+		p = sampleNearest(src, pos + float2( 0.0, 4.0 ));
+		accy +=  weight4 * (p.x + sampleNearest(src, pos + float2( 0.0, -4.0 )).x);
+		
+		// X DIRECTION
+		p = sampleNearest(src, pos + float2( 5.0, 0.0 ));
+		accx +=  weight5 * (p.x + sampleNearest(src, pos + float2( -5.0, 0.0 )).x);
+		
+		// Y DIRECTION
+		p = sampleNearest(src, pos + float2( 0.0, 5.0 ));
+		accy +=  weight5 * (p.x + sampleNearest(src, pos + float2( 0.0, -5.0 )).x);
+		
+		// X DIRECTION
+		p = sampleNearest(src, pos + float2( 6.0, 0.0 ));
+		accx +=  weight6 * (p.x + sampleNearest(src, pos + float2( -6.0, 0.0 )).x);
+		
+		// Y DIRECTION
+		p = sampleNearest(src, pos + float2( 0.0, 6.0 ));
+		accy +=  weight6 * (p.x + sampleNearest(src, pos + float2( 0.0, -6.0 )).x);
+		
+		trg = float3(accx, accy, 0.0);
+	}
+}
