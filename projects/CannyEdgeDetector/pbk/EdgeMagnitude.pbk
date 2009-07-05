@@ -1,0 +1,132 @@
+<languageVersion: 1.0;>
+kernel EdgeMagnitude
+<
+	namespace: "ru.inspirit";
+	vendor: "Eugene Zatepyakin";
+	version: 1;
+	description: "Your Description";
+>
+{
+	input image3 src;
+	output pixel3 trg;
+	
+	/*parameter float mag_scale
+    <
+        minValue: float( 0.0 );
+        maxValue: float( 100.0 );
+        defaultValue: float( 100.0 );
+    >;
+    parameter float mag_limit
+    <
+        minValue: float( 0.0 );
+        maxValue: float( 1000.0 );
+        defaultValue: float( 1000.0 );
+    >;
+    parameter float mag_max
+    <
+        minValue: float( 0.0 );
+        maxValue: float( 100000.0 );
+        defaultValue: float( 100000.0 );
+    >;*/
+
+	void evaluatePixel()
+	{		
+		float2 pos = outCoord();
+		float3 p = sampleNearest(src, pos);
+		float3 pN = sampleNearest(src, pos + float2( 0.0, -1.0 ));
+		float3 pS = sampleNearest(src, pos + float2( 0.0, 1.0 ));
+		float3 pW = sampleNearest(src, pos + float2( -1.0, 0.0 ));
+		float3 pE = sampleNearest(src, pos + float2( 1.0, 0.0 ));
+		float3 pNW = sampleNearest(src, pos + float2( -1.0, -1.0 ));
+		float3 pNE = sampleNearest(src, pos + float2( 1.0, -1.0 ));
+		float3 pSW = sampleNearest(src, pos + float2( -1.0, 1.0 ));
+		float3 pSE = sampleNearest(src, pos + float2( 1.0, 1.0 ));
+		
+		float xGrad = p.x;
+		float yGrad = p.y;
+		float gradMag = sqrt(xGrad * xGrad + yGrad * yGrad);
+		
+		float axGrad = abs(xGrad);
+		float ayGrad = abs(yGrad);
+		
+		//perform non-maximal supression
+		float nMag = sqrt(pN.x * pN.x + pN.y * pN.y);
+		float sMag = sqrt(pS.x * pS.x + pS.y * pS.y);
+		float wMag = sqrt(pW.x * pW.x + pW.y * pW.y);
+		float eMag = sqrt(pE.x * pE.x + pE.y * pE.y);
+		float neMag = sqrt(pNE.x * pNE.x + pNE.y * pNE.y);
+		float seMag = sqrt(pSE.x * pSE.x + pSE.y * pSE.y);
+		float swMag = sqrt(pSW.x * pSW.x + pSW.y * pSW.y);
+		float nwMag = sqrt(pNW.x * pNW.x + pNW.y * pNW.y);
+		
+		float tmp, tmp1, tmp2, tmp3, res;
+		
+		res = 0.0;
+		
+		if(xGrad * yGrad <= 0.0)
+		{
+			tmp3 = xGrad + yGrad;
+			if(axGrad >= ayGrad)
+			{
+				tmp = axGrad * gradMag;
+				if(tmp >= abs(yGrad * neMag - (tmp3) * eMag))
+				{
+					if(tmp > abs(yGrad * swMag - (tmp3) * wMag)){
+						/*if(gradMag >= mag_limit){
+							res = mag_max;
+						} else {
+							res = (mag_scale * gradMag);
+						}*/
+						res = gradMag;
+					}
+				}
+			} else {
+				tmp = ayGrad * gradMag;
+				if(tmp >= abs(xGrad * neMag - (tmp3) * nMag))
+				{
+					if(tmp > abs(xGrad * swMag - (tmp3) * sMag)){
+						/*if(gradMag >= mag_limit){
+							res = mag_max;
+						} else {
+							res = (mag_scale * gradMag);
+						}*/
+						res = gradMag;
+					}
+				}
+			}
+		} else {
+			if(axGrad >= ayGrad)
+			{
+				tmp3 = xGrad - yGrad;
+				tmp = axGrad * gradMag;
+				if(tmp >= abs(yGrad * seMag + (tmp3) * eMag))
+				{
+					if(tmp > abs(yGrad * nwMag + (tmp3) * wMag)){
+						/*if(gradMag >= mag_limit){
+							res = mag_max;
+						} else {
+							res = (mag_scale * gradMag);
+						}*/
+						res = gradMag;
+					}
+				}
+			} else {
+				tmp3 = yGrad - xGrad;
+				tmp = ayGrad * gradMag;
+				if(tmp >= abs(xGrad * seMag + (tmp3) * sMag))
+				{
+					if(tmp > abs(xGrad * nwMag + (tmp3) * nMag)){
+						/*if(gradMag >= mag_limit){
+							res = mag_max;
+						} else {
+							res = (mag_scale * gradMag);
+						}*/
+						res = gradMag;
+					}
+				}
+			}
+		}
+		
+		trg = float3( res );
+	}
+}

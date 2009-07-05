@@ -1,0 +1,47 @@
+<languageVersion: 1.0;>
+kernel Hysteresis
+<
+	namespace: "ru.inspirit";
+	vendor: "Eugene Zatepyakin";
+	version: 1;
+	description: "Your Description";
+>
+{
+	input image3 src;
+	output pixel4 trg;
+	
+	parameter float low
+    <
+        minValue: float( 0.01 );
+        maxValue: float( 1.0 );
+        defaultValue: float( 0.02 );
+    >;
+    
+    parameter float high
+    <
+        minValue: float( 0.1 );
+        maxValue: float( 1.0 );
+        defaultValue: float( 0.18 );
+    >;
+
+	void evaluatePixel()
+	{		
+		float2 pos = outCoord();
+		float3 p = sampleNearest(src, pos);
+		float3 pN = sampleNearest(src, pos + float2( 0.0, -1.0 ));
+		float3 pS = sampleNearest(src, pos + float2( 0.0, 1.0 ));
+		float3 pW = sampleNearest(src, pos + float2( -1.0, 0.0 ));
+		float3 pE = sampleNearest(src, pos + float2( 1.0, 0.0 ));
+		float3 pNW = sampleNearest(src, pos + float2( -1.0, -1.0 ));
+		float3 pNE = sampleNearest(src, pos + float2( 1.0, -1.0 ));
+		float3 pSW = sampleNearest(src, pos + float2( -1.0, 1.0 ));
+		float3 pSE = sampleNearest(src, pos + float2( 1.0, 1.0 ));
+		
+		if(p.b >= high || pN.b >= low || pS.b >= low || pW.b >= low || pE.b >= low || pNW.b >= low || pNE.b >= low || pSW.b >= low || pSE.b >= low){
+			trg.rgb = float3(1.0);
+		} else {
+			trg.rgb = float3(0.0);
+		}
+		trg.a = 1.0;
+	}
+}
