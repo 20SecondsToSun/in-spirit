@@ -1,0 +1,13 @@
+#summary AS3 class to perform Canny Edge detection.
+#labels Featured
+
+= Canny Edge Detector Class =
+
+[http://blog.inspirit.ru/wp-content/uploads/canny/canny_5.png]
+
+[http://en.wikipedia.org/wiki/Canny_edge_detector The Canny edge detection operator was developed by John F. Canny in 1986 and uses a multi-stage algorithm to detect a wide range of edges in images.]
+
+*[http://blog.inspirit.ru/?p=297 Test demonstration application]*
+
+== How To ==
+*[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/CannyEdgeDetector Complete source code and test usage example available in my repository]*
