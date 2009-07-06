@@ -88,19 +88,17 @@ package ru.inspirit.bitmapdata
 		}
 		
 		public function detectEdges(targetBmd:BitmapData):void
-		{
-			Gray_job = new ShaderJob(Gray_shader, imgGrayResult, width, height);
-			Gray_job.start(true);
-			
+		{			
 			if(_doNormalizeContrast)
 			{
-				BytesToBitmap_shader.data.src.input = imgGrayResult;
-				BytesToBitmap_job = new ShaderJob(BytesToBitmap_shader, dataBmd, width, height);
-				BytesToBitmap_job.start(true);
+				Gray_job = new ShaderJob(Gray_shader, dataBmd, width, height);
+				Gray_job.start(true);
 				
 				dataBmd.setVector(rect, normalizeContrast(dataBmd.getVector(rect)));
 				
-				BytesToBitmap_shader.data.src.input = edgeMagResult;
+			} else {
+				Gray_job = new ShaderJob(Gray_shader, imgGrayResult, width, height);
+				Gray_job.start(true);
 			}
 			
 			GaussBlur_job = new ShaderJob(GaussBlur_shader, imgBlurResult, width, height);
@@ -153,18 +151,16 @@ package ru.inspirit.bitmapdata
 		
 		public function detectEdgesBold(targetBmd:BitmapData):void
 		{
-			Gray_job = new ShaderJob(Gray_shader, imgGrayResult, width, height);
-			Gray_job.start(true);
-			
 			if(_doNormalizeContrast)
 			{
-				BytesToBitmap_shader.data.src.input = imgGrayResult;
-				BytesToBitmap_job = new ShaderJob(BytesToBitmap_shader, dataBmd, width, height);
-				BytesToBitmap_job.start(true);
+				Gray_job = new ShaderJob(Gray_shader, dataBmd, width, height);
+				Gray_job.start(true);
 				
 				dataBmd.setVector(rect, normalizeContrast(dataBmd.getVector(rect)));
 				
-				BytesToBitmap_shader.data.src.input = edgeMagResult;
+			} else {
+				Gray_job = new ShaderJob(Gray_shader, imgGrayResult, width, height);
+				Gray_job.start(true);
 			}
 			
 			GaussBlur_job = new ShaderJob(GaussBlur_shader, imgBlurResult, width, height);
