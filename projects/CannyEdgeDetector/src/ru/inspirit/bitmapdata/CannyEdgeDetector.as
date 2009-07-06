@@ -73,7 +73,7 @@ package ru.inspirit.bitmapdata
 			this.height = image.height;
 			this.size = width * height;
 			this.rect = new Rectangle(0, 0, width, height);
-			this.contrastMult = 255 / size; 
+			this.contrastMult = 255 / size;
 			
 			this._highThreshold = highThreshold;
 			this._lowThreshold = lowThreshold;
@@ -95,10 +95,9 @@ package ru.inspirit.bitmapdata
 				Gray_job.start(true);
 				
 				dataBmd.setVector(rect, normalizeContrast(dataBmd.getVector(rect)));
-				
 			} else {
 				Gray_job = new ShaderJob(Gray_shader, imgGrayResult, width, height);
-				Gray_job.start(true);
+				Gray_job.start(true);				
 			}
 			
 			GaussBlur_job = new ShaderJob(GaussBlur_shader, imgBlurResult, width, height);
@@ -298,32 +297,53 @@ package ru.inspirit.bitmapdata
 		
 		protected function normalizeContrast(data:Vector.<uint>):Vector.<uint>
 		{
-			var target:int, k:int;
+			var target:int, a:int, b:int;
+			var T1:int = 0.05 * size;
+			var T2:int = 0.95 * size;
 			var histogram:Vector.<int> = new Vector.<int>(256, true);
-			var i:int = size;
-			while( -- i > -1 ) {
+			var i:int = 256;
+			
+			while( --i > -1 ) 
+			{
+				histogram[i] = 0;
+			}
+			
+			i = size;
+			while( --i > -1 ) 
+			{
 				target = data[i] & 0xFF;
 				data[i] = target;
 				histogram[ target ]++;
-			}
-			var remap:Vector.<uint> = new Vector.<uint>(256, true);
+			}			
 			
 			var sum:int = 0;
-			var j:int = 0;
-			for( i = 0; i < 256; ++i )
+			for( i = 0; i < 256; ++i)
 			{
 				sum += histogram[i];
-				target = sum * contrastMult;
-				for( k = j; k <= target; ++k )
+				if(sum >= T1)
 				{
-					remap[k] = i;
+					a = i;
+					break;
 				}
-				j = target + 1;
 			}
 			
+			i++;
+			for( ; i < 256; ++i)
+			{
+				sum += histogram[i];
+				if(sum >= T2)
+				{
+					b = i;
+					break;
+				}
+			}
+			
+			var scale:Number = 255 / (b-a);
 			for( i = 0; i < size; ++i )
 			{
-				target = remap[ data[i] ];
+				target = int( (data[i] - a) * scale + .5);
+				if(target < 0)target = 0;
+				if(target > 255)target = 255;
 				data[i] = target << 16 | target << 8 | target;
 			}
 			
