@@ -14,6 +14,6 @@ kernel GrayScale
 	{
 		pixel4 p = sampleNearest(src, outCoord());
 		float luma = 0.299 * p.r + 0.587 * p.g + 0.114 * p.b;
-		trg = float3(luma, 0.0, 0.0);
+		trg = float3(luma);
 	}
 }
