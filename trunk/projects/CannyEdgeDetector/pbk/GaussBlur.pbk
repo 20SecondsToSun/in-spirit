@@ -59,44 +59,44 @@ kernel GaussBlur
 		float accy = float(0.0);
 		float2 pos = outCoord();
 		
-		accx += sampleNearest(src, pos).x * weight0;
+		accx += sampleNearest(src, pos).r * weight0;
 		accy = accx;
 		
 		// X DIRECTION
-		accx += weight1 * (sampleNearest(src, pos + float2( 1.0, 0.0 )).x + sampleNearest(src, pos + float2( -1.0, 0.0 )).x);
+		accx += weight1 * (sampleNearest(src, pos + float2( 1.0, 0.0 )).r + sampleNearest(src, pos + float2( -1.0, 0.0 )).r);
 		
 		// Y DIRECTION
-		accy +=  weight1 * (sampleNearest(src, pos + float2( 0.0, 1.0 )).x + sampleNearest(src, pos + float2( 0.0, -1.0 )).x);
+		accy +=  weight1 * (sampleNearest(src, pos + float2( 0.0, 1.0 )).r + sampleNearest(src, pos + float2( 0.0, -1.0 )).r);
 		
 		// X DIRECTION
-		accx +=  weight2 * (sampleNearest(src, pos + float2( 2.0, 0.0 )).x + sampleNearest(src, pos + float2( -1.0, 0.0 )).x);
+		accx +=  weight2 * (sampleNearest(src, pos + float2( 2.0, 0.0 )).r + sampleNearest(src, pos + float2( -1.0, 0.0 )).r);
 		
 		// Y DIRECTION
-		accy +=  weight2 * (sampleNearest(src, pos + float2( 0.0, 2.0 )).x + sampleNearest(src, pos + float2( 0.0, -2.0 )).x);
+		accy +=  weight2 * (sampleNearest(src, pos + float2( 0.0, 2.0 )).r + sampleNearest(src, pos + float2( 0.0, -2.0 )).r);
 		
 		// X DIRECTION
-		accx +=  weight3 * (sampleNearest(src, pos + float2( 3.0, 0.0 )).x + sampleNearest(src, pos + float2( -3.0, 0.0 )).x);
+		accx +=  weight3 * (sampleNearest(src, pos + float2( 3.0, 0.0 )).r + sampleNearest(src, pos + float2( -3.0, 0.0 )).r);
 		
 		// Y DIRECTION
-		accy +=  weight3 * (sampleNearest(src, pos + float2( 0.0, 3.0 )).x + sampleNearest(src, pos + float2( 0.0, -3.0 )).x);
+		accy +=  weight3 * (sampleNearest(src, pos + float2( 0.0, 3.0 )).r + sampleNearest(src, pos + float2( 0.0, -3.0 )).r);
 		
 		// X DIRECTION
-		accx +=  weight4 * (sampleNearest(src, pos + float2( 4.0, 0.0 )).x + sampleNearest(src, pos + float2( -4.0, 0.0 )).x);
+		accx +=  weight4 * (sampleNearest(src, pos + float2( 4.0, 0.0 )).r + sampleNearest(src, pos + float2( -4.0, 0.0 )).r);
 		
 		// Y DIRECTION
-		accy +=  weight4 * (sampleNearest(src, pos + float2( 0.0, 4.0 )).x + sampleNearest(src, pos + float2( 0.0, -4.0 )).x);
+		accy +=  weight4 * (sampleNearest(src, pos + float2( 0.0, 4.0 )).r + sampleNearest(src, pos + float2( 0.0, -4.0 )).r);
 		
 		// X DIRECTION
-		accx +=  weight5 * (sampleNearest(src, pos + float2( 5.0, 0.0 )).x + sampleNearest(src, pos + float2( -5.0, 0.0 )).x);
+		accx +=  weight5 * (sampleNearest(src, pos + float2( 5.0, 0.0 )).r + sampleNearest(src, pos + float2( -5.0, 0.0 )).r);
 		
 		// Y DIRECTION
-		accy +=  weight5 * (sampleNearest(src, pos + float2( 0.0, 5.0 )).x + sampleNearest(src, pos + float2( 0.0, -5.0 )).x);
+		accy +=  weight5 * (sampleNearest(src, pos + float2( 0.0, 5.0 )).r + sampleNearest(src, pos + float2( 0.0, -5.0 )).r);
 		
 		// X DIRECTION
-		accx +=  weight6 * (sampleNearest(src, pos + float2( 6.0, 0.0 )).x + sampleNearest(src, pos + float2( -6.0, 0.0 )).x);
+		accx +=  weight6 * (sampleNearest(src, pos + float2( 6.0, 0.0 )).r + sampleNearest(src, pos + float2( -6.0, 0.0 )).r);
 		
 		// Y DIRECTION
-		accy +=  weight6 * (sampleNearest(src, pos + float2( 0.0, 6.0 )).x + sampleNearest(src, pos + float2( 0.0, -6.0 )).x);
+		accy +=  weight6 * (sampleNearest(src, pos + float2( 0.0, 6.0 )).r + sampleNearest(src, pos + float2( 0.0, -6.0 )).r);
 		
 		trg = float3(accx, accy, 0.0);
 	}
