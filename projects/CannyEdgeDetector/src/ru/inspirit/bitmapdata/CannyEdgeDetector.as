@@ -57,9 +57,11 @@ package ru.inspirit.bitmapdata
 		protected var height:int;
 		protected var size:int;
 		protected var rect:Rectangle;
+		protected var contrastMult:Number;
 		
 		protected var _lowThreshold:Number;
 		protected var _highThreshold:Number;
+		protected var _doNormalizeContrast:Boolean = false;
 		
 		public var data:Vector.<uint>;
 		public var magnitude:Vector.<uint>;
@@ -71,6 +73,7 @@ package ru.inspirit.bitmapdata
 			this.height = image.height;
 			this.size = width * height;
 			this.rect = new Rectangle(0, 0, width, height);
+			this.contrastMult = 255 / size; 
 			
 			this._highThreshold = highThreshold;
 			this._lowThreshold = lowThreshold;
@@ -89,6 +92,17 @@ package ru.inspirit.bitmapdata
 			Gray_job = new ShaderJob(Gray_shader, imgGrayResult, width, height);
 			Gray_job.start(true);
 			
+			if(_doNormalizeContrast)
+			{
+				BytesToBitmap_shader.data.src.input = imgGrayResult;
+				BytesToBitmap_job = new ShaderJob(BytesToBitmap_shader, dataBmd, width, height);
+				BytesToBitmap_job.start(true);
+				
+				dataBmd.setVector(rect, normalizeContrast(dataBmd.getVector(rect)));
+				
+				BytesToBitmap_shader.data.src.input = edgeMagResult;
+			}
+			
 			GaussBlur_job = new ShaderJob(GaussBlur_shader, imgBlurResult, width, height);
 			GaussBlur_job.start(true);
 			
@@ -99,9 +113,9 @@ package ru.inspirit.bitmapdata
 			EdgeMagnitude_job.start(true);
 			
 			BytesToBitmap_job = new ShaderJob(BytesToBitmap_shader, dataBmd, width, height);
-			BytesToBitmap_job.start(true);			
+			BytesToBitmap_job.start(true);
 			
-			magnitude = dataBmd.getVector(rect);			
+			magnitude = dataBmd.getVector(rect);
 			
 			var max:uint = 0;
 			var b:uint;
@@ -141,6 +155,17 @@ package ru.inspirit.bitmapdata
 		{
 			Gray_job = new ShaderJob(Gray_shader, imgGrayResult, width, height);
 			Gray_job.start(true);
+			
+			if(_doNormalizeContrast)
+			{
+				BytesToBitmap_shader.data.src.input = imgGrayResult;
+				BytesToBitmap_job = new ShaderJob(BytesToBitmap_shader, dataBmd, width, height);
+				BytesToBitmap_job.start(true);
+				
+				dataBmd.setVector(rect, normalizeContrast(dataBmd.getVector(rect)));
+				
+				BytesToBitmap_shader.data.src.input = edgeMagResult;
+			}
 			
 			GaussBlur_job = new ShaderJob(GaussBlur_shader, imgBlurResult, width, height);
 			GaussBlur_job.start(true);
@@ -183,6 +208,16 @@ package ru.inspirit.bitmapdata
 			Hysteresis_shader.data.high.value = [ _highThreshold ];
 		}
 		
+		public function set doNormalizeContrast(value:Boolean):void
+		{
+			_doNormalizeContrast = value;
+			if(_doNormalizeContrast){
+				GaussBlur_shader.data.src.input = dataBmd;
+			} else {
+				GaussBlur_shader.data.src.input = imgGrayResult;
+			}
+		}
+		
 		public function get lowThreshold():Number
 		{
 			return _lowThreshold;
@@ -191,6 +226,11 @@ package ru.inspirit.bitmapdata
 		public function get highThreshold():Number
 		{
 			return _highThreshold;
+		}
+		
+		public function get doNormalizeContrast():Boolean
+		{
+			return _doNormalizeContrast;
 		}
 		
 		protected function hysteresisFollow(data:Vector.<uint>, magnitude:Vector.<uint>, width:int, height:int, x1:int, y1:int, i1:int, threshold:int):void
@@ -258,6 +298,40 @@ package ru.inspirit.bitmapdata
 			Hysteresis_shader.data.src.width = width;
 			Hysteresis_shader.data.src.height = height;
 			Hysteresis_shader.data.src.input = edgeMagResult;
+		}
+		
+		protected function normalizeContrast(data:Vector.<uint>):Vector.<uint>
+		{
+			var target:int, k:int;
+			var histogram:Vector.<int> = new Vector.<int>(256, true);
+			var i:int = size;
+			while( -- i > -1 ) {
+				target = data[i] & 0xFF;
+				data[i] = target;
+				histogram[ target ]++;
+			}
+			var remap:Vector.<uint> = new Vector.<uint>(256, true);
+			
+			var sum:int = 0;
+			var j:int = 0;
+			for( i = 0; i < 256; ++i )
+			{
+				sum += histogram[i];
+				target = sum * contrastMult;
+				for( k = j; k <= target; ++k )
+				{
+					remap[k] = i;
+				}
+				j = target + 1;
+			}
+			
+			for( i = 0; i < size; ++i )
+			{
+				target = remap[ data[i] ];
+				data[i] = target << 16 | target << 8 | target;
+			}
+			
+			return data;
 		}
 		
 		protected function initKernels(gaussianKernelRadius:Number = 2, gaussianKernelWidth:int = 10):void

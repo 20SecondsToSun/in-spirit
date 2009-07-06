@@ -1,17 +1,18 @@
 ﻿package  
 {
-	import com.bit101.components.CheckBox;
-	import com.quasimondo.bitmapdata.CameraBitmap;
 	import ru.inspirit.bitmapdata.CannyEdgeDetector;
 
+	import com.bit101.components.CheckBox;
 	import com.bit101.components.HUISlider;
 	import com.bit101.components.Label;
 	import com.bit101.components.Panel;
 	import com.bit101.components.Style;
+	import com.quasimondo.bitmapdata.CameraBitmap;
 
 	import flash.display.Bitmap;
 	import flash.display.BitmapData;
 	import flash.display.Sprite;
+	import flash.display.StageAlign;
 	import flash.display.StageScaleMode;
 	import flash.events.Event;
 	import flash.ui.ContextMenu;
@@ -108,11 +109,14 @@
 			sl.width = 250;
 			
 			sl = new HUISlider(p, 90, 18, 'HIGH THRESHOLD', onHighThresChange);
-			sl.setSliderParams(.05, .9, .18);
+			sl.setSliderParams(.01, 1.0, .18);
 			sl.labelPrecision = 3;
 			sl.width = 250;
 			
-			var blde:CheckBox = new CheckBox(p, 350, 10, 'GET BOLD EDGES', onBoldChange);
+			var blde:CheckBox = new CheckBox(p, 350, 22, 'GET BOLD EDGES', onBoldChange);
+			blde.selected = false;
+			
+			blde = new CheckBox(p, 350, 9, 'NORMALIZE CONTRAST', onNormContrastChange);
 			blde.selected = false;
 			
 			addEventListener(Event.ENTER_FRAME, countFrameTime);		
@@ -129,6 +133,10 @@
 		private function onBoldChange(e:Event):void
 		{
 			_boldEdges = CheckBox(e.currentTarget).selected;
+		}
+		private function onNormContrastChange(e:Event):void
+		{
+			cannyEdgesDetect.doNormalizeContrast = CheckBox(e.currentTarget).selected;
 		}
 		
 		private function countFrameTime(e:Event = null):void
@@ -152,7 +160,7 @@
 		private function initStage():void
 		{
 			stage.scaleMode = StageScaleMode.NO_SCALE;
-			//stage.align = StageAlign.TOP_LEFT;
+			stage.align = StageAlign.TOP_LEFT;
 			
 			var myContextMenu:ContextMenu = new ContextMenu();
 			myContextMenu.hideBuiltInItems();
