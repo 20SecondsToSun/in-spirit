@@ -9,25 +9,6 @@ kernel EdgeMagnitude
 {
 	input image3 src;
 	output pixel3 trg;
-	
-	/*parameter float mag_scale
-    <
-        minValue: float( 0.0 );
-        maxValue: float( 100.0 );
-        defaultValue: float( 100.0 );
-    >;
-    parameter float mag_limit
-    <
-        minValue: float( 0.0 );
-        maxValue: float( 1000.0 );
-        defaultValue: float( 1000.0 );
-    >;
-    parameter float mag_max
-    <
-        minValue: float( 0.0 );
-        maxValue: float( 100000.0 );
-        defaultValue: float( 100000.0 );
-    >;*/
 
 	void evaluatePixel()
 	{		
@@ -59,9 +40,9 @@ kernel EdgeMagnitude
 		float swMag = sqrt(pSW.x * pSW.x + pSW.y * pSW.y);
 		float nwMag = sqrt(pNW.x * pNW.x + pNW.y * pNW.y);
 		
-		float tmp, tmp1, tmp2, tmp3, res;
+		float tmp, tmp1, tmp2, tmp3;
 		
-		res = 0.0;
+		float res = 0.0;
 		
 		if(xGrad * yGrad <= 0.0)
 		{
@@ -72,11 +53,6 @@ kernel EdgeMagnitude
 				if(tmp >= abs(yGrad * neMag - (tmp3) * eMag))
 				{
 					if(tmp > abs(yGrad * swMag - (tmp3) * wMag)){
-						/*if(gradMag >= mag_limit){
-							res = mag_max;
-						} else {
-							res = (mag_scale * gradMag);
-						}*/
 						res = gradMag;
 					}
 				}
@@ -85,11 +61,6 @@ kernel EdgeMagnitude
 				if(tmp >= abs(xGrad * neMag - (tmp3) * nMag))
 				{
 					if(tmp > abs(xGrad * swMag - (tmp3) * sMag)){
-						/*if(gradMag >= mag_limit){
-							res = mag_max;
-						} else {
-							res = (mag_scale * gradMag);
-						}*/
 						res = gradMag;
 					}
 				}
@@ -102,11 +73,6 @@ kernel EdgeMagnitude
 				if(tmp >= abs(yGrad * seMag + (tmp3) * eMag))
 				{
 					if(tmp > abs(yGrad * nwMag + (tmp3) * wMag)){
-						/*if(gradMag >= mag_limit){
-							res = mag_max;
-						} else {
-							res = (mag_scale * gradMag);
-						}*/
 						res = gradMag;
 					}
 				}
@@ -116,11 +82,6 @@ kernel EdgeMagnitude
 				if(tmp >= abs(xGrad * seMag + (tmp3) * sMag))
 				{
 					if(tmp > abs(xGrad * nwMag + (tmp3) * nMag)){
-						/*if(gradMag >= mag_limit){
-							res = mag_max;
-						} else {
-							res = (mag_scale * gradMag);
-						}*/
 						res = gradMag;
 					}
 				}
