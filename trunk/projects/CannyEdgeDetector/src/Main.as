@@ -34,6 +34,7 @@
 		
 		private var cannyEdgesDetect:CannyEdgeDetector;
 		private var _boldEdges:Boolean = false;
+		private var _binary:Boolean = true;
 		
 		private var _timer : uint;
 		private var _fps : uint;
@@ -84,7 +85,7 @@
 			if(_boldEdges){
 				cannyEdgesDetect.detectEdgesBold(edgesBmd);
 			} else {
-				cannyEdgesDetect.detectEdges(edgesBmd);
+				cannyEdgesDetect.detectEdges(edgesBmd, _binary);
 			}
 			
 			//trace('process time:', getTimer() - tt);
@@ -119,6 +120,9 @@
 			blde = new CheckBox(p, 350, 9, 'NORMALIZE CONTRAST', onNormContrastChange);
 			blde.selected = false;
 			
+			blde = new CheckBox(p, 500, 9, 'BINARY IMAGE', onBinaryChange);
+			blde.selected = true;
+			
 			addEventListener(Event.ENTER_FRAME, countFrameTime);		
 		}
 		
@@ -133,6 +137,10 @@
 		private function onBoldChange(e:Event):void
 		{
 			_boldEdges = CheckBox(e.currentTarget).selected;
+		}
+		private function onBinaryChange(e:Event):void
+		{
+			_binary = CheckBox(e.currentTarget).selected;
 		}
 		private function onNormContrastChange(e:Event):void
 		{
