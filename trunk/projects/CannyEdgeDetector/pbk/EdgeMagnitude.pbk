@@ -88,6 +88,7 @@ kernel EdgeMagnitude
 			}
 		}
 		
-		trg = float3( res );
+		// scale up a little so that we'll have bigger threshold range
+		trg = float3( res*3.5 );
 	}
 }
