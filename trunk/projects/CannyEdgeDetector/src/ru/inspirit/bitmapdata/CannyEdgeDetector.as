@@ -112,7 +112,7 @@ package ru.inspirit.bitmapdata
 			BytesToBitmap_job = new ShaderJob(BytesToBitmap_shader, dataBmd, width, height);
 			BytesToBitmap_job.start(true);
 			
-			magnitude = dataBmd.getVector(rect);
+			magnitude = _doNormalizeContrast ? normalizeContrast(dataBmd.getVector(rect)) : dataBmd.getVector(rect);
 			
 			var max:uint = 0;
 			var b:uint;
