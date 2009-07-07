@@ -114,17 +114,29 @@ package ru.inspirit.bitmapdata
 				BytesToBitmap_job = new ShaderJob(BytesToBitmap_shader, dataBmd, width, height);
 				BytesToBitmap_job.start(true);
 				
-				magnitude = _doNormalizeContrast ? normalizeContrast(dataBmd.getVector(rect)) : dataBmd.getVector(rect);
-			
 				var max:uint = 0;
 				var b:uint;
 				var i:int = size;
-				while( --i > -1 )
+				
+				data = new Vector.<uint>(size, true);
+				
+				if(_doNormalizeContrast)
 				{
-					data[i] = 0;
-					b = magnitude[i] & 0xFF;
-					magnitude[i] = b;
-					if(b > max) max = b;
+					magnitude = normalizeContrast(dataBmd.getVector(rect));
+					max = 0xFFFFFF;
+					/*while( --i > -1 )
+					{						
+						b = magnitude[i] & 0xFF;
+						magnitude[i] = b;
+					}*/
+				} else {
+					magnitude = dataBmd.getVector(rect);
+					while( --i > -1 )
+					{						
+						b = magnitude[i] & 0xFF;
+						magnitude[i] = b;
+						if(b > max) max = b;
+					}
 				}
 				
 				var low:int = max * _lowThreshold;
@@ -309,14 +321,8 @@ package ru.inspirit.bitmapdata
 			var T1:int = 0.05 * size;
 			var T2:int = 0.95 * size;
 			var histogram:Vector.<int> = new Vector.<int>(256, true);
-			var i:int = 256;
+			var i:int = size;
 			
-			while( --i > -1 ) 
-			{
-				histogram[i] = 0;
-			}
-			
-			i = size;
 			while( --i > -1 ) 
 			{
 				p = data[i] & 0xFF;
