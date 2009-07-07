@@ -87,7 +87,7 @@ package ru.inspirit.bitmapdata
 			initKernels();
 		}
 		
-		public function detectEdges(targetBmd:BitmapData):void
+		public function detectEdges(targetBmd:BitmapData, binary:Boolean = true):void
 		{			
 			if(_doNormalizeContrast)
 			{
@@ -109,43 +109,51 @@ package ru.inspirit.bitmapdata
 			EdgeMagnitude_job = new ShaderJob(EdgeMagnitude_shader, edgeMagResult, width, height);
 			EdgeMagnitude_job.start(true);
 			
-			BytesToBitmap_job = new ShaderJob(BytesToBitmap_shader, dataBmd, width, height);
-			BytesToBitmap_job.start(true);
-			
-			magnitude = _doNormalizeContrast ? normalizeContrast(dataBmd.getVector(rect)) : dataBmd.getVector(rect);
-			
-			var max:uint = 0;
-			var b:uint;
-			var i:int = size;
-			while( --i > -1 )
+			if(binary)
 			{
-				data[i] = 0;
-				b = magnitude[i] & 0xFF;
-				magnitude[i] = b;
-				if(b > max) max = b;
-			}
+				BytesToBitmap_job = new ShaderJob(BytesToBitmap_shader, dataBmd, width, height);
+				BytesToBitmap_job.start(true);
+				
+				magnitude = _doNormalizeContrast ? normalizeContrast(dataBmd.getVector(rect)) : dataBmd.getVector(rect);
 			
-			var low:int = max * _lowThreshold;
-			var high:int = max * _highThreshold;
-			
-			if(low < 1) low = 1;
-			if(high < 1) high = 1;
-			
-			i = 0;
-			for (var y:int = 0; y < height; ++y)
-			{
-				for (var x:int = 0; x < width; ++x, ++i) 
+				var max:uint = 0;
+				var b:uint;
+				var i:int = size;
+				while( --i > -1 )
 				{
-					if (data[i] == 0 && magnitude[i] >= high) 
+					data[i] = 0;
+					b = magnitude[i] & 0xFF;
+					magnitude[i] = b;
+					if(b > max) max = b;
+				}
+				
+				var low:int = max * _lowThreshold;
+				var high:int = max * _highThreshold;
+				
+				if(low < 1) low = 1;
+				if(high < 1) high = 1;
+				
+				i = 0;
+				for (var y:int = 0; y < height; ++y)
+				{
+					for (var x:int = 0; x < width; ++x, ++i) 
 					{
-						hysteresisFollow(data, magnitude, width, height, x, y, i, low);
+						if (data[i] == 0 && magnitude[i] >= high) 
+						{
+							hysteresisFollow(data, magnitude, width, height, x, y, i, low);
+						}
 					}
 				}
+				
+				targetBmd.lock();
+				targetBmd.setVector(rect, data);
+				targetBmd.unlock();
+			} else {
+				targetBmd.lock(); // not sure we really need it
+				BytesToBitmap_job = new ShaderJob(BytesToBitmap_shader, targetBmd, width, height);
+				BytesToBitmap_job.start(true);
+				targetBmd.unlock();
 			}
-			
-			targetBmd.lock();
-			targetBmd.setVector(rect, data);
-			targetBmd.unlock();
 		}
 		
 		public function detectEdgesBold(targetBmd:BitmapData):void
