@@ -42,6 +42,15 @@ kernel Hysteresis
 		} else {
 			trg.rgb = float3(0.0);
 		}
+		/*if(p.b >= high && (pN.b >= low || pS.b >= low || pW.b >= low || pE.b >= low || pNW.b >= low || pNE.b >= low || pSW.b >= low || pSE.b >= low)){
+			trg.rgb = float3(1.0);
+		} else {
+			if(p.b >= low && (pN.b >= high || pS.b >= high || pW.b >= high || pE.b >= high || pNW.b >= high || pNE.b >= high || pSW.b >= high || pSE.b >= high)){
+				trg.rgb = float3(1.0);
+			} else {
+				trg.rgb = float3(0.0);
+			}
+		}*/
 		trg.a = 1.0;
 	}
 }

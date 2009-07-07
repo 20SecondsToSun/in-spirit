@@ -97,7 +97,7 @@ package ru.inspirit.bitmapdata
 				dataBmd.setVector(rect, normalizeContrast(dataBmd.getVector(rect)));
 			} else {
 				Gray_job = new ShaderJob(Gray_shader, imgGrayResult, width, height);
-				Gray_job.start(true);				
+				Gray_job.start(true);
 			}
 			
 			GaussBlur_job = new ShaderJob(GaussBlur_shader, imgBlurResult, width, height);
@@ -297,7 +297,7 @@ package ru.inspirit.bitmapdata
 		
 		protected function normalizeContrast(data:Vector.<uint>):Vector.<uint>
 		{
-			var target:int, a:int, b:int;
+			var p:int, a:int, b:int;
 			var T1:int = 0.05 * size;
 			var T2:int = 0.95 * size;
 			var histogram:Vector.<int> = new Vector.<int>(256, true);
@@ -311,13 +311,13 @@ package ru.inspirit.bitmapdata
 			i = size;
 			while( --i > -1 ) 
 			{
-				target = data[i] & 0xFF;
-				data[i] = target;
-				histogram[ target ]++;
+				p = data[i] & 0xFF;
+				data[i] = p;
+				histogram[ p ]++;
 			}			
 			
 			var sum:int = 0;
-			for( i = 0; i < 256; ++i)
+			for( i = 0; i < 256; ++i )
 			{
 				sum += histogram[i];
 				if(sum >= T1)
@@ -328,7 +328,7 @@ package ru.inspirit.bitmapdata
 			}
 			
 			i++;
-			for( ; i < 256; ++i)
+			for( ; i < 256; ++i )
 			{
 				sum += histogram[i];
 				if(sum >= T2)
@@ -338,13 +338,13 @@ package ru.inspirit.bitmapdata
 				}
 			}
 			
-			var scale:Number = 255 / (b-a);
+			var scale:Number = 255 / (b - a);
 			for( i = 0; i < size; ++i )
 			{
-				target = int( (data[i] - a) * scale + .5);
-				if(target < 0)target = 0;
-				if(target > 255)target = 255;
-				data[i] = target << 16 | target << 8 | target;
+				p = int( (data[i] - a) * scale + .5 );
+				if(p < 0) p = 0;
+				if(p > 255) p = 255;
+				data[i] = p << 16 | p << 8 | p;
 			}
 			
 			return data;
