@@ -8,6 +8,7 @@
 [http://en.wikipedia.org/wiki/Canny_edge_detector The Canny edge detection operator was developed by John F. Canny in 1986 and uses a multi-stage algorithm to detect a wide range of edges in images.]
 
 *[http://blog.inspirit.ru/?p=297 Test demonstration application (pure AS3 version)]*
+
 *[http://blog.inspirit.ru/?p=336 Small explanation of Alchemy version]*
 
 == How To ==
