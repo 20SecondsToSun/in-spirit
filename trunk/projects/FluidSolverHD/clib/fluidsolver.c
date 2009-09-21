@@ -21,13 +21,6 @@ void setBoundaryRGB();
 void drawLine(int *layer, int x0, int y0, int x1, int y1, int c);
 int compareParticles(const void *vp1, const void *vp2);
 
-typedef struct {
-	double	x, y;
-	double	vx, vy;
-	double alpha;
-	double mass;
-}  Particle;
-
 
 static const double FLUID_DEFAULT_DT					= 0.5;
 static const double FLUID_DEFAULT_VISC					= 0.0001;
@@ -85,17 +78,25 @@ int *particlesImage;
 
 double *particlesPool;
 
-Particle *particles;
+double *particles;
 int particlesNum = 0;
 int drawMode = 0;
 
 inline double FMIN(double a, double b)
 {
-	return (a < b ? a : b);
+	return ((a) < (b) ? (a) : (b));
+}
+inline int IMIN(int a, int b)
+{
+	return ((a) < (b) ? (a) : (b));
 }
 inline double FMAX(double a, double b)
 {
-	return (a < b ? b : a);
+	return ((a) < (b) ? (b) : (a));
+}
+inline int IMAX(int a, int b)
+{
+	return ((a) < (b) ? (b) : (a));
 }
 inline int FLUID_IX(int i, int j)
 {
@@ -284,8 +285,9 @@ void reset()
         curl_orig = (double*)malloc( numCells * sizeof(double) );
 
 		fluidsImage = (int*)malloc( NX*NY * sizeof(int) );
+
 		particlesImage = (int*)malloc( screenW*screenH * sizeof(int) );
-		particles = (Particle*)malloc( PARTICLES_MAX * sizeof(Particle) );
+		particles = (double*)malloc( PARTICLES_MAX*6 * sizeof(double) );
 		particlesPool = (double*)malloc( 50 * sizeof(double) );
 
 		int i;
@@ -297,15 +299,7 @@ void reset()
         }
 
 		memset(particlesPool, 0.0, 50*sizeof(double));
-
-		register Particle *pp;
-		for( pp = particles; pp < particles+PARTICLES_MAX; )
-		{
-			Particle p;
-			p.x = p.y = p.vx = p.vy = 0.0;
-			p.alpha = p.mass = 0.0;
-			*(pp++) = p;
-		}
+		memset(particles, 0.0, PARTICLES_MAX*6 *sizeof(double));
 }
 
 void drawFluidImage()
@@ -333,39 +327,29 @@ void drawFluidImage()
 
 void drawParticleImage()
 {
-	register Particle *pp;
-	register int *ip;
-	int a, pix;
-	double px, py, x, y, vx, vy, alpha;
+	register double *pp;
+	int a, pix, fluidIndex;
+	double px, py, x, y, vx, vy, alpha, mass;
 
-	for( ip = particlesImage; ip < particlesImage+screenW*screenH; )
-	{
-		*(ip++) = 0;
-	}
-
-	//qsort(particles, PARTICLES_MAX, sizeof(Particle), compareParticles);
 
 	double isw = 1.0 / screenW;
 	double ish = 1.0 / screenH;
 
-	for( pp = particles; pp < particles+PARTICLES_MAX; )
+	for( pp = particles; pp < particles+PARTICLES_MAX*6; )
 	{
-		Particle *p = &*(pp++);
-		x = p->x;
-		y = p->y;
-		vx = p->vx;
-		vy = p->vy;
-		alpha = p->alpha;
+		alpha = *(pp++);
 
-		if(alpha < 0.01)
+		if(alpha > 0.01)
 		{
-			//return;
-			continue;
-		} else {
+			x = *(pp++);
+			y = *(pp++);
+			vx = *(pp++);
+			vy = *(pp++);
+			mass = *(pp++);
 
-			const int fluidIndex = FLUID_IX((int)(x*isw*NX+1.5), (int)(y*ish*NY+1.5));
-			vx = u[fluidIndex] * screenW * p->mass * FLUID_FORCE + vx * MOMENTUM;
-			vy = v[fluidIndex] * screenH * p->mass * FLUID_FORCE + vy * MOMENTUM;
+			fluidIndex = FLUID_IX((int)(x*isw*NX+1.5), (int)(y*ish*NY+1.5));
+			vx = u[fluidIndex] * screenW * mass * FLUID_FORCE + vx * MOMENTUM;
+			vy = v[fluidIndex] * screenH * mass * FLUID_FORCE + vy * MOMENTUM;
 
 			px = x;
 			py = y;
@@ -408,15 +392,8 @@ void drawParticleImage()
 
 			// hackish way to make particles glitter when the slow down a lot
 			if(vx * vx + vy * vy < 1.0) {
-				vx = (double)(((double)(rand()%(50+50+1))-50.0) / 100.0);
-				vy = (double)(((double)(rand()%(50+50+1))-50.0) / 100.0);
-			}
-
-			alpha *= 0.996;
-			if(alpha < 0.01)
-			{
-				p->alpha = 0.0;
-				continue;
+				vx = (double)(((double)(rand()%(100+100+1))-100.0) / 100.0);
+				vy = (double)(((double)(rand()%(100+100+1))-100.0) / 100.0);
 			}
 
 			a = (int)(alpha * 0xFF + 0.5);
@@ -426,34 +403,36 @@ void drawParticleImage()
 				pix = (a<<24) + ((int)(r[fluidIndex]*0xFF)<<16) + ((int)(g[fluidIndex]*0xFF)<<8) + (b[fluidIndex]*0xFF);
 			}
 
-			p->alpha = alpha;
-			p->x = x;
-			p->y = y;
-			p->vx = vx;
-			p->vy = vy;
+			*(pp-6) = alpha * 0.996;
+			*(pp-5) = x;
+			*(pp-4) = y;
+			*(pp-3) = vx;
+			*(pp-2) = vy;
 
 			drawLine(particlesImage, (int)px, (int)py, (int)(x), (int)(y), pix);
+		} else {
+			pp += 5;
 		}
 	}
 }
 
 void addParticles(double x, double y, int num)
 {
-	register Particle *pp;
+	register double *pp;
 
 	srand( (unsigned)time(NULL) );
 	int min = -15;
 	int max = 15;
 
 	if(particlesNum+num > PARTICLES_MAX) particlesNum = 0;
-	for( pp = particles+particlesNum; pp < particles+particlesNum+num; )
+	for( pp = particles+particlesNum*6; pp < particles+(particlesNum+num)*6; )
 	{
-		Particle *p = &*(pp++);
-		p->x = x + (double)((rand()%(max-min+1))+min);
-		p->y = y + (double)((rand()%(max-min+1))+min);
-		p->vx = p->vy = 0.0;
-		p->alpha = (double)((double)((rand()%(100-30+1))+30.0) / 100.0);
-		p->mass = (double)((double)((rand()%(100-10+1))+10.0) / 100.0);
+		*(pp++) = (double)((double)((rand()%(100-30+1))+30.0) / 100.0);
+		*(pp++) = x + (double)((rand()%(max-min+1))+min);
+		*(pp++) = y + (double)((rand()%(max-min+1))+min);
+		*(pp++) = 0.0;
+		*(pp++) = 0.0;
+		*(pp++) = (double)((double)((rand()%(100-10+1))+10.0) / 100.0);
 	}
 	particlesNum += num;
 }

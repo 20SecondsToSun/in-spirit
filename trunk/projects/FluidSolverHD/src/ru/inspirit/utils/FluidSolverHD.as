@@ -22,11 +22,9 @@ package ru.inspirit.utils
 	 * @link http://blog.inspirit.ru/?p=339
 	 * @link http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FluidSolverHD
 	 */
-	
+	 	
 	import cmodule.fluidsolver.CLibInit;
-
 	import com.joa_ebert.apparat.memory.Memory;
-
 	import flash.display.Bitmap;
 	import flash.display.BitmapData;
 	import flash.filters.BlurFilter;
@@ -59,6 +57,8 @@ package ru.inspirit.utils
 		public var fluidImage:BitmapData;
 		public var particlesImage:BitmapData;
 		
+		protected var clearParticles:ByteArray;
+		protected var particlesArea:int;
 		
 		public function FluidSolverHD(width:int, height:int, screenW:int = 800, screenH:int = 600) 
 		{
@@ -69,6 +69,9 @@ package ru.inspirit.utils
 			
 			width2 = width + 2;
 			height2 = height + 2;
+			
+			clearParticles = particlesImage.getPixels(particlesImage.rect);
+			clearParticles.position = 0;
 			
 			var ns : Namespace = new Namespace( "cmodule.fluidsolver" );
 			alchemyRAM = (ns::gstate).ds;
@@ -85,6 +88,11 @@ package ru.inspirit.utils
 		
 		public function update():void
 		{
+			if(_drawMode > 0){
+				alchemyRAM.position = particlesPos;
+				alchemyRAM.writeBytes(clearParticles);
+			}
+			
 			lib.updateSolver();
 			
 			alchemyRAM.position = imagePos;

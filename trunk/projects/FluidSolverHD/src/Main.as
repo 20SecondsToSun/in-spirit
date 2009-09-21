@@ -50,8 +50,9 @@ package
 		protected const particlesImage:BitmapData = fSolver.particlesImage;
 		protected const particlesBitmap:Bitmap = new Bitmap(new BitmapData(sw, sw, true, 0), 'never', false);
 		
-		private var sparkle:BitmapData = new BitmapData(sw/4, sh/4, true, 0x0);
-		private var sparkleDrawMatrix:Matrix = new Matrix(0.25, 0, 0, 0.25, 0, 0);
+		protected var sparkleScale:int = 2; 
+		private var sparkle:BitmapData = new BitmapData(sw/sparkleScale, sh/sparkleScale, true, 0x0);
+		private var sparkleDrawMatrix:Matrix = new Matrix(1/sparkleScale, 0, 0, 1/sparkleScale, 0, 0);
 
 		protected var prevMouse:Point = new Point();
 		protected var frameCount:uint = 0;
@@ -81,7 +82,7 @@ package
 			var b:Bitmap = new Bitmap(sparkle, 'never', true);
             b.y = 40;
             b.blendMode = BlendMode.ADD;
-            b.scaleX = b.scaleY = 4;
+            b.scaleX = b.scaleY = sparkleScale;
             
 			//particlesBitmap.blendMode = BlendMode.OVERLAY;
 			
