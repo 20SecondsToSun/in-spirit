@@ -13,3 +13,5 @@ Original implementation in C++ done by [http://www.memo.tv Memo Akten]
 
 == How To ==
 *[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FluidSolver Complete source code and test usage example available in my repository]*
+
+*[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FluidSolverHD Alchemy version source code and test usage example available here]*
