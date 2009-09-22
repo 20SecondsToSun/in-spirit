@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="com.powerflasher.fdt.ui.MxmlcGroup">
 <stringAttribute key="APP_ARGUMENTS" value=""/>
-<stringAttribute key="ARGUMENTS" value="-optimize -strict -warnings --target-player=10.0"/>
+<stringAttribute key="ARGUMENTS" value="-define=CONFIG::Debug,false -define+=CONFIG::Release,true -strict -warnings -optimize --target-player=10.0.0"/>
 <stringAttribute key="FLEX_SDK_NAME" value="FLEX_SDK"/>
 <stringAttribute key="MAIN_CLASS" value="src/Main.as"/>
 <stringAttribute key="OUTPUT" value="bin/FluidSolverHD.swf"/>
