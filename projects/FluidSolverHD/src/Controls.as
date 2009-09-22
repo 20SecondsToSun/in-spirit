@@ -52,42 +52,45 @@
 			var lb:Label = new Label(p, 10, 5);
 			lb.name = 'fps_txt';
 			
+			lb = new Label(p, 115, 5);
+			lb.name = 'inf_txt';
+			
 			lb = new Label(this, 40, 5, 'CLICK TO SWITCH BETWEEN RENDER MODES');
 			lb.x = 10;
 			lb.y = 580 - 25;
 			
-			var sl:HUISlider = new HUISlider(p, 120, 5, 'DELTA ', onDeltaChange);
+			var sl:HUISlider = new HUISlider(p, 210, 5, 'DELTA ', onDeltaChange);
 			sl.setSliderParams(.2, 2, .5);
 			sl.width = 180;
 			
-			sl = new HUISlider(p, 120, 18, 'VISCOS', onVicosityChange);
+			sl = new HUISlider(p, 210, 18, 'VISCOS', onVicosityChange);
 			sl.setSliderParams(.0001, .002, .00015);
 			sl.labelPrecision = 4;
 			sl.width = 180;
 			
-			sl = new HUISlider(p, 295, 5, 'FADE', onFadeChange);
+			sl = new HUISlider(p, 385, 5, 'FADE', onFadeChange);
 			sl.setSliderParams(.001, .01, .007);
 			sl.labelPrecision = 3;
 			sl.width = 180;
 			
-			sl = new HUISlider(p, 295, 18, 'ITER', onIterChange);
+			sl = new HUISlider(p, 385, 18, 'ITER', onIterChange);
 			sl.setSliderParams(1, 10, 10);
 			sl.labelPrecision = 0;
 			sl.width = 180;
 			
-			lb = new Label(p, 470, 5, 'COLOR DIFFUSION');
-			sl = new HUISlider(p, 463, 18, '', onColorDiffChange);
+			lb = new Label(p, 560, 5, 'COLOR DIFFUSION');
+			sl = new HUISlider(p, 553, 18, '', onColorDiffChange);
 			sl.setSliderParams(0, .001, 0);
 			sl.labelPrecision = 4;
 			sl.width = 150;
 			
-			lb = new Label(p, 610, 5, 'VORTICITY CONF');
-			var chk:CheckBox = new CheckBox(p, 610, 22, 'ENABLE', onVorticityChange);
+			lb = new Label(p, 700, 5, 'VORTICITY CONF');
+			var chk:CheckBox = new CheckBox(p, 700, 22, 'ENABLE', onVorticityChange);
 			chk.name = 'vort';
 			
-			chk = new CheckBox(p, 705, 9, 'WRAP-X', onWrapChange);
+			chk = new CheckBox(p, 795, 9, 'WRAP-X', onWrapChange);
 			chk.name = 'wx';
-			chk = new CheckBox(p, 705, 22, 'WRAP-Y', onWrapChange);
+			chk = new CheckBox(p, 795, 22, 'WRAP-Y', onWrapChange);
 			chk.name = 'wy';
 			
 			addEventListener(Event.ENTER_FRAME, countFrameTime);
@@ -144,6 +147,8 @@
 			
 			_fps ++;
 			_ms = _timer;
+			
+			Label(p.getChildByName('inf_txt')).text = 'PARTICLES: ' + fSolver.particlesNumber;
 		}
 		
 	}

@@ -263,42 +263,30 @@ void reset()
 {
         destroy();
 
-        r    = (double*)malloc( numCells * sizeof(double) );
-        rOld = (double*)malloc( numCells * sizeof(double) );
+        r    = (double*)calloc( numCells, sizeof(double) );
+        rOld = (double*)calloc( numCells, sizeof(double) );
 
-        g    = (double*)malloc( numCells * sizeof(double) );
-        gOld = (double*)malloc( numCells * sizeof(double) );
+        g    = (double*)calloc( numCells, sizeof(double) );
+        gOld = (double*)calloc( numCells, sizeof(double) );
 
-        b    = (double*)malloc( numCells * sizeof(double) );
-        bOld = (double*)malloc( numCells * sizeof(double) );
+        b    = (double*)calloc( numCells, sizeof(double) );
+        bOld = (double*)calloc( numCells, sizeof(double) );
 
-        u    = (double*)malloc( numCells * sizeof(double) );
-        uOld = (double*)malloc( numCells * sizeof(double) );
-        v    = (double*)malloc( numCells * sizeof(double) );
-        vOld = (double*)malloc( numCells * sizeof(double) );
+        u    = (double*)calloc( numCells, sizeof(double) );
+        uOld = (double*)calloc( numCells, sizeof(double) );
+        v    = (double*)calloc( numCells, sizeof(double) );
+        vOld = (double*)calloc( numCells, sizeof(double) );
 
-	  curl_abs = (double*)malloc( numCells * sizeof(double) );
-        curl_orig = (double*)malloc( numCells * sizeof(double) );
+	  curl_abs = (double*)calloc( numCells, sizeof(double) );
+        curl_orig = (double*)calloc( numCells, sizeof(double) );
 
-		fluidsImage = (int*)malloc( NX*NY * sizeof(int) );
+		fluidsImage = (int*)calloc( NX*NY, sizeof(int) );
 
-		particlesImage = (int*)malloc( screenW*screenH * sizeof(int) );
-		particles = (double*)malloc( PARTICLES_MAX*6 * sizeof(double) );
-		particlesPool = (double*)malloc( 50 * sizeof(double) );
+		particlesImage = (int*)calloc( screenW*screenH, sizeof(int) );
+		particles = (double*)calloc( PARTICLES_MAX*6, sizeof(double) );
+		particlesPool = (double*)calloc( 50, sizeof(double) );
 
-		particles2 = (double*)malloc( PARTICLES_MAX*6 * sizeof(double) );
-
-		int i;
-        for ( i = numCells-1; i >= 0; --i )
-        {
-                u[i] = uOld[i] = v[i] = vOld[i] = 0.0;
-                curl_abs[i] = curl_orig[i] = 0.0;
-                r[i] = rOld[i] = g[i] = gOld[i] = b[i] = bOld[i] = 0.0;
-        }
-
-		memset(particlesPool, 0.0, 50*sizeof(double));
-		memset(particles, 0.0, PARTICLES_MAX*6 *sizeof(double));
-		memset(particles2, 0.0, PARTICLES_MAX*6 *sizeof(double));
+		particles2 = (double*)calloc( PARTICLES_MAX*6, sizeof(double) );
 
 		_particles = particles;
 		_particles2 = particles2;
@@ -395,16 +383,16 @@ void drawParticleImage()
 			vy = (double)(((double)(rand()%201)-100.0) / 100.0);
 		}
 
-		a = (int)(alpha * 0xFF + 0.5);
+		/*a = (int)(alpha * 0xFF + 0.5);
 		if(drawMode == 1 || drawMode == 2) {
-			pix = (a<<24) + (a<<16) + (a<<8) + a;
+			pix = (a<<24) | (a<<16) | (a<<8) | a;
 		} else if(drawMode == 3 || drawMode == 4){
-			pix = (a<<24) + ((int)(r[fluidIndex]*0xFF)<<16) + ((int)(g[fluidIndex]*0xFF)<<8) + (b[fluidIndex]*0xFF);
-		}
+			pix = (0xFF<<24) | ((int)(r[fluidIndex]*0xFF)<<16) | ((int)(g[fluidIndex]*0xFF)<<8) | (int)(b[fluidIndex]*0xFF);
+		}*/
 
 		alpha = alpha * 0.996;
 
-		if(alpha > 0.05){
+		if(alpha > 0.1){
 			*(pp2++) = alpha;
 			*(pp2++) = x;
 			*(pp2++) = y;
@@ -414,7 +402,7 @@ void drawParticleImage()
 			cnt++;
 		}
 
-		drawLine(particlesImage, (int)px, (int)py, (int)(x), (int)(y), pix);
+		//drawLine(particlesImage, (int)px, (int)py, (int)(x), (int)(y), pix);
 	}
 
 	particlesNum = cnt;
@@ -994,11 +982,28 @@ AS3_Val updateSolver(void* self, AS3_Val args)
 	return 0;
 }
 
+AS3_Val getParticlesCountPointer(void* self, AS3_Val args)
+{
+	return AS3_Ptr(&particlesNum);
+}
+
+AS3_Val clearParticles(void* self, AS3_Val args)
+{
+	memset(particles, 0.0, PARTICLES_MAX*6*sizeof(double));
+	memset(particles2, 0.0, PARTICLES_MAX*6*sizeof(double));
+	_particles = particles;
+	_particles2 = particles2;
+	particlesNum = 0;
+
+	return 0;
+}
+
 AS3_Val setDrawMode(void* self, AS3_Val args)
 {
 	AS3_ArrayValue(args, "IntType", &drawMode);
 	return 0;
 }
+
 AS3_Val getParticlesPointer(void* self, AS3_Val args)
 {
 	return AS3_Ptr(particlesImage);
@@ -1006,6 +1011,10 @@ AS3_Val getParticlesPointer(void* self, AS3_Val args)
 AS3_Val getParticlesPoolPointer(void* self, AS3_Val args)
 {
 	return AS3_Ptr(particlesPool);
+}
+AS3_Val getParticlesDataPointer(void* self, AS3_Val args)
+{
+	return AS3_Ptr(&_particles);
 }
 
 AS3_Val getROldPointer(void* self, AS3_Val args)
@@ -1091,14 +1100,18 @@ int main()
 	AS3_Val setDeltaT_m = AS3_Function( NULL, setDeltaT );
 	AS3_Val setDrawMode_m = AS3_Function( NULL, setDrawMode );
 	AS3_Val setVorticityConfinement_m = AS3_Function( NULL, setVorticityConfinement );
+	AS3_Val getParticlesCountPointer_m = AS3_Function( NULL, getParticlesCountPointer );
+	AS3_Val clearParticles_m = AS3_Function( NULL, clearParticles );
+	AS3_Val getParticlesDataPointer_m = AS3_Function( NULL, getParticlesDataPointer );
 
 
 
-	AS3_Val result = AS3_Object("setupSolver: AS3ValType, updateSolver: AS3ValType, getParticlesPointer: AS3ValType, getParticlesPoolPointer: AS3ValType, getROldPointer: AS3ValType, getGOldPointer: AS3ValType, getBOldPointer: AS3ValType, getUOldPointer: AS3ValType, getVOldPointer: AS3ValType, setWrap: AS3ValType, setcolorDiffusion: AS3ValType, setsolverIterations: AS3ValType, setFadeSpeed: AS3ValType, setViscosity: AS3ValType, setDeltaT: AS3ValType, setDrawMode: AS3ValType, setVorticityConfinement: AS3ValType",
+	AS3_Val result = AS3_Object("setupSolver: AS3ValType, updateSolver: AS3ValType, getParticlesPointer: AS3ValType, getParticlesPoolPointer: AS3ValType, getROldPointer: AS3ValType, getGOldPointer: AS3ValType, getBOldPointer: AS3ValType, getUOldPointer: AS3ValType, getVOldPointer: AS3ValType, setWrap: AS3ValType, setcolorDiffusion: AS3ValType, setsolverIterations: AS3ValType, setFadeSpeed: AS3ValType, setViscosity: AS3ValType, setDeltaT: AS3ValType, setDrawMode: AS3ValType, setVorticityConfinement: AS3ValType, getParticlesCountPointer: AS3ValType, clearParticles: AS3ValType, getParticlesDataPointer: AS3ValType",
 								setupSolver_m, updateSolver_m, getParticlesPointer_m, getParticlesPoolPointer_m, getROldPointer_m,
 								getGOldPointer_m, getBOldPointer_m, getUOldPointer_m, getVOldPointer_m,
 								setWrap_m, setcolorDiffusion_m, setsolverIterations_m, setFadeSpeed_m, setViscosity_m, setDeltaT_m,
-								setDrawMode_m, setVorticityConfinement_m);
+								setDrawMode_m, setVorticityConfinement_m, getParticlesCountPointer_m, clearParticles_m,
+								getParticlesDataPointer_m);
 
 	AS3_Release( setupSolver_m );
 	AS3_Release( updateSolver_m );
@@ -1117,6 +1130,9 @@ int main()
 	AS3_Release( setDeltaT_m );
 	AS3_Release( setDrawMode_m );
 	AS3_Release( setVorticityConfinement_m );
+	AS3_Release( getParticlesCountPointer_m );
+	AS3_Release( clearParticles_m );
+	AS3_Release( getParticlesDataPointer_m );
 
 	AS3_LibInit( result );
 
