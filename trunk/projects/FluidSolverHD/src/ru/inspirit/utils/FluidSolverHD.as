@@ -129,13 +129,16 @@ package ru.inspirit.utils
 			particlesImage.lock();
 			particlesImage.fillRect(particlesImage.rect, 0);
 			
-			while( --pn > -1 ){
+			while( --pn > -1 )
+			{
 				aa = int( Memory.readDouble(pos + 0)*0xFF + 0.5 );
 				xp = int( Memory.readDouble(pos + 8) + 0.5 );
 				yp = int( Memory.readDouble(pos + 16) + 0.5 );
 				vx = int( Memory.readDouble(pos + 24) + 0.5 );
 				vy = int( Memory.readDouble(pos + 32) + 0.5 );
 				cc = (aa<<24) | (aa<<16) | (aa<<8) | aa;
+				
+				// inlined line drawing method
 				
 				x = xp - vx;
 				y = yp - vy;		

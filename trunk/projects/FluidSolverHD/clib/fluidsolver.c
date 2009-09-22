@@ -320,8 +320,8 @@ void drawParticleImage()
 {
 	register double *pp;
 	register double *pp2;
-	int a, pix, fluidIndex;
-	double px, py, x, y, vx, vy, alpha, mass;
+	int fluidIndex;
+	double x, y, vx, vy, alpha, mass;
 
 	int cnt = 0;
 
@@ -334,45 +334,43 @@ void drawParticleImage()
 		vy = *(pp++);
 		mass = *(pp++);
 
-		fluidIndex = FLUID_IX((int)(x*isw*NX+1.5), (int)(y*ish*NY+1.5));
+		fluidIndex = (int)(x*isw*NX+1.5) + (int)(y*ish*NY+1.5) * NX2;
 		vx = u[fluidIndex] * screenW * mass * FLUID_FORCE + vx * MOMENTUM;
 		vy = v[fluidIndex] * screenH * mass * FLUID_FORCE + vy * MOMENTUM;
 
-		px = x;
-		py = y;
 		x += vx;
 		y += vy;
 
 		if (x < 1.) {
 			if (wrap_x == 1) {
-				px = (x = screenW-1);
+				x = screenW-1;
 			} else {
-				px = x = 1.0;
+				x = 1.0;
 				vx *= -1.0;
 			}
 		}
 		else if (x > screenW) {
 			if (wrap_x == 1) {
-				px = (x = 1);
+				x = 1;
 			} else {
-				px = x = screenW - 1;
+				x = screenW - 1;
 				vx *= -1.0;
 			}
 		}
 
 		if (y < 1.) {
 			if (wrap_y == 1) {
-				py = (y = screenH - 1);
+				y = screenH - 1;
 			} else {
-				py = y = 1.0;
+				y = 1.0;
 				vy *= -1.0;
 			}
 		}
 		else if (y > screenH) {
 			if (wrap_y == 1) {
-				py = y = 1;
+				y = 1;
 			} else {
-				py = y = screenH - 1;
+				y = screenH - 1;
 				vy *= -1.0;
 			}
 		}
