@@ -33,7 +33,7 @@ package
 		protected const origin:Point = new Point();
 		protected const identity:Matrix = new Matrix();
 		protected const blur:BlurFilter = new BlurFilter( 2, 2, 2 );
-		protected const fade2alpha:ColorTransform = new ColorTransform( 1, 1, 1, .8);
+		protected const fade2alpha:ColorTransform = new ColorTransform( 1, 1, 1, .9);
 		
 		public var sw:uint = 960;
 		public var sh:uint = 540;

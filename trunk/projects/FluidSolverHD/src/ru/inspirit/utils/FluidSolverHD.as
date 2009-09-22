@@ -48,9 +48,13 @@ package ru.inspirit.utils
 		protected var bOldPos:int;
 		protected var uOldPos:int;
 		protected var vOldPos:int;
+		protected var particlesNumPos:int;
+		protected var particlesDataPos:int;
 		
 		protected var width2:int;
 		protected var height2:int;
+		protected var screenW:int;
+		protected var screenH:int;
 		
 		protected var _drawMode:int = 0;
 		
@@ -69,6 +73,8 @@ package ru.inspirit.utils
 			
 			width2 = width + 2;
 			height2 = height + 2;
+			this.screenW = screenW;
+			this.screenH = screenH;
 			
 			clearParticles = particlesImage.getPixels(particlesImage.rect);
 			clearParticles.position = 0;
@@ -84,29 +90,95 @@ package ru.inspirit.utils
 			bOldPos = lib.getBOldPointer();
 			uOldPos = lib.getUOldPointer();
 			vOldPos = lib.getVOldPointer();
+			particlesNumPos = lib.getParticlesCountPointer();
+			particlesDataPos = lib.getParticlesDataPointer();
 		}
-		
+
 		public function update():void
 		{
-			if(_drawMode > 0){
+			/*if(_drawMode > 0){
 				alchemyRAM.position = particlesPos;
 				alchemyRAM.writeBytes(clearParticles);
-			}
+			}*/
 			
 			lib.updateSolver();
 			
 			alchemyRAM.position = imagePos;
-			//fluidImage.lock();
+			fluidImage.lock();
 			fluidImage.setPixels(fluidImage.rect, alchemyRAM);
 			fluidImage.applyFilter(fluidImage, fluidImage.rect, ORIGIN, BLUR);
-			//fluidImage.unlock(fluidImage.rect);
+			fluidImage.unlock(fluidImage.rect);
 			
 			if(_drawMode > 0){
-				alchemyRAM.position = particlesPos;
+				drawParticles();
+				//alchemyRAM.position = particlesPos;
 				//particlesImage.lock();
-				particlesImage.setPixels(particlesImage.rect, alchemyRAM);
+				//particlesImage.setPixels(particlesImage.rect, alchemyRAM);
 				//particlesImage.unlock(particlesImage.rect);
 			}
+		}
+		
+		public function drawParticles():void
+		{
+			var pos:int = Memory.readInt(particlesDataPos);
+			var pn:int = Memory.readInt(particlesNumPos);
+			var step:int = 6 << 3;
+			var aa:int, xp:int, yp:int, vx:int, vy:int, cc:uint;
+			var x:int, y:int, dx:int, dy:int, xinc:int, yinc:int, cumul:int, i:int;			
+			
+			particlesImage.lock();
+			particlesImage.fillRect(particlesImage.rect, 0);
+			
+			while( --pn > -1 ){
+				aa = int( Memory.readDouble(pos + 0)*0xFF + 0.5 );
+				xp = int( Memory.readDouble(pos + 8) + 0.5 );
+				yp = int( Memory.readDouble(pos + 16) + 0.5 );
+				vx = int( Memory.readDouble(pos + 24) + 0.5 );
+				vy = int( Memory.readDouble(pos + 32) + 0.5 );
+				cc = (aa<<24) | (aa<<16) | (aa<<8) | aa;
+				
+				x = xp - vx;
+				y = yp - vy;		
+				dx = xp - x;
+				dy = yp - y;
+				xinc = ( dx > 0 ) ? 1 : -1;
+				yinc = ( dy > 0 ) ? 1 : -1;			
+				
+				dx = (dx ^ (dx >> 31)) - (dx >> 31);
+				dy = (dy ^ (dy >> 31)) - (dy >> 31);
+				
+				particlesImage.setPixel32(x, y, cc);
+				
+				if ( dx > dy ) {
+					cumul = dx >> 1 ;
+					for ( i = 1;i <= dx; ++i ) 
+					{
+						x += xinc;
+						cumul += dy;
+						if (cumul >= dx) {
+							cumul -= dx;
+							y += yinc;
+						}
+						particlesImage.setPixel32(x, y, cc);
+					}
+				} else {
+					cumul = dy >> 1;
+					for ( i = 1; i <= dy; ++i ) 
+					{
+						y += yinc;
+						cumul += dx;
+						if ( cumul >= dy ) {
+							cumul -= dy;
+							x += xinc;
+						}
+						particlesImage.setPixel32(x, y, cc);
+					}
+				}
+				
+				pos += step;
+			}
+			
+			particlesImage.unlock(particlesImage.rect);
 		}
 
 		public function addForce(tx:Number, ty:Number, dx:Number, dy:Number, rgb:Object, addColor:Boolean = true, addForce:Boolean = false, colorMult:Number = 50, velocityMult:Number = 30):void
@@ -198,6 +270,9 @@ package ru.inspirit.utils
 			lib.setDrawMode(value);
 			_drawMode = value;
 			visible = value < 3;
+			if(_drawMode == 0){
+				lib.clearParticles();
+			}
 		}
 		
 		public function set vorticityConfinement(value:Boolean):void
@@ -208,6 +283,11 @@ package ru.inspirit.utils
 		public function get drawMode():int
 		{
 			return _drawMode;
+		}
+		
+		public function get particlesNumber():int
+		{
+			return Memory.readInt(particlesNumPos);
 		}
 	}
 }
