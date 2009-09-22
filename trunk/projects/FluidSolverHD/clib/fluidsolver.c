@@ -40,6 +40,8 @@ int NY2;
 int numCells;
 int screenW;
 int screenH;
+double isw;
+double ish;
 double invNX;
 double invNY;
 double invNumCells;
@@ -79,28 +81,31 @@ int *particlesImage;
 double *particlesPool;
 
 double *particles;
+double *particles2;
+double *_particles;
+double *_particles2;
 int particlesNum = 0;
 int drawMode = 0;
 
-inline double FMIN(double a, double b)
+inline double FMIN(const double a, const double b)
 {
 	return ((a) < (b) ? (a) : (b));
 }
-inline int IMIN(int a, int b)
+inline int IMIN(const int a, const int b)
 {
 	return ((a) < (b) ? (a) : (b));
 }
-inline double FMAX(double a, double b)
+inline double FMAX(const double a, const double b)
 {
 	return ((a) < (b) ? (b) : (a));
 }
-inline int IMAX(int a, int b)
+inline int IMAX(const int a, const int b)
 {
 	return ((a) < (b) ? (b) : (a));
 }
-inline int FLUID_IX(int i, int j)
+inline int FLUID_IX(const int i, const int j)
 {
-	return (int)(i + NX2 * j);
+	return (int)((i) + ((NX2) * (j)));
 }
 
 inline void addSourceUV()
@@ -109,8 +114,8 @@ inline void addSourceUV()
 
 	for(up = u, vp = v, uop = uOld, vop = vOld; up < u+numCells;)
 	{
-		*(up++) += _dt * (*(uop++));
-		*(vp++) += _dt * (*(vop++));
+		*(up++) += (_dt * (*(uop++)));
+		*(vp++) += (_dt * (*(vop++)));
 	}
 }
 
@@ -119,9 +124,9 @@ inline void addSourceRGB()
 	register double *rp, *gp, *bp, *rop, *bop, *gop;
 	for(rp = r, gp = g, bp = b, rop = rOld, bop = bOld, gop = gOld; rp < r+numCells;)
 	{
-		*(rp++) += _dt * (*(rop++));
-		*(gp++) += _dt * (*(gop++));
-		*(bp++) += _dt * (*(bop++));
+		*(rp++) += (_dt * (*(rop++)));
+		*(gp++) += (_dt * (*(gop++)));
+		*(bp++) += (_dt * (*(bop++)));
 	}
 }
 
@@ -130,23 +135,23 @@ inline void addSource(double *x, double *x0)
 	register double *xp, *x0p;
 	for(xp = x, x0p = x0; xp < x+numCells;)
 	{
-		*(xp++) += _dt * (*(x0p++));
+		*(xp++) += (_dt * (*(x0p++)));
 	}
 }
 
-inline void diffuse(int b, double *c, double *c0, double _diff)
+inline void diffuse(const int b, double *c, double *c0, const double _diff)
 {
 	const double a = _dt * _diff * NX * NY;
 	linearSolver(b, c, c0, a, 1.0 + 4 * a);
 }
 
-inline void diffuseRGB(double _diff)
+inline void diffuseRGB(const double _diff)
 {
 	const double a = _dt * _diff * NX * NY;
 	linearSolverRGB(a, 1.0 + 4 * a);
 }
 
-inline void diffuseUV(double _diff)
+inline void diffuseUV(const double _diff)
 {
 	const double a = _dt * _diff * NX * NY;
 	linearSolverUV(a, 1.0 + 4 * a);
@@ -188,18 +193,7 @@ inline void swapRGB()
 	bOld = _tmp;
 }
 
-int compareParticles(const void *vp1, const void *vp2)
-{
-     const Particle *pkt_a = (const Particle *)vp1;
-     const Particle *pkt_b = (const Particle *)vp2;
-
-     if (pkt_a->alpha <  pkt_b->alpha) return 1;
-     if (pkt_a->alpha == pkt_b->alpha) return 0;
-     if (pkt_a->alpha >  pkt_b->alpha) return -1;
-     return 0;
-}
-
-inline void drawLine(int *layer, int x0, int y0, int x1, int y1, int c)
+inline void drawLine(int *layer, int x0, int y0, int x1, int y1, const int c)
 {
 	int dy = y1 - y0;
 	int dx = x1 - x0;
@@ -244,6 +238,8 @@ void destroy()
 	if(particles)	free(particles);
 	if(particlesImage) free(particlesImage);
 	if(particlesPool)	free(particlesPool);
+
+	if(particles2)	free(particles2);
 
     if(r)		free(r);
     if(rOld)	free(rOld);
@@ -290,6 +286,8 @@ void reset()
 		particles = (double*)malloc( PARTICLES_MAX*6 * sizeof(double) );
 		particlesPool = (double*)malloc( 50 * sizeof(double) );
 
+		particles2 = (double*)malloc( PARTICLES_MAX*6 * sizeof(double) );
+
 		int i;
         for ( i = numCells-1; i >= 0; --i )
         {
@@ -300,6 +298,11 @@ void reset()
 
 		memset(particlesPool, 0.0, 50*sizeof(double));
 		memset(particles, 0.0, PARTICLES_MAX*6 *sizeof(double));
+		memset(particles2, 0.0, PARTICLES_MAX*6 *sizeof(double));
+
+		_particles = particles;
+		_particles2 = particles2;
+		particlesNum = 0;
 }
 
 void drawFluidImage()
@@ -317,7 +320,7 @@ void drawFluidImage()
 	{
 		for( j = 1; j < NX+1; j++ )
 		{
-			*(ip++) = (int)( ((int)(*(rp++) * 0xFF)<<16) + ((int)(*(gp++) * 0xFF)<<8) + (*(bp++) * 0xFF) );
+			*(ip++) = (int)( (int)((int)(*(rp++) * 0xFF)<<16) | (int)((int)(*(gp++) * 0xFF)<<8) | (int)(*(bp++) * 0xFF) );
 		}
 		rp+=2;
 		gp+=2;
@@ -328,92 +331,96 @@ void drawFluidImage()
 void drawParticleImage()
 {
 	register double *pp;
+	register double *pp2;
 	int a, pix, fluidIndex;
 	double px, py, x, y, vx, vy, alpha, mass;
 
+	int cnt = 0;
 
-	double isw = 1.0 / screenW;
-	double ish = 1.0 / screenH;
-
-	for( pp = particles; pp < particles+PARTICLES_MAX*6; )
+	for( pp = _particles, pp2 = _particles2; pp < _particles+particlesNum*6; )
 	{
 		alpha = *(pp++);
+		x = *(pp++);
+		y = *(pp++);
+		vx = *(pp++);
+		vy = *(pp++);
+		mass = *(pp++);
 
-		if(alpha > 0.01)
-		{
-			x = *(pp++);
-			y = *(pp++);
-			vx = *(pp++);
-			vy = *(pp++);
-			mass = *(pp++);
+		fluidIndex = FLUID_IX((int)(x*isw*NX+1.5), (int)(y*ish*NY+1.5));
+		vx = u[fluidIndex] * screenW * mass * FLUID_FORCE + vx * MOMENTUM;
+		vy = v[fluidIndex] * screenH * mass * FLUID_FORCE + vy * MOMENTUM;
 
-			fluidIndex = FLUID_IX((int)(x*isw*NX+1.5), (int)(y*ish*NY+1.5));
-			vx = u[fluidIndex] * screenW * mass * FLUID_FORCE + vx * MOMENTUM;
-			vy = v[fluidIndex] * screenH * mass * FLUID_FORCE + vy * MOMENTUM;
+		px = x;
+		py = y;
+		x += vx;
+		y += vy;
 
-			px = x;
-			py = y;
-			x += vx;
-			y += vy;
-
-			if (x < 1.) {
-				if (wrap_x == 1) {
-					px = (x = screenW-1);
-				} else {
-					px = x = 1.0;
-					vx *= -1.0;
-				}
+		if (x < 1.) {
+			if (wrap_x == 1) {
+				px = (x = screenW-1);
+			} else {
+				px = x = 1.0;
+				vx *= -1.0;
 			}
-			else if (x > screenW) {
-				if (wrap_x == 1) {
-					px = (x = 1);
-				} else {
-					px = x = screenW - 1;
-					vx *= -1.0;
-				}
-			}
-
-			if (y < 1.) {
-				if (wrap_y == 1) {
-					py = (y = screenH - 1);
-				} else {
-					py = y = 1.0;
-					vy *= -1.0;
-				}
-			}
-			else if (y > screenH) {
-				if (wrap_y == 1) {
-					py = y = 1;
-				} else {
-					py = y = screenH - 1;
-					vy *= -1.0;
-				}
-			}
-
-			// hackish way to make particles glitter when the slow down a lot
-			if(vx * vx + vy * vy < 1.0) {
-				vx = (double)(((double)(rand()%(100+100+1))-100.0) / 100.0);
-				vy = (double)(((double)(rand()%(100+100+1))-100.0) / 100.0);
-			}
-
-			a = (int)(alpha * 0xFF + 0.5);
-			if(drawMode == 1 || drawMode == 2) {
-				pix = (a<<24) + (a<<16) + (a<<8) + a;
-			} else if(drawMode == 3 || drawMode == 4){
-				pix = (a<<24) + ((int)(r[fluidIndex]*0xFF)<<16) + ((int)(g[fluidIndex]*0xFF)<<8) + (b[fluidIndex]*0xFF);
-			}
-
-			*(pp-6) = alpha * 0.996;
-			*(pp-5) = x;
-			*(pp-4) = y;
-			*(pp-3) = vx;
-			*(pp-2) = vy;
-
-			drawLine(particlesImage, (int)px, (int)py, (int)(x), (int)(y), pix);
-		} else {
-			pp += 5;
 		}
+		else if (x > screenW) {
+			if (wrap_x == 1) {
+				px = (x = 1);
+			} else {
+				px = x = screenW - 1;
+				vx *= -1.0;
+			}
+		}
+
+		if (y < 1.) {
+			if (wrap_y == 1) {
+				py = (y = screenH - 1);
+			} else {
+				py = y = 1.0;
+				vy *= -1.0;
+			}
+		}
+		else if (y > screenH) {
+			if (wrap_y == 1) {
+				py = y = 1;
+			} else {
+				py = y = screenH - 1;
+				vy *= -1.0;
+			}
+		}
+
+		// hackish way to make particles glitter when they slow down a lot
+		if(vx * vx + vy * vy < 1.0) {
+			vx = (double)(((double)(rand()%201)-100.0) / 100.0);
+			vy = (double)(((double)(rand()%201)-100.0) / 100.0);
+		}
+
+		a = (int)(alpha * 0xFF + 0.5);
+		if(drawMode == 1 || drawMode == 2) {
+			pix = (a<<24) + (a<<16) + (a<<8) + a;
+		} else if(drawMode == 3 || drawMode == 4){
+			pix = (a<<24) + ((int)(r[fluidIndex]*0xFF)<<16) + ((int)(g[fluidIndex]*0xFF)<<8) + (b[fluidIndex]*0xFF);
+		}
+
+		alpha = alpha * 0.996;
+
+		if(alpha > 0.05){
+			*(pp2++) = alpha;
+			*(pp2++) = x;
+			*(pp2++) = y;
+			*(pp2++) = vx;
+			*(pp2++) = vy;
+			*(pp2++) = mass;
+			cnt++;
+		}
+
+		drawLine(particlesImage, (int)px, (int)py, (int)(x), (int)(y), pix);
 	}
+
+	particlesNum = cnt;
+	double *tmp = _particles;
+	_particles = _particles2;
+	_particles2 = tmp;
 }
 
 void addParticles(double x, double y, int num)
@@ -424,17 +431,28 @@ void addParticles(double x, double y, int num)
 	int min = -15;
 	int max = 15;
 
-	if(particlesNum+num > PARTICLES_MAX) particlesNum = 0;
-	for( pp = particles+particlesNum*6; pp < particles+(particlesNum+num)*6; )
-	{
-		*(pp++) = (double)((double)((rand()%(100-30+1))+30.0) / 100.0);
-		*(pp++) = x + (double)((rand()%(max-min+1))+min);
-		*(pp++) = y + (double)((rand()%(max-min+1))+min);
-		*(pp++) = 0.0;
-		*(pp++) = 0.0;
-		*(pp++) = (double)((double)((rand()%(100-10+1))+10.0) / 100.0);
+	if(particlesNum+num > PARTICLES_MAX) {
+		for( pp = _particles; pp < _particles+(num)*6; )
+		{
+			*(pp++) = (double)((double)((rand()%(100-30+1))+30.0) / 100.0);
+			*(pp++) = x + (double)((rand()%(max-min+1))+min);
+			*(pp++) = y + (double)((rand()%(max-min+1))+min);
+			*(pp++) = 0.0;
+			*(pp++) = 0.0;
+			*(pp++) = (double)((double)((rand()%(100-10+1))+10.0) / 100.0);
+		}
+	} else {
+		for( pp = _particles+particlesNum*6; pp < _particles+(particlesNum+num)*6; )
+		{
+			*(pp++) = (double)((double)((rand()%(100-30+1))+30.0) / 100.0);
+			*(pp++) = x + (double)((rand()%(max-min+1))+min);
+			*(pp++) = y + (double)((rand()%(max-min+1))+min);
+			*(pp++) = 0.0;
+			*(pp++) = 0.0;
+			*(pp++) = (double)((double)((rand()%(100-10+1))+10.0) / 100.0);
+		}
+		particlesNum += num;
 	}
-	particlesNum += num;
 }
 
 void calcVorticityConfinement(double *_x, double *_y)
@@ -886,6 +904,9 @@ AS3_Val setupSolver(void* self, AS3_Val args)
 	invNX = 1.0 / NX;
 	invNY = 1.0 / NY;
 	invNumCells = 1.0 / numCells;
+
+	isw = (double)(1.0 / screenW);
+	ish = (double)(1.0 / screenH);
 
 	_dt = FLUID_DEFAULT_DT;
 	_fadeSpeed = FLUID_DEFAULT_FADESPEED;
