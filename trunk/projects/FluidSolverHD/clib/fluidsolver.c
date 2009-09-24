@@ -87,23 +87,23 @@ double *_particles2;
 int particlesNum = 0;
 int drawMode = 0;
 
-inline double FMIN(const double a, const double b)
+inline double FMIN(register double a, register double b)
 {
 	return ((a) < (b) ? (a) : (b));
 }
-inline int IMIN(const int a, const int b)
+inline int IMIN(register int a, register int b)
 {
 	return ((a) < (b) ? (a) : (b));
 }
-inline double FMAX(const double a, const double b)
+inline double FMAX(register double a, register double b)
 {
 	return ((a) < (b) ? (b) : (a));
 }
-inline int IMAX(const int a, const int b)
+inline int IMAX(register int a, register int b)
 {
 	return ((a) < (b) ? (b) : (a));
 }
-inline int FLUID_IX(const int i, const int j)
+inline int FLUID_IX(register int i, register int j)
 {
 	return (int)((i) + ((NX2) * (j)));
 }
@@ -130,12 +130,11 @@ inline void addSourceRGB()
 	}
 }
 
-inline void addSource(double *x, double *x0)
+inline void addSource(register double *x, register double *x0)
 {
-	register double *xp, *x0p;
-	for(xp = x, x0p = x0; xp < x+numCells;)
+	for(; x < x+numCells;)
 	{
-		*(xp++) += (_dt * (*(x0p++)));
+		*(x++) += (_dt * (*(x0++)));
 	}
 }
 
@@ -159,7 +158,7 @@ inline void diffuseUV(const double _diff)
 
 inline void swapUV()
 {
-	double *_tmp;
+	register double *_tmp;
 	_tmp = u;
 	u = uOld;
 	uOld = _tmp;
@@ -171,7 +170,7 @@ inline void swapUV()
 
 inline void swapR()
 {
-	double *_tmp;
+	register double *_tmp;
 	_tmp = r;
 	r = rOld;
 	rOld = _tmp;
@@ -179,7 +178,7 @@ inline void swapR()
 
 inline void swapRGB()
 {
-	double *_tmp;
+	register double *_tmp;
 	_tmp = r;
 	r = rOld;
 	rOld = _tmp;
@@ -261,36 +260,38 @@ void destroy()
 
 void reset()
 {
-        destroy();
+	destroy();
 
-        r    = (double*)calloc( numCells, sizeof(double) );
-        rOld = (double*)calloc( numCells, sizeof(double) );
+	r    = (double*)calloc( numCells, sizeof(double) );
+	rOld = (double*)calloc( numCells, sizeof(double) );
 
-        g    = (double*)calloc( numCells, sizeof(double) );
-        gOld = (double*)calloc( numCells, sizeof(double) );
+	g    = (double*)calloc( numCells, sizeof(double) );
+	gOld = (double*)calloc( numCells, sizeof(double) );
 
-        b    = (double*)calloc( numCells, sizeof(double) );
-        bOld = (double*)calloc( numCells, sizeof(double) );
+	b    = (double*)calloc( numCells, sizeof(double) );
+	bOld = (double*)calloc( numCells, sizeof(double) );
 
-        u    = (double*)calloc( numCells, sizeof(double) );
-        uOld = (double*)calloc( numCells, sizeof(double) );
-        v    = (double*)calloc( numCells, sizeof(double) );
-        vOld = (double*)calloc( numCells, sizeof(double) );
+	u    = (double*)calloc( numCells, sizeof(double) );
+	uOld = (double*)calloc( numCells, sizeof(double) );
+	v    = (double*)calloc( numCells, sizeof(double) );
+	vOld = (double*)calloc( numCells, sizeof(double) );
 
-	  curl_abs = (double*)calloc( numCells, sizeof(double) );
-        curl_orig = (double*)calloc( numCells, sizeof(double) );
+	curl_abs = (double*)calloc( numCells, sizeof(double) );
+	curl_orig = (double*)calloc( numCells, sizeof(double) );
 
-		fluidsImage = (int*)calloc( NX*NY, sizeof(int) );
+	fluidsImage = (int*)calloc( NX*NY, sizeof(int) );
 
-		particlesImage = (int*)calloc( screenW*screenH, sizeof(int) );
-		particles = (double*)calloc( PARTICLES_MAX*6, sizeof(double) );
-		particlesPool = (double*)calloc( 50, sizeof(double) );
+	particlesImage = (int*)calloc( screenW*screenH, sizeof(int) );
+	particles = (double*)calloc( PARTICLES_MAX*6, sizeof(double) );
+	particlesPool = (double*)calloc( 50, sizeof(double) );
 
-		particles2 = (double*)calloc( PARTICLES_MAX*6, sizeof(double) );
+	particles2 = (double*)calloc( PARTICLES_MAX*6, sizeof(double) );
 
-		_particles = particles;
-		_particles2 = particles2;
-		particlesNum = 0;
+	_particles = particles;
+	_particles2 = particles2;
+	particlesNum = 0;
+
+	srand( (unsigned)time(NULL) );
 }
 
 void drawFluidImage()
@@ -404,7 +405,7 @@ void drawParticleImage()
 	}
 
 	particlesNum = cnt;
-	double *tmp = _particles;
+	register double *tmp = _particles;
 	_particles = _particles2;
 	_particles2 = tmp;
 }
@@ -413,35 +414,31 @@ void addParticles(double x, double y, int num)
 {
 	register double *pp;
 
-	srand( (unsigned)time(NULL) );
-	int min = -15;
-	int max = 15;
-
 	if(particlesNum+num > PARTICLES_MAX) {
 		for( pp = _particles; pp < _particles+(num)*6; )
 		{
-			*(pp++) = (double)((double)((rand()%(100-30+1))+30.0) / 100.0);
-			*(pp++) = x + (double)((rand()%(max-min+1))+min);
-			*(pp++) = y + (double)((rand()%(max-min+1))+min);
+			*(pp++) = (double)((double)((rand()%(71))+30.0) / 100.0);
+			*(pp++) = x + (double)((rand()%(21))-10);
+			*(pp++) = y + (double)((rand()%(21))-10);
 			*(pp++) = 0.0;
 			*(pp++) = 0.0;
-			*(pp++) = (double)((double)((rand()%(100-10+1))+10.0) / 100.0);
+			*(pp++) = (double)((double)((rand()%(91))+10.0) / 100.0);
 		}
 	} else {
 		for( pp = _particles+particlesNum*6; pp < _particles+(particlesNum+num)*6; )
 		{
-			*(pp++) = (double)((double)((rand()%(100-30+1))+30.0) / 100.0);
-			*(pp++) = x + (double)((rand()%(max-min+1))+min);
-			*(pp++) = y + (double)((rand()%(max-min+1))+min);
+			*(pp++) = (double)((double)((rand()%(71))+30.0) / 100.0);
+			*(pp++) = x + (double)((rand()%(21))-10);
+			*(pp++) = y + (double)((rand()%(21))-10);
 			*(pp++) = 0.0;
 			*(pp++) = 0.0;
-			*(pp++) = (double)((double)((rand()%(100-10+1))+10.0) / 100.0);
+			*(pp++) = (double)((double)((rand()%(91))+10.0) / 100.0);
 		}
 		particlesNum += num;
 	}
 }
 
-void calcVorticityConfinement(double *_x, double *_y)
+void calcVorticityConfinement(register double *_x, register double *_y)
 {
 	double dw_dx, dw_dy, length, vv;
 	int i, j, index;
@@ -570,7 +567,7 @@ void fadeRGB()
 	_uniformity = 1.0 / (1 + totalDeviations * invNumCells);
 }
 
-void advect(int b, double *_d, double *d0, double *du, double *dv)
+void advect(int b, register double *_d, register double *d0, register double *du, register double *dv)
 {
 	int i, j, i0, j0, i1, j1, index;
 	double x, y, s0, t0, s1, t1, dt0x, dt0y;
@@ -610,7 +607,7 @@ void advect(int b, double *_d, double *d0, double *du, double *dv)
 	setBoundary(b, _d);
 }
 
-void advectRGB(double *du, double *dv)
+void advectRGB(register double *du, register double *dv)
 {
 	int i, j, i0, j0;
 	double x, y, s0, t0, s1, t1, dt0x, dt0y;
@@ -653,7 +650,7 @@ void advectRGB(double *du, double *dv)
 	setBoundaryRGB();
 }
 
-void project(double *x, double *y, double *p, double *div)
+void project(register double *x, register double *y, register double *p, register double *div)
 {
 	int i, j, index;
 
@@ -692,7 +689,7 @@ void project(double *x, double *y, double *p, double *div)
 	setBoundary(2, y);
 }
 
-void linearSolver(int b, double *x, double *x0, double a, double c)
+void linearSolver(int b, register double *x, register double *x0, double a, double c)
 {
 	int k, i, j, index;
 
@@ -777,7 +774,7 @@ void linearSolverUV(double a, double c)
 	}
 }
 
-void setBoundary(int bound, double *x)
+void setBoundary(int bound, register double *x)
 {
 	int dst1, dst2, src1, src2, i;
 	const int step = FLUID_IX(0, 1) - FLUID_IX(0, 0);
