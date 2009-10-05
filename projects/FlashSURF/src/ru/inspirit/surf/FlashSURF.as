@@ -293,6 +293,20 @@ package ru.inspirit.surf
 		{
 			return options.maxPoints;
 		}
+		
+		/**
+		 * Clears all memory inside C library
+		 * after calling this method there is no way to use this instance 
+		 */
+		public function destroy():void
+		{
+			SURF_LIB.disposeSURF();
+			ipoints = null;
+			matchedPoints = null;
+			homography = null;
+			integralData = null;
+			buffer.dispose();
+		}
 
 		protected function updateHomography():void
 		{
