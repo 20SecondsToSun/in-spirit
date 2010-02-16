@@ -3,8 +3,7 @@
 
 = FlashSURF =
 
-[http://blog.inspirit.ru/wp-content/uploads/flashsurf/pano2_reconstructed_prev.jpg]
-[http://blog.inspirit.ru/wp-content/uploads/flashsurf/pano1_reconstructed_prev.jpg]
+[http://farm5.static.flickr.com/4019/4359007368_77a22e0302_o.png]
 
 SURF (Speeded Up Robust Features) is a robust image descriptor, first presented by Herbert Bay et al. in 2006, that can be used in computer vision tasks like object recognition or 3D reconstruction. SURF is based on sums of 2D Haar wavelet responses and makes an efficient use of integral images. As basic image features it uses a Haar wavelet approximation of the determinant of Hessian blob detector.
 
@@ -15,7 +14,7 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
 == Change Log ==
 
 ===2010.02.16===
-  * *correctImageLevels* option added to *SURFOptions*
+  * *ImageProcessor* class added to customize input image pre-process before detection
   * *calculateInterestPoints* method for quick Interest points calculation inside Alchemy memory without output
   * *getInterestPointsRegionByteArray* method to write fitted in *Rectangle* Interest points data into specified *ByteArray* object
   * *getInterestPointsByteArray* method for quick calculate Interest points data and write it into specified *ByteArray* object
