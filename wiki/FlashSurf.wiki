@@ -14,7 +14,7 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
 == Change Log ==
 
 ===2010.02.16===
-  * *ImageProcessor* class added to customize input image pre-process before detection
+  * *ImageProcessor* class added to customize input image process before detection
   * *calculateInterestPoints* method for quick Interest points calculation inside Alchemy memory without output
   * *getInterestPointsRegionByteArray* method to write fitted in *Rectangle* Interest points data into specified *ByteArray* object
   * *getInterestPointsByteArray* method for quick calculate Interest points data and write it into specified *ByteArray* object
