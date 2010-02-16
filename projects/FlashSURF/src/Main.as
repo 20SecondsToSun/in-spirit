@@ -189,14 +189,14 @@ package
 			refBmp.visible = true;
 			imageDistortion.setSize(refb.width, refb.height);
 
-			surfOptions = new SURFOptions(int(640 / SCALE), int(480 / SCALE), 100, 0.004, true, 4, 4, 2);
+			surfOptions = new SURFOptions(int(640 / SCALE), int(480 / SCALE), 100, 0.004, true, true, 4, 4, 2);
 			surf = new FlashSURF(surfOptions);
 
 			buffer = new BitmapData(refb.width, refb.height, false, 0x00);
 			buffer.draw(refb);
 			buffer.lock();
 
-			surf.setReferenceImage(buffer, new SURFOptions(refb.width, refb.height, 200, 0.004, true, 4, 4, 2));
+			surf.setReferenceImage(buffer, new SURFOptions(refb.width, refb.height, 200, 0.004, true, false, 4, 4, 2));
 
 			buffer = new BitmapData(surfOptions.width, surfOptions.height, false, 0x00);
 			buffer.lock();
