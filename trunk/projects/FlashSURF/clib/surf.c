@@ -49,13 +49,13 @@ inline double FGAUSSIAN(register double x, register double y, register double si
 
 inline double ANGLE(register double X, register double Y)
 {
-	if(X >= 0 && Y >= 0) return atan(Y/X);
+	if(X > 0 && Y >= 0) return atan(Y/X);
 
 	if(X < 0 && Y >= 0) return pi - atan(-Y/X);
 
 	if(X < 0 && Y < 0) return pi + atan(Y/X);
 
-	if(X >= 0 && Y < 0) return two_pi - atan(-Y/X);
+	if(X > 0 && Y < 0) return two_pi - atan(-Y/X);
 
 	return 0.0;
 }
@@ -386,17 +386,17 @@ static int getInterestPoints(register double *determData, register double *point
 		step = (int)(sample_step * pow(2, o));
 		s2 = (step<<1);
 		border = border_cache[o];
-		hmb = height - border;
-		wmb = width - border;
+		hmb = height - border - step;
+		wmb = width - border - step;
 		oint = o * intervals;
 
 		for(i = 1; i < im1; i += 2)
 		{
 			ie = IMIN(im1, i + 2);
-			for(r = border; r < hmb; r += s2)
+			for(r = border+step; r < hmb; r += s2)
 			{
 				re = IMIN(hmb, r + s2);
-				for(c = border; c < wmb; c += s2)
+				for(c = border+step; c < wmb; c += s2)
 				{
 					int i_max = -1, r_max = -1, c_max = -1;
 					double max_val = 0;
@@ -1009,6 +1009,17 @@ static AS3_Val runSURFTasks(void* self, AS3_Val args)
 
 	return 0;
 }
+
+static AS3_Val findReferenceMatches(void* self, AS3_Val args)
+{
+	
+	AS3_ArrayValue(args, "IntType", &referencePointsCount);
+	
+	findMatches(currentPointsData, referencePointsData, currentPointsCount, referencePointsCount);
+	
+	return 0;
+}
+
 static AS3_Val disposeSURF(void* self, AS3_Val args)
 {
 	clearDataHolders();
@@ -1026,11 +1037,12 @@ int main()
 	AS3_Val resizeDataHoldersMethod = AS3_Function( NULL, resizeDataHolders );
 	AS3_Val runSURFTasksMethod = AS3_Function( NULL, runSURFTasks );
 	AS3_Val getDataPointers_m = AS3_Function( NULL, getDataPointers );
+	AS3_Val findReferenceMatches_m = AS3_Function( NULL, findReferenceMatches );
 
 
-	AS3_Val result = AS3_Object("setupSURF: AS3ValType, setThreshold: AS3ValType, setMaxPoints: AS3ValType, disposeSURF: AS3ValType, updateReferencePointsData: AS3ValType, resizeDataHolders: AS3ValType, runSURFTasks: AS3ValType, getDataPointers: AS3ValType",
+	AS3_Val result = AS3_Object("setupSURF: AS3ValType, setThreshold: AS3ValType, setMaxPoints: AS3ValType, disposeSURF: AS3ValType, updateReferencePointsData: AS3ValType, resizeDataHolders: AS3ValType, runSURFTasks: AS3ValType, getDataPointers: AS3ValType, findReferenceMatches: AS3ValType",
 	setupSURFMethod, setThresholdMethod, setMaxPointsMethod, disposeSURFMethod, updateReferencePointsDataMethod, 
-	resizeDataHoldersMethod, runSURFTasksMethod, getDataPointers_m);
+	resizeDataHoldersMethod, runSURFTasksMethod, getDataPointers_m, findReferenceMatches_m);
 
 	AS3_Release( setupSURFMethod );
 	AS3_Release( setThresholdMethod );
@@ -1040,6 +1052,7 @@ int main()
 	AS3_Release( resizeDataHoldersMethod );
 	AS3_Release( runSURFTasksMethod );
 	AS3_Release( getDataPointers_m );
+	AS3_Release( findReferenceMatches_m );
 
 	AS3_LibInit( result );
 

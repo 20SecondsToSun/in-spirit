@@ -1,12 +1,15 @@
 package ru.inspirit.surf
 {
+	import ru.inspirit.surf.utils.ImageUtils;
 	import cmodule.surf.CLibInit;
+	import cmodule.surf.gstate;
 
 	import com.joa_ebert.apparat.memory.Memory;
 
 	import flash.display.BitmapData;
 	import flash.filters.ColorMatrixFilter;
 	import flash.geom.Point;
+	import flash.geom.Rectangle;
 	import flash.utils.ByteArray;
 
 	/***********************************************************
@@ -59,7 +62,7 @@ package ru.inspirit.surf
 		protected var homographyPointer:int;
 
 		protected var integralData:Vector.<Number>;
-		protected var buffer:BitmapData;
+		public var buffer:BitmapData;
 		protected var ipoints:Vector.<IPoint>;
 		protected var matchedPoints:Vector.<Number>;
 
@@ -74,6 +77,9 @@ package ru.inspirit.surf
 
 		public function FlashSURF(options:SURFOptions)
 		{
+			var ns:Namespace = new Namespace( "cmodule.surf" );
+			alchemyRAM = (ns::gstate).ds;
+			
 			this.options = options;
 
 			buffer = new BitmapData(options.width, options.height, false, 0x00);
@@ -96,8 +102,14 @@ package ru.inspirit.surf
 		 */
 		public function getInterestPoints(bmp:BitmapData):Vector.<IPoint>
 		{
-			buffer.applyFilter(bmp, bmp.rect, ORIGIN, GRAYSCALE_MATRIX);
-
+			if(options.correctImageLevels) 
+			{
+				buffer.copyPixels(bmp, bmp.rect, ORIGIN);
+				ImageUtils.correctAndGrayscale(buffer);
+			} else {
+				buffer.applyFilter(bmp, bmp.rect, ORIGIN, GRAYSCALE_MATRIX);
+			}
+			
 			writeIntegralImageData(options.width, options.height, buffer);
 
 			SURF_LIB.runSURFTasks( options.useOrientation, 1 );
@@ -121,6 +133,67 @@ package ru.inspirit.surf
 
 			return ipoints.slice(0, currentPointsCount);
 		}
+		
+		public function calculateInterestPoints(bmp:BitmapData):void
+		{
+			
+			if(options.correctImageLevels) 
+			{
+				buffer.copyPixels(bmp, bmp.rect, ORIGIN);
+				ImageUtils.correctAndGrayscale(buffer);
+			} else {
+				buffer.applyFilter(bmp, bmp.rect, ORIGIN, GRAYSCALE_MATRIX);
+			}
+			
+			writeIntegralImageData(options.width, options.height, buffer);
+			
+			SURF_LIB.runSURFTasks( options.useOrientation, 1 );
+			
+			currentPointsCount = Memory.readInt(currentPointsCountPointer);
+		}
+		
+		public function getInterestPointsRegionByteArray(rect:Rectangle, ba:ByteArray):int
+		{
+			var i:int = currentPointsCount;
+			var address:int = currentPointsPointer;
+			var step:int = 69 << 3;
+			var cnt:int = 0;
+
+			while( --i > -1 )
+			{
+				if(rect.contains(Memory.readDouble(address + 0), Memory.readDouble(address + 8)))
+				{
+					ba.writeBytes(alchemyRAM, address, step);
+					cnt++;
+				}
+				
+				address += step;
+			}
+			
+			return cnt;
+		}
+		
+		public function getInterestPointsByteArray(bmp:BitmapData, ba:ByteArray):int
+		{
+			if(options.correctImageLevels) 
+			{
+				buffer.copyPixels(bmp, bmp.rect, ORIGIN);
+				ImageUtils.correctAndGrayscale(buffer);
+			} else {
+				buffer.applyFilter(bmp, bmp.rect, ORIGIN, GRAYSCALE_MATRIX);
+			}
+
+			writeIntegralImageData(options.width, options.height, buffer);
+
+			SURF_LIB.runSURFTasks( options.useOrientation, 1 );
+
+			currentPointsCount = Memory.readInt(currentPointsCountPointer);
+			var step:int = 69 << 3;
+						
+			ba.writeBytes(alchemyRAM, currentPointsPointer, step * currentPointsCount);
+			
+			return currentPointsCount;
+		}
 
 		/**
 		 * Find matched points between source image and reference [you should set reference image first]
@@ -132,7 +205,13 @@ package ru.inspirit.surf
 		 */
 		public function getMatchesToReference(bmp:BitmapData, findHomography:Boolean = false, minPointsForHomography:int = 4):Vector.<Number>
 		{
-			buffer.applyFilter(bmp, bmp.rect, ORIGIN, GRAYSCALE_MATRIX);
+			if(options.correctImageLevels) 
+			{
+				buffer.copyPixels(bmp, bmp.rect, ORIGIN);
+				ImageUtils.correctAndGrayscale(buffer);
+			} else {
+				buffer.applyFilter(bmp, bmp.rect, ORIGIN, GRAYSCALE_MATRIX);
+			}
 
 			writeIntegralImageData(options.width, options.height, buffer);
 
@@ -160,6 +239,19 @@ package ru.inspirit.surf
 			}
 
 			return matchedPoints.slice(0, matchedPointsCount*4);
+		}
+		
+		public function getMatchesTo(pointsCount:int, pointsData:ByteArray):int
+		{
+			alchemyRAM.position = referencePointsPointer;
+			pointsData.position = 0;
+			alchemyRAM.writeBytes(pointsData);
+			
+			SURF_LIB.findReferenceMatches(pointsCount);
+			
+			matchedPointsCount = Memory.readInt(matchedPointsCountPointer);
+			
+			return matchedPointsCount;
 		}
 
 		/**
@@ -200,7 +292,13 @@ package ru.inspirit.surf
 		 */
 		public function getMatchesToPreviousFrame(bmp:BitmapData):Vector.<Number>
 		{
-			buffer.applyFilter(bmp, bmp.rect, ORIGIN, GRAYSCALE_MATRIX);
+			if(options.correctImageLevels) 
+			{
+				buffer.copyPixels(bmp, bmp.rect, ORIGIN);
+				ImageUtils.correctAndGrayscale(buffer);
+			} else {
+				buffer.applyFilter(bmp, bmp.rect, ORIGIN, GRAYSCALE_MATRIX);
+			}
 
 			writeIntegralImageData(options.width, options.height, buffer);
 
@@ -239,9 +337,9 @@ package ru.inspirit.surf
 
 			SURF_LIB.resizeDataHolders(options.width, options.height, options.octaves, options.intervals, options.sampleStep);
 			updateDataPointers();
-
+			
 			buffer.dispose();
-			buffer = new BitmapData(options.width, options.height, false, 0x00);
+			buffer = new BitmapData(options.width, options.height, false, 0x00);			
 			buffer.lock();
 
 			integralData = new Vector.<Number>(options.width*options.height, true);
@@ -261,7 +359,13 @@ package ru.inspirit.surf
 				changeSurfOptions(referenceOptions);
 			}
 
-			buffer.applyFilter(image, image.rect, ORIGIN, GRAYSCALE_MATRIX);
+			if(options.correctImageLevels) 
+			{
+				buffer.copyPixels(image, image.rect, ORIGIN);
+				ImageUtils.correctAndGrayscale(buffer);
+			} else {
+				buffer.applyFilter(image, image.rect, ORIGIN, GRAYSCALE_MATRIX);
+			}
 
 			writeIntegralImageData(options.width, options.height, buffer);
 
@@ -292,6 +396,16 @@ package ru.inspirit.surf
 		public function get maximumPoints():uint
 		{
 			return options.maxPoints;
+		}
+		
+		public function set correctImageLevels(value:Boolean):void
+		{
+			options.correctImageLevels = value;
+		}
+
+		public function get correctImageLevels():Boolean
+		{
+			return options.correctImageLevels;
 		}
 		
 		/**
@@ -357,7 +471,7 @@ package ru.inspirit.surf
 
 		protected function writeIntegralImageData(width:int, height:int, bmp:BitmapData):void
 		{
-			var data:Vector.<uint> = bmp.getVector(bmp.rect);
+			//var data:Vector.<uint> = bmp.getVector(bmp.rect);
 
 			var i:int, j:int, ind:int, ind2:int;
 			var sum:Number = 0;
@@ -368,23 +482,26 @@ package ru.inspirit.surf
 			i = iborder + iborder * nw;
 			for( j = 0; j < width; ++j, ++i)
 			{
-				sum += (data[j] & 0xFF) * colorScale;
+				//sum += (data[j] & 0xFF) * colorScale;
+				sum += bmp.getPixel(j, 0) * colorScale;
 				integralData[j] = sum;
 				Memory.writeDouble(sum, pos + (i<<3));
 			}
 
 			ind = width;
 			ind2 = i + iborder2;
-			for(i = 1; i < height; ++i) {
+			for(i = 1; i < height; ++i) 
+			{
 				sum = 0;
-				for(j = 0; j < width; ++j, ++ind, ++ind2) {
-					sum += (data[ind] & 0xFF) * colorScale;
-					integralData[ind] = (v = sum + integralData[int(ind - width)]);
+				for(j = 0; j < width; ++j, ++ind, ++ind2) 
+				{
+					//sum += (data[ind] & 0xFF) * colorScale;
+					sum += bmp.getPixel(j, i) * colorScale;
+					integralData[ind] = (v = sum + integralData[(ind - width) | 0]);
 					Memory.writeDouble(v, pos + (ind2<<3));
 				}
 				ind2 += iborder2;
 			}
 		}
-
 	}
 }

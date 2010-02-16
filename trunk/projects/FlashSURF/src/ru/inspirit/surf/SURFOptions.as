@@ -22,25 +22,28 @@ package ru.inspirit.surf
 		public var width:uint;
 		public var height:uint;
 		public var useOrientation:uint;
+		public var correctImageLevels:Boolean;
 		
 		/**
-		 * @param width				width of the provided image source
-		 * @param height			height of the provided image source
-		 * @param maxPoints			max points allowed to be detected (this number is limited to 10000 inside C lib)
-		 * @param threshold			blob strength threshold
-		 * @param useOrientation	specify if you need orientation based descriptors (needed for different sources matching)
-		 * @param octaves			number of octaves to calculate
-		 * @param intervals			number of intervals per octave
-		 * @param sampleStep		initial sampling step
+		 * @param width					width of the provided image source
+		 * @param height				height of the provided image source
+		 * @param maxPoints				max points allowed to be detected (this number is limited to 10000 inside C lib)
+		 * @param threshold				blob strength threshold
+		 * @param useOrientation		specify if you need orientation based descriptors (needed for different sources matching)
+		 * @param correctImageLevels	specify if you want correct image levels using image histagram values
+		 * @param octaves				number of octaves to calculate
+		 * @param intervals				number of intervals per octave
+		 * @param sampleStep			initial sampling step
 		 */
 		
-		public function SURFOptions(width:uint, height:uint, maxPoints:uint = MAX_POINTS_DEFAULT, threshold:Number = THRESHOLD_DEFAULT, useOrientation:Boolean = true, octaves:uint = OCTAVES_DEFAULT, intervals:uint = INTERVALS_DEFAULT, sampleStep:uint = SAMPLE_STEP_DEFAULT)
+		public function SURFOptions(width:uint, height:uint, maxPoints:uint = MAX_POINTS_DEFAULT, threshold:Number = THRESHOLD_DEFAULT, useOrientation:Boolean = true, correctImageLevels:Boolean = false, octaves:uint = OCTAVES_DEFAULT, intervals:uint = INTERVALS_DEFAULT, sampleStep:uint = SAMPLE_STEP_DEFAULT)
 		{
 			this.width = width;
 			this.height = height;
 			this.maxPoints = maxPoints;
 			this.threshold = threshold;
 			this.useOrientation = useOrientation ? 1 : 0;
+			this.correctImageLevels = correctImageLevels;
 			this.octaves = octaves;
 			this.intervals = intervals;
 			this.sampleStep = sampleStep;
@@ -53,6 +56,7 @@ package ru.inspirit.surf
 			if(maxPoints != options.maxPoints) return false;
 			if(threshold != options.threshold) return false;
 			if(useOrientation != options.useOrientation) return false;
+			if(correctImageLevels != options.correctImageLevels) return false;
 			if(octaves != options.octaves) return false;
 			if(intervals != options.intervals) return false;
 			if(sampleStep != options.sampleStep) return false;
@@ -62,7 +66,7 @@ package ru.inspirit.surf
 		
 		public function toString():String 
 		{
-			return "SURFOptions{width:" + width + ', height:' + height + ', maxPoints:' + maxPoints + ', threshold:' + threshold + ', useOrientation:' + useOrientation + ', octaves:' + octaves + ', intervals:' + intervals + ', sampleStep:' + sampleStep + '}';
+			return "SURFOptions{width:" + width + ', height:' + height + ', maxPoints:' + maxPoints + ', threshold:' + threshold + ', useOrientation:' + useOrientation + ', correctImageLevels:' + correctImageLevels + ', octaves:' + octaves + ', intervals:' + intervals + ', sampleStep:' + sampleStep + '}';
 		}
 	}
 }
