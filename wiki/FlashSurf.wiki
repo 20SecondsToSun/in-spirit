@@ -12,6 +12,15 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
 
 *[http://blog.inspirit.ru/?p=343 Some results and description]*
 
+== Change Log ==
 
-== How To ==
+===2010.02.16===
+  * *correctImageLevels* option added to *SURFOptions*
+  * *calculateInterestPoints* method for quick Interest points calculation inside Alchemy memory without output
+  * *getInterestPointsRegionByteArray* method to write fitted in *Rectangle* Interest points data into specified *ByteArray* object
+  * *getInterestPointsByteArray* method for quick calculate Interest points data and write it into specified *ByteArray* object
+  * *getMatchesTo* method returns number of matched points between calculated in Alchemy memory data and provided data in *ByteArray* object
+
+
+== SOURCE ==
 *[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FlashSURF Complete source code and test usage example available in my repository]*
