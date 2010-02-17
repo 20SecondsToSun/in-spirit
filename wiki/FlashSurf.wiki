@@ -13,6 +13,13 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
 
 == Change Log ==
 
+===2010.02.17===
+  * added missing documentation to all methods
+  * added *readCurrentInterestPointsToByteArray* method to quickly read all current points data to provided *ByteArray* object
+  * added *writePointsDataToReference* method to write provided Interest points data into Alchemy memory as reference data
+  * renamed *getMatchesTo* to *getMatchesToPointsData* to clear the meaning
+  * added *getMatchesToPointsDataBundle* method: Find matches between currently computed points data and provided one. Can be used to match all the points of several references in single run. Returns match map Vector.
+----
 ===2010.02.16===
   * *ImageProcessor* class added to customize input image process before detection
   * *calculateInterestPoints* method for quick Interest points calculation inside Alchemy memory without output
@@ -20,6 +27,7 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
   * *getInterestPointsByteArray* method for quick calculate Interest points data and write it into specified *ByteArray* object
   * *getMatchesTo* method returns number of matched points between calculated in Alchemy memory data and provided data in *ByteArray* object
 
+----
 
 == SOURCE ==
 *[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FlashSURF Complete source code and test usage example available in my repository]*
