@@ -871,6 +871,73 @@ static void findMatches(double *set1, double *set2, const int num1, const int nu
 	}
 }
 
+static void findBundleMatches(double *set1, double *set2, const int num1, const int num2)
+{
+	double dist, diff, d1, d2, lap;
+	int ind1 = 5, ind2, match_idx;
+	int i, j, k;
+	register double *mpr, *desc1, *desc2;
+
+	mpr = matchedPointsData;
+	matchedPointsCount = 0;
+
+	for(i = 0; i < num1; ++i)
+	{
+		d1 = d2 = 100000.0;
+		ind2 = 5;
+		lap = set1[ind1 - 1];
+		desc2 = set2+4;
+
+		for(j = 0; j < num2; ++j)
+		{
+			if(lap != *(desc2++)) // check laplacian
+			{
+				ind2 += 69;
+				desc2 += 68;
+				continue;
+			}
+			
+			dist = 0;
+			desc1 = set1+ind1;
+			
+			for( k = 0; k < 64; ++k )
+			{
+				diff = *(desc1++) - *(desc2++);
+				dist += diff * diff;
+			}
+
+			dist = sqrt(dist);
+
+			if(dist<d1) // if this feature matches better than current best
+			{
+				d2 = d1;
+				d1 = dist;
+				match_idx = ind2;
+			}
+			else if(dist<d2) // this feature matches better than second best
+			{
+				d2 = dist;
+			}
+			ind2 += 69;
+			desc2 += 4;
+		}
+
+		// If match has a d1:d2 ratio < 0.65 ipoints are a match
+		if(d1/d2 < 0.65)
+		{
+			*(mpr++) = i;
+			*(mpr++) = (match_idx - 5) / 69;
+			*(mpr++) = set1[ind1 - 5];
+			*(mpr++) = set1[ind1 - 4];
+			*(mpr++) = set2[match_idx - 5];
+			*(mpr++) = set2[match_idx - 4];
+			
+			matchedPointsCount++;
+		}
+		ind1 += 69;
+	}
+}
+
 static void clearDataHolders()
 {
 	if(currentPointsData) free( currentPointsData );
@@ -896,7 +963,7 @@ static AS3_Val setupSURF(void* self, AS3_Val args)
 	currentPointsData =		(double*)malloc( (POINTS_POOL*POINT_DATA_LENGTH)* sizeof(double) );
 	referencePointsData =	(double*)malloc( (POINTS_POOL*POINT_DATA_LENGTH)* sizeof(double) );
 	prevFramePointsData =	(double*)malloc( (POINTS_POOL*POINT_DATA_LENGTH)* sizeof(double) );
-	matchedPointsData =		(double*)malloc( (POINTS_POOL*4)* sizeof(double) );
+	matchedPointsData =		(double*)malloc( (POINTS_POOL*6)* sizeof(double) );
 	
 	integral =		(double*)malloc( area2* sizeof(double) );
 	determinant =	(double*)malloc( octaves*intervals*area* sizeof(double) );
@@ -1012,10 +1079,17 @@ static AS3_Val runSURFTasks(void* self, AS3_Val args)
 
 static AS3_Val findReferenceMatches(void* self, AS3_Val args)
 {
+	int isBundle = 0;
+	AS3_ArrayValue(args, "IntType, IntType", &referencePointsCount, &isBundle);
 	
-	AS3_ArrayValue(args, "IntType", &referencePointsCount);
-	
-	findMatches(currentPointsData, referencePointsData, currentPointsCount, referencePointsCount);
+	if(isBundle == 0)
+	{
+		findMatches(currentPointsData, referencePointsData, currentPointsCount, referencePointsCount);
+	}
+	else
+	{
+		findBundleMatches(currentPointsData, referencePointsData, currentPointsCount, referencePointsCount);
+	}
 	
 	return 0;
 }
