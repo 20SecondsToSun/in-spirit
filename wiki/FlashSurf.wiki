@@ -15,10 +15,11 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
 
 ===2010.02.17===
   * added missing documentation to all methods
+  * added IPointMatch class
   * added *readCurrentInterestPointsToByteArray* method to quickly read all current points data to provided *ByteArray* object
   * added *writePointsDataToReference* method to write provided Interest points data into Alchemy memory as reference data
   * renamed *getMatchesTo* to *getMatchesToPointsData* to clear the meaning
-  * added *getMatchesToPointsDataBundle* method: Find matches between currently computed points data and provided one. Can be used to match all the points of several references in single run. Returns match map Vector.
+  * added *getMatchesToPointsDataBundle* method: Find matches between currently computed points data and provided one. Can be used to match all the points of several references in single run. Returns IPointMatch Vector.
 ----
 ===2010.02.16===
   * *ImageProcessor* class added to customize input image process before detection
