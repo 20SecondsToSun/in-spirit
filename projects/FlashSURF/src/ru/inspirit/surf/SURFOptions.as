@@ -23,7 +23,7 @@ package ru.inspirit.surf
 		public var height:uint;
 		public var useOrientation:uint;
 		
-		public var imageProcessor:ImageProcessor = new ImageProcessor();
+		public var imageProcessor:ImageProcessor;
 		
 		/**
 		 * @param width					width of the provided image source

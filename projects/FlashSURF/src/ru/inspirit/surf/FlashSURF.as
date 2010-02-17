@@ -35,6 +35,7 @@ package ru.inspirit.surf
 		protected const iborder:int = 100;
 		protected const iborder2:int = 200;
 		protected const colorScale:Number = 0.00392156862745098; // actually 1 / 255
+		protected const defaultImageProcessor:ImageProcessor = new ImageProcessor();
 
 		protected var alchemyRAM:ByteArray;
 		protected var integralDataPointer:int;
@@ -70,7 +71,7 @@ package ru.inspirit.surf
 			alchemyRAM = (ns::gstate).ds;
 			
 			this.options = options;
-			this.imageProc = this.options.imageProcessor;
+			this.imageProc = this.options.imageProcessor || defaultImageProcessor;
 
 			buffer = new BitmapData(options.width, options.height, false, 0x00);
 			buffer.lock();
@@ -116,9 +117,13 @@ package ru.inspirit.surf
 			return ipoints.slice(0, currentPointsCount);
 		}
 		
+		/**
+		 * Silently calculate/find Interest points inside Alchemy memory
+		 * 
+		 * @param bmp	source image to analize [dimesions should match provided in options object]
+		 */
 		public function calculateInterestPoints(bmp:BitmapData):void
 		{
-			
 			writeIntegralImageData(options.width, options.height, bmp);
 			
 			SURF_LIB.runSURFTasks( options.useOrientation, 1 );
@@ -126,6 +131,14 @@ package ru.inspirit.surf
 			currentPointsCount = Memory.readInt(currentPointsCountPointer);
 		}
 		
+		/**
+		 * Search for Interest points that are inside provided Rectangle
+		 * and write their data to provided ByteArray
+		 * 
+		 * @param rect	Rectangle to search in
+		 * @param ba	output ByteArray object
+		 * @return		number of available points
+		 */
 		public function getInterestPointsRegionByteArray(rect:Rectangle, ba:ByteArray):int
 		{
 			var i:int = currentPointsCount;
@@ -147,12 +160,35 @@ package ru.inspirit.surf
 			return cnt;
 		}
 		
+		/**
+		 * Calculate Interest points data and write it to provided ByteArray object
+		 * 
+		 * @param bmp	source image to analize [dimesions should match provided in options object]
+		 * @param ba	output ByteArray object
+		 * @return		number of available points
+		 */
 		public function getInterestPointsByteArray(bmp:BitmapData, ba:ByteArray):int
 		{
 			writeIntegralImageData(options.width, options.height, bmp);
 
 			SURF_LIB.runSURFTasks( options.useOrientation, 1 );
 
+			currentPointsCount = Memory.readInt(currentPointsCountPointer);
+			var step:int = 69 << 3;
+						
+			ba.writeBytes(alchemyRAM, currentPointsPointer, step * currentPointsCount);
+			
+			return currentPointsCount;
+		}
+		
+		/**
+		 * Read current Interest points data into provided ByteArray object
+		 * 
+		 * @param ba	output ByteArray object
+		 * @return		number of available points
+		 */
+		public function readCurrentInterestPointsToByteArray(ba:ByteArray):int
+		{
 			currentPointsCount = Memory.readInt(currentPointsCountPointer);
 			var step:int = 69 << 3;
 						
@@ -199,17 +235,80 @@ package ru.inspirit.surf
 			return matchedPoints.slice(0, matchedPointsCount*4);
 		}
 		
-		public function getMatchesTo(pointsCount:int, pointsData:ByteArray):int
+		/**
+		 * Write provided Interest points data into Alchemy memory as reference data
+		 * 
+		 * @param pointsCount	number of points
+		 * @param pointsData	points data ByteArray
+		 */
+		public function writePointsDataToReference(pointsCount:int, pointsData:ByteArray):void
 		{
 			alchemyRAM.position = referencePointsPointer;
 			pointsData.position = 0;
 			alchemyRAM.writeBytes(pointsData);
+			
+			Memory.writeInt(pointsCount, referencePointsCountPointer);
+		}
+		
+		/**
+		 * Find matches between currently computed points data and provided one
+		 * 
+		 * @param pointsCount		number of provided points
+		 * @param pointsData		points data ByteArray
+		 * @param updatePointsData	specify if data should be written as reference (it may be already done and you sont want to write it again)
+		 * @return					number of matched points
+		 */
+		public function getMatchesToPointsData(pointsCount:int, pointsData:ByteArray, updatePointsData:Boolean = true):int
+		{
+			if(updatePointsData)
+			{
+				alchemyRAM.position = referencePointsPointer;
+				pointsData.position = 0;
+				alchemyRAM.writeBytes(pointsData);
+			}
 			
 			SURF_LIB.findReferenceMatches(pointsCount);
 			
 			matchedPointsCount = Memory.readInt(matchedPointsCountPointer);
 			
 			return matchedPointsCount;
+		}
+		
+		/**
+		 * Find matches between currently computed points data and provided one
+		 * it differs from getMatchesToPointsData by returning info
+		 * 
+		 * @param pointsCount		number of provided points
+		 * @param pointsData		points data ByteArray
+		 * @param updatePointsData	specify if data should be written as reference (it may be already done and you sont want to write it again)
+		 * @return					matches map Vector with length of provided points. each entry in Vector is number of matches per point
+		 */
+		public function getMatchesToPointsDataBundle(totalPointsCount:int, pointsDataBundle:ByteArray, updatePointsData:Boolean = true):Vector.<int>
+		{
+			if(updatePointsData)
+			{
+				alchemyRAM.position = referencePointsPointer;
+				pointsDataBundle.position = 0;
+				alchemyRAM.writeBytes(pointsDataBundle);
+			}
+			
+			SURF_LIB.findReferenceMatches(totalPointsCount, 1);
+			
+			matchedPointsCount = Memory.readInt(matchedPointsCountPointer);
+			
+			var matchMap:Vector.<int> = new Vector.<int>(totalPointsCount, true);
+			
+			var i:int = matchedPointsCount;
+			var address:int = matchedPointsPointer;
+			var step:int = 6 << 3;
+
+			while( --i > -1 )
+			{
+				matchMap[ Memory.readDouble(address + 8) | 0 ] ++;
+				address += step;
+			}
+			
+			return matchMap;
 		}
 
 		/**
@@ -281,7 +380,7 @@ package ru.inspirit.surf
 		public function changeSurfOptions(options:SURFOptions):void
 		{
 			this.options = options;
-			this.imageProc = this.options.imageProcessor;
+			this.imageProc = this.options.imageProcessor || defaultImageProcessor;
 
 			SURF_LIB.setThreshold(options.threshold);
 			SURF_LIB.setMaxPoints(options.maxPoints);
@@ -343,7 +442,7 @@ package ru.inspirit.surf
 		
 		public function set imageProcessor(obj:ImageProcessor):void
 		{
-			this.imageProc = options.imageProcessor = obj;
+			this.imageProc = options.imageProcessor = obj || defaultImageProcessor;
 		}
 
 		public function get imageProcessor():ImageProcessor
