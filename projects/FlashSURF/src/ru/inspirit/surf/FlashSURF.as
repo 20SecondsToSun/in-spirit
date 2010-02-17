@@ -53,7 +53,7 @@ package ru.inspirit.surf
 		protected var integralData:Vector.<Number>;
 		public var buffer:BitmapData;
 		protected var ipoints:Vector.<IPoint>;
-		protected var matchedPoints:Vector.<Number>;
+		protected var matchedPoints:Vector.<IPointMatch>;
 
 		protected var options:SURFOptions;
 		protected var imageProc:ImageProcessor;
@@ -203,9 +203,9 @@ package ru.inspirit.surf
 		 * @param bmp						source image
 		 * @param findHomography			if TRUE will try to find Homography between source and reference
 		 * @param minPointsForHomography	min number of points to start finding Homography
-		 * @return Vector.<Number>			matched points [srcX1, srcY1, refX1, refY1, ...]
+		 * @return Vector.<IPointMatch>		matched points vector
 		 */
-		public function getMatchesToReference(bmp:BitmapData, findHomography:Boolean = false, minPointsForHomography:int = 4):Vector.<Number>
+		public function getMatchesToReference(bmp:BitmapData, findHomography:Boolean = false, minPointsForHomography:int = 4):Vector.<IPointMatch>
 		{
 			writeIntegralImageData(options.width, options.height, bmp);
 
@@ -215,15 +215,17 @@ package ru.inspirit.surf
 			matchedPointsCount = Memory.readInt(matchedPointsCountPointer);
 			var i:int = matchedPointsCount;
 			var address:int = matchedPointsPointer;
-			var step:int = 4 << 3;
-			var ind:int = 0;
+			var step:int = 4 << 3;			
+			var mp:IPointMatch;
 
 			while( --i > -1 )
 			{
-				matchedPoints[ind++] = Memory.readDouble(address + 0);
-				matchedPoints[ind++] = Memory.readDouble(address + 8);
-				matchedPoints[ind++] = Memory.readDouble(address + 16);
-				matchedPoints[ind++] = Memory.readDouble(address + 24);
+				mp = matchedPoints[i];
+				mp.currX = Memory.readDouble(address + 0);
+				mp.currY = Memory.readDouble(address + 8);
+				mp.refX = Memory.readDouble(address + 16);
+				mp.refY = Memory.readDouble(address + 24);
+				
 				address += step;
 			}
 
@@ -232,7 +234,7 @@ package ru.inspirit.surf
 				updateHomography();
 			}
 
-			return matchedPoints.slice(0, matchedPointsCount*4);
+			return matchedPoints.slice(0, matchedPointsCount);
 		}
 		
 		/**
@@ -281,9 +283,9 @@ package ru.inspirit.surf
 		 * @param pointsCount		number of provided points
 		 * @param pointsData		points data ByteArray
 		 * @param updatePointsData	specify if data should be written as reference (it may be already done and you sont want to write it again)
-		 * @return					matches map Vector with length of provided points. each entry in Vector is number of matches per point
+		 * @return					matched points Vector
 		 */
-		public function getMatchesToPointsDataBundle(totalPointsCount:int, pointsDataBundle:ByteArray, updatePointsData:Boolean = true):Vector.<int>
+		public function getMatchesToPointsDataBundle(totalPointsCount:int, pointsDataBundle:ByteArray, updatePointsData:Boolean = true):Vector.<IPointMatch>
 		{
 			if(updatePointsData)
 			{
@@ -296,19 +298,25 @@ package ru.inspirit.surf
 			
 			matchedPointsCount = Memory.readInt(matchedPointsCountPointer);
 			
-			var matchMap:Vector.<int> = new Vector.<int>(totalPointsCount, true);
-			
+			var mp:IPointMatch;			
 			var i:int = matchedPointsCount;
 			var address:int = matchedPointsPointer;
 			var step:int = 6 << 3;
-
+			
 			while( --i > -1 )
 			{
-				matchMap[ Memory.readDouble(address + 8) | 0 ] ++;
+				mp = matchedPoints[i];
+				mp.currID = Memory.readDouble(address);
+				mp.refID = Memory.readDouble(address + 8);
+				mp.currX = Memory.readDouble(address + 16);
+				mp.currY = Memory.readDouble(address + 24);
+				mp.refX = Memory.readDouble(address + 32);
+				mp.refY = Memory.readDouble(address + 40);
+				
 				address += step;
 			}
 			
-			return matchMap;
+			return matchedPoints.slice(0, matchedPointsCount);
 		}
 
 		/**
@@ -320,13 +328,13 @@ package ru.inspirit.surf
 		 * @param image2Options				options for second image analizing
 		 * @param findHomography			if TRUE will try to find Homography between source and reference
 		 * @param minPointsForHomography	min number of points to start finding Homography
-		 * @return Vector.<Number>			matched points [img1X1, img1Y1, img2X1, img2Y1, ...]
+		 * @return Vector.<IPointMatch>		matched points Vector
 		 */
-		public function getMatchesBetweenImages(image1:BitmapData, image2:BitmapData, image1Options:SURFOptions, image2Options:SURFOptions, findHomography:Boolean = false, minPointsForHomography:int = 4):Vector.<Number>
+		public function getMatchesBetweenImages(image1:BitmapData, image2:BitmapData, image1Options:SURFOptions, image2Options:SURFOptions, findHomography:Boolean = false, minPointsForHomography:int = 4):Vector.<IPointMatch>
 		{
 			setReferenceImage(image2, image2Options);
 
-			var result:Vector.<Number>;
+			var result:Vector.<IPointMatch>;
 
 			if(!options.compare(image1Options))
 			{
@@ -344,8 +352,8 @@ package ru.inspirit.surf
 		/**
 		 * Find matched points between source image and pevious provided one
 		 * 
-		 * @param bmp	source image 
-		 * @return Vector.<Number>			matched points [srcX1, srcY1, prevX1, prevY1, ...]
+		 * @param bmp						source image 
+		 * @return Vector.<IPointMatch>		matched points
 		 */
 		public function getMatchesToPreviousFrame(bmp:BitmapData):Vector.<Number>
 		{
@@ -358,18 +366,20 @@ package ru.inspirit.surf
 			var i:int = matchedPointsCount;
 			var address:int = matchedPointsPointer;
 			var step:int = 4 << 3;
-			var ind:int = 0;
+			var mp:IPointMatch;
 
 			while( --i > -1 )
 			{
-				matchedPoints[ind++] = Memory.readDouble(address + 0);
-				matchedPoints[ind++] = Memory.readDouble(address + 8);
-				matchedPoints[ind++] = Memory.readDouble(address + 16);
-				matchedPoints[ind++] = Memory.readDouble(address + 24);
+				mp = matchedPoints[i];
+				mp.currX = Memory.readDouble(address + 0);
+				mp.currY = Memory.readDouble(address + 8);
+				mp.refX = Memory.readDouble(address + 16);
+				mp.refY = Memory.readDouble(address + 24);
+				
 				address += step;
 			}
 
-			return matchedPoints.slice(0, matchedPointsCount*4);
+			return matchedPoints.slice(0, matchedPointsCount);
 		}
 
 		/**
@@ -503,11 +513,17 @@ package ru.inspirit.surf
 			var n:uint = options.maxPoints;
 
 			ipoints = new Vector.<IPoint>(n, true);
-			matchedPoints = new Vector.<Number>(n*4, true);
+			matchedPoints = new Vector.<IPointMatch>(n << 2, true);
 
 			for(var i:int = 0; i < n; ++i)
 			{
 				ipoints[i] = new IPoint();
+			}
+			
+			n <<= 2;
+			for( i = 0; i < n; ++i )
+			{
+				matchedPoints[i] = new IPointMatch();
 			}
 		}
 

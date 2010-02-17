@@ -2,6 +2,7 @@ package
 {
 	import ru.inspirit.surf.FlashSURF;
 	import ru.inspirit.surf.IPoint;
+	import ru.inspirit.surf.IPointMatch;
 	import ru.inspirit.surf.SURFOptions;
 
 	import utils.QuasimondoImageProcessor;
@@ -144,12 +145,12 @@ package
 			var ipts:Vector.<IPoint> = surf.getInterestPoints(buffer);
 			SURFUtils.drawIPoints(gfx, ipts, SCALE);
 			
-			// Get matches to previously provided image [can be used for motion detecting]
-			//var match:Vector.<Number> = surf.getMatchesToPreviousFrame(buffer);
+			// Get matches to previously provided image [can be used for motion tracking]
+			//var match:Vector.<IPointMatch> = surf.getMatchesToPreviousFrame(buffer);
 			//SURFUtils.drawMotionVectors(gfx, match, SCALE);
 			
 			// Get matches to reference image, also trying to find Homography
-			//var match:Vector.<Number> = surf.getMatchesToReference(buffer, true, 4);
+			//var match:Vector.<IPointMatch> = surf.getMatchesToReference(buffer, true, 4);
 			
 			// Check if homography was detected
 			// and draw reference image into detected bounds
@@ -227,7 +228,7 @@ package
 			
 			var opt2:SURFOptions = new SURFOptions(pb.width, pb.height, 600, 0.0003, true, 4, 4, 2);
 			
-			var mtch:Vector.<Number> = surf.getMatchesBetweenImages(panoBase, pb, surfOptions, opt2, true, 4);
+			var mtch:Vector.<IPointMatch> = surf.getMatchesBetweenImages(panoBase, pb, surfOptions, opt2, true, 4);
 			
 			if(surf.homographyFound)
 			{				
