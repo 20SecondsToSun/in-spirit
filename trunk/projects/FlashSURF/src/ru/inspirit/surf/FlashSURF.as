@@ -215,16 +215,18 @@ package ru.inspirit.surf
 			matchedPointsCount = Memory.readInt(matchedPointsCountPointer);
 			var i:int = matchedPointsCount;
 			var address:int = matchedPointsPointer;
-			var step:int = 4 << 3;			
+			var step:int = 6 << 3;			
 			var mp:IPointMatch;
 
 			while( --i > -1 )
 			{
 				mp = matchedPoints[i];
-				mp.currX = Memory.readDouble(address + 0);
-				mp.currY = Memory.readDouble(address + 8);
-				mp.refX = Memory.readDouble(address + 16);
-				mp.refY = Memory.readDouble(address + 24);
+				mp.currID = Memory.readDouble(address);
+				mp.refID = Memory.readDouble(address + 8);
+				mp.currX = Memory.readDouble(address + 16);
+				mp.currY = Memory.readDouble(address + 24);
+				mp.refX = Memory.readDouble(address + 32);
+				mp.refY = Memory.readDouble(address + 40);
 				
 				address += step;
 			}
@@ -257,10 +259,10 @@ package ru.inspirit.surf
 		 * 
 		 * @param pointsCount		number of provided points
 		 * @param pointsData		points data ByteArray
-		 * @param updatePointsData	specify if data should be written as reference (it may be already done and you sont want to write it again)
-		 * @return					number of matched points
+		 * @param updatePointsData	specify if data should be written as reference (it may be already done and you dont want to write it again)
+		 * @return					matched points Vector
 		 */
-		public function getMatchesToPointsData(pointsCount:int, pointsData:ByteArray, updatePointsData:Boolean = true):int
+		public function getMatchesToPointsData(pointsCount:int, pointsData:ByteArray, updatePointsData:Boolean = true):Vector.<IPointMatch>
 		{
 			if(updatePointsData)
 			{
@@ -270,31 +272,6 @@ package ru.inspirit.surf
 			}
 			
 			SURF_LIB.findReferenceMatches(pointsCount);
-			
-			matchedPointsCount = Memory.readInt(matchedPointsCountPointer);
-			
-			return matchedPointsCount;
-		}
-		
-		/**
-		 * Find matches between currently computed points data and provided one
-		 * it differs from getMatchesToPointsData by returning info
-		 * 
-		 * @param pointsCount		number of provided points
-		 * @param pointsData		points data ByteArray
-		 * @param updatePointsData	specify if data should be written as reference (it may be already done and you sont want to write it again)
-		 * @return					matched points Vector
-		 */
-		public function getMatchesToPointsDataBundle(totalPointsCount:int, pointsDataBundle:ByteArray, updatePointsData:Boolean = true):Vector.<IPointMatch>
-		{
-			if(updatePointsData)
-			{
-				alchemyRAM.position = referencePointsPointer;
-				pointsDataBundle.position = 0;
-				alchemyRAM.writeBytes(pointsDataBundle);
-			}
-			
-			SURF_LIB.findReferenceMatches(totalPointsCount, 1);
 			
 			matchedPointsCount = Memory.readInt(matchedPointsCountPointer);
 			
@@ -328,7 +305,7 @@ package ru.inspirit.surf
 		 * @param image2Options				options for second image analizing
 		 * @param findHomography			if TRUE will try to find Homography between source and reference
 		 * @param minPointsForHomography	min number of points to start finding Homography
-		 * @return Vector.<IPointMatch>		matched points Vector
+		 * @return 							matched points Vector
 		 */
 		public function getMatchesBetweenImages(image1:BitmapData, image2:BitmapData, image1Options:SURFOptions, image2Options:SURFOptions, findHomography:Boolean = false, minPointsForHomography:int = 4):Vector.<IPointMatch>
 		{
@@ -352,8 +329,8 @@ package ru.inspirit.surf
 		/**
 		 * Find matched points between source image and pevious provided one
 		 * 
-		 * @param bmp						source image 
-		 * @return Vector.<IPointMatch>		matched points
+		 * @param bmp	source image 
+		 * @return 		matched points
 		 */
 		public function getMatchesToPreviousFrame(bmp:BitmapData):Vector.<Number>
 		{
@@ -365,16 +342,18 @@ package ru.inspirit.surf
 			matchedPointsCount = Memory.readInt(matchedPointsCountPointer);
 			var i:int = matchedPointsCount;
 			var address:int = matchedPointsPointer;
-			var step:int = 4 << 3;
+			var step:int = 6 << 3;
 			var mp:IPointMatch;
 
 			while( --i > -1 )
 			{
 				mp = matchedPoints[i];
-				mp.currX = Memory.readDouble(address + 0);
-				mp.currY = Memory.readDouble(address + 8);
-				mp.refX = Memory.readDouble(address + 16);
-				mp.refY = Memory.readDouble(address + 24);
+				mp.currID = Memory.readDouble(address);
+				mp.refID = Memory.readDouble(address + 8);
+				mp.currX = Memory.readDouble(address + 16);
+				mp.currY = Memory.readDouble(address + 24);
+				mp.refX = Memory.readDouble(address + 32);
+				mp.refY = Memory.readDouble(address + 40);
 				
 				address += step;
 			}
@@ -513,14 +492,14 @@ package ru.inspirit.surf
 			var n:uint = options.maxPoints;
 
 			ipoints = new Vector.<IPoint>(n, true);
-			matchedPoints = new Vector.<IPointMatch>(n << 2, true);
+			matchedPoints = new Vector.<IPointMatch>(n << 4, true);
 
 			for(var i:int = 0; i < n; ++i)
 			{
 				ipoints[i] = new IPoint();
 			}
 			
-			n <<= 2;
+			n <<= 4;
 			for( i = 0; i < n; ++i )
 			{
 				matchedPoints[i] = new IPointMatch();

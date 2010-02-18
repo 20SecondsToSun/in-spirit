@@ -31,7 +31,8 @@ typedef struct
 	double inlier_set2[2000];
 } optimization_data;
 
-void ransac(register double *matched_points, int npoints, register double *best_inlier_set1, 
+//void ransac(register double *matched_points, int npoints, register double *best_inlier_set1, 
+void ransac(register double *corners1, register double *corners2, int npoints, register double *best_inlier_set1, 
 			register double *best_inlier_set2, int *number_of_inliers, register double *bestH)
 {
 	int N, sample_count;
@@ -49,11 +50,11 @@ void ransac(register double *matched_points, int npoints, register double *best_
 	double inlier_set2[npoints*2];
 	double points1[8];
 	double points2[8];
-	double corners1[npoints*2];
-	double corners2[npoints*2];
+	//double corners1[npoints*2];
+	//double corners2[npoints*2];
 	double image1_coord[npoints*2];
 	
-	register double *cnp1 = corners1, *cnp2 = corners2;
+	/*register double *cnp1 = corners1, *cnp2 = corners2;
 	
 	for(i = 0; i < npoints; ++i)
 	{
@@ -61,7 +62,7 @@ void ransac(register double *matched_points, int npoints, register double *best_
 		*(cnp1++) = *(matched_points++);
 		*(cnp2++) = *(matched_points++);
 		*(cnp2++) = *(matched_points++);
-	}
+	}*/
 	
 	while(N > sample_count)
 	{
