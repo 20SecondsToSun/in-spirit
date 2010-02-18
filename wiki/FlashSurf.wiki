@@ -15,7 +15,7 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
 
 ===2010.02.17===
   * added missing documentation to all methods
-  * added IPointMatch class
+  * added *IPointMatch* class
   * added *readCurrentInterestPointsToByteArray* method to quickly read all current points data to provided *ByteArray* object
   * added *writePointsDataToReference* method to write provided Interest points data into Alchemy memory as reference data
   * renamed *getMatchesTo* to *getMatchesToPointsData* to clear the meaning. now it returns *IPointMatch* Vector.
