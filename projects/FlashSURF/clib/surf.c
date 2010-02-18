@@ -64,7 +64,7 @@ inline double ANGLE(register double X, register double Y)
 
 int PseudoInverse(register double *inv, register double *matx, const int M, const int N);
 void MultiplyMat(register double *m1, register double *m2, register double *res, const int M1, const int N1, const int M2, const int N2);
-void ransac(register double *matched_points, int npoints, register double *best_inlier_set1, 
+void ransac(register double *corners1, register double *corners2, int npoints, register double *best_inlier_set1, 
 			register double *best_inlier_set2, int *number_of_inliers, register double *bestH);
 int findHomography(const int np, register double *obj, register double *img, register double *mat);
 void refineHomography(double *ransac_H, double *inlier_set1, double *inlier_set2, int number_of_inliers);
@@ -106,7 +106,7 @@ static const int border_cache [4] = {14,26,50,98};
 #define INIT_SAMPLE 2
 #define THRESHOLD 0.004
 #define MAXPOINTS 200
-#define POINTS_POOL 10000
+#define POINTS_POOL 50000
 #define POINT_DATA_LENGTH 69
 
 
@@ -748,6 +748,7 @@ static int locateObject(const int minPointsForHomography)
 		
 		for(i = 0; i < matchedPointsCount; ++i)
 		{
+			mp += 2;
 			*(cnp1++) = *(mp++);
 			*(cnp1++) = *(mp++);
 			*(cnp2++) = *(mp++);
@@ -778,21 +779,44 @@ static int locateObject(const int minPointsForHomography)
 		
 	} else if(matchedPointsCount > 4)
 	{
+		double corners1[matchedPointsCount*2];
+		double corners2[matchedPointsCount*2];		
 		double best_inlier_set1[matchedPointsCount*2];
 		double best_inlier_set2[matchedPointsCount*2];
-		int number_of_inliers;
-		ransac(matchedPointsData, matchedPointsCount, &*best_inlier_set1, &*best_inlier_set2, &number_of_inliers, homography);
+		
+		int number_of_inliers, i;
+		
+		register double *cnp1, *cnp2, *mp;
+		
+		cnp1 = corners1;
+		cnp2 = corners2;
+		mp = matchedPointsData;
+		
+		for(i = 0; i < matchedPointsCount; ++i)
+		{
+			mp += 2;
+			*(cnp1++) = *(mp++);
+			*(cnp1++) = *(mp++);
+			*(cnp2++) = *(mp++);
+			*(cnp2++) = *(mp++);
+		}
+		
+		//ransac(matchedPointsData, matchedPointsCount, &*best_inlier_set1, &*best_inlier_set2, &number_of_inliers, homography);
+		ransac(corners1, corners2, matchedPointsCount, &*best_inlier_set1, &*best_inlier_set2, &number_of_inliers, homography);
 		
 		if(number_of_inliers < 4) return 0;
 		
-		int i;
-		register double *in1 = best_inlier_set1, *in2 = best_inlier_set2, *mp = matchedPointsData;
+		cnp1 = best_inlier_set1;
+		cnp2 = best_inlier_set2;
+		mp = matchedPointsData;
 		
-		for( i = 0; i < number_of_inliers; ++i ){
-			*(mp++) = *(in1++);
-			*(mp++) = *(in1++);
-			*(mp++) = *(in2++);
-			*(mp++) = *(in2++);
+		for( i = 0; i < number_of_inliers; ++i )
+		{
+			mp += 2;
+			*(mp++) = *(cnp1++);
+			*(mp++) = *(cnp1++);
+			*(mp++) = *(cnp2++);
+			*(mp++) = *(cnp2++);
 		}
 		
 		matchedPointsCount = number_of_inliers;
@@ -807,71 +831,6 @@ static int locateObject(const int minPointsForHomography)
 }
 
 static void findMatches(double *set1, double *set2, const int num1, const int num2)
-{
-	double dist, diff, d1, d2, lap;
-	int ind1 = 5, ind2, match_idx;
-	int i, j, k;
-	register double *mpr, *desc1, *desc2;
-
-	mpr = matchedPointsData;
-	matchedPointsCount = 0;
-
-	for(i = 0; i < num1; ++i)
-	{
-		d1 = d2 = 100000.0;
-		ind2 = 5;
-		lap = set1[ind1 - 1];
-		desc2 = set2+4;
-
-		for(j = 0; j < num2; ++j)
-		{
-			if(lap != *(desc2++)) // check laplacian
-			{
-				ind2 += 69;
-				desc2 += 68;
-				continue;
-			}
-			
-			dist = 0;
-			desc1 = set1+ind1;
-			
-			for( k = 0; k < 64; ++k )
-			{
-				diff = *(desc1++) - *(desc2++);
-				dist += diff * diff;
-			}
-
-			dist = sqrt(dist);
-
-			if(dist<d1) // if this feature matches better than current best
-			{
-				d2 = d1;
-				d1 = dist;
-				match_idx = ind2;
-			}
-			else if(dist<d2) // this feature matches better than second best
-			{
-				d2 = dist;
-			}
-			ind2 += 69;
-			desc2 += 4;
-		}
-
-		// If match has a d1:d2 ratio < 0.65 ipoints are a match
-		if(d1/d2 < 0.65)
-		{
-			*(mpr++) = set1[ind1 - 5];
-			*(mpr++) = set1[ind1 - 4];
-			*(mpr++) = set2[match_idx - 5];
-			*(mpr++) = set2[match_idx - 4];
-			
-			matchedPointsCount++;
-		}
-		ind1 += 69;
-	}
-}
-
-static void findBundleMatches(double *set1, double *set2, const int num1, const int num2)
 {
 	double dist, diff, d1, d2, lap;
 	int ind1 = 5, ind2, match_idx;
@@ -1079,17 +1038,9 @@ static AS3_Val runSURFTasks(void* self, AS3_Val args)
 
 static AS3_Val findReferenceMatches(void* self, AS3_Val args)
 {
-	int isBundle = 0;
-	AS3_ArrayValue(args, "IntType, IntType", &referencePointsCount, &isBundle);
+	AS3_ArrayValue(args, "IntType, IntType", &referencePointsCount);
 	
-	if(isBundle == 0)
-	{
-		findMatches(currentPointsData, referencePointsData, currentPointsCount, referencePointsCount);
-	}
-	else
-	{
-		findBundleMatches(currentPointsData, referencePointsData, currentPointsCount, referencePointsCount);
-	}
+	findMatches(currentPointsData, referencePointsData, currentPointsCount, referencePointsCount);
 	
 	return 0;
 }
