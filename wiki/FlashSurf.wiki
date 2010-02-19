@@ -13,6 +13,10 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
 
 == Change Log ==
 
+===2010.02.19===
+  * separate projects/folder structure. Now FlashSURF - is only for SWC Lib related stuff, while FlashSURF.Examples is all about example-usage development
+  * all build operations rewritten as Ant tasks. (please see build.xml to config your FLEX SDK paths)
+----
 ===2010.02.17===
   * added missing documentation to all methods
   * added *IPointMatch* class
@@ -30,4 +34,6 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
 ----
 
 == SOURCE ==
-*[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FlashSURF Complete source code and test usage example available in my repository]*
+*[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FlashSURF FlashSURF SWC Lib source code]*
+
+*[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FlashSURF.Examples Test usage examples]*
