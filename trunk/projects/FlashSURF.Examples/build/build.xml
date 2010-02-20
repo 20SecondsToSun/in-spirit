@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <project name="FlashSURF.Examples" default="default" basedir="../">
 	
 	<condition property="exe" value=".exe">
@@ -56,6 +55,11 @@
 	<target name="StitchImagesInPanorama">
 		<antcall target="compile">
 			<param name="file" value="StitchImagesInPanorama"/>
+		</antcall>
+	</target>
+	<target name="CameraMatchMultipleReferences">
+		<antcall target="compile">
+			<param name="file" value="CameraMatchMultipleReferences"/>
 		</antcall>
 	</target>
 	

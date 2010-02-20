@@ -16,6 +16,10 @@ package
 	import flash.geom.Point;
 
 	/**
+	 * Finding matches between two images
+	 * Estimate Homography transform matrix
+	 * Project second image to first using transformation matrix
+	 * 
 	 * @author Eugene Zatepyakin
 	 */
 	 

@@ -22,6 +22,8 @@ package
 	import flash.geom.Point;
 
 	/**
+	 * Simple interest points extraction example
+	 * 
 	 * @author Eugene Zatepyakin
 	 */
 	 
