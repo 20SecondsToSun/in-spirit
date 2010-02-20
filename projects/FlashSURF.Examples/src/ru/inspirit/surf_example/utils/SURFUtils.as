@@ -2,8 +2,11 @@ package ru.inspirit.surf_example.utils
 {
 	import ru.inspirit.surf.IPoint;
 	import ru.inspirit.surf.IPointMatch;
+	import ru.inspirit.surf_example.MatchElement;
 
+	import flash.display.Bitmap;
 	import flash.display.Graphics;
+	import flash.display.Sprite;
 	import flash.net.FileReference;
 	import flash.utils.ByteArray;
 
@@ -119,6 +122,38 @@ package ru.inspirit.surf_example.utils
 			graphics.lineTo(endx - arrowSize * diffx - arrowSize * -diffy, endy - arrowSize * diffy - arrowSize * diffx);
 			graphics.moveTo(endx, endy);
 			graphics.lineTo(endx - arrowSize * diffx + arrowSize * -diffy, endy - arrowSize * diffy + arrowSize * diffx);
+		}
+		
+		public static function drawMatchedBitmaps(matches:Vector.<MatchElement>, sp:Sprite):void
+		{
+			var n:int = matches.length;
+			var w:int = 200;
+			var h:int = 0;
+			
+			while(sp.numChildren)
+			{
+				sp.removeChildAt(0);
+			}
+			
+			sp.scaleX = sp.scaleY = 1;
+			
+			for(var i:int = 0; i < n; ++i)
+			{
+				var b:Bitmap = new Bitmap(matches[i].bitmap);
+				b.width = w;
+				b.scaleY = b.scaleX;
+				b.y = h;
+				
+				h += b.height + 10;
+				 
+				sp.addChild(b);
+			}
+			
+			if(sp.height > 480)
+			{
+				sp.height = 480;
+				sp.scaleX = sp.scaleY;
+			}
 		}
 		
 		public static function savePointsData(pointsData:ByteArray):void

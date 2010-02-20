@@ -22,6 +22,8 @@ package
 	import flash.geom.Point;
 
 	/**
+	 * Searching for matches between current and previous vide frames
+	 * 
 	 * @author Eugene Zatepyakin
 	 */
 	

@@ -22,6 +22,9 @@ package
 	import flash.geom.Point;
 
 	/**
+	 * Searching for reference image in camera video stream
+	 * If enough points try to estimate Homography transformation matrix
+	 * 
 	 * @author Eugene Zatepyakin
 	 */
 	 
