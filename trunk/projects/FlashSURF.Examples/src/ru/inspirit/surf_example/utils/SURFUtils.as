@@ -1,5 +1,4 @@
-package ru.inspirit.surf_example.utils 
-{
+package ru.inspirit.surf_example.utils {
 	import ru.inspirit.surf.IPoint;
 	import ru.inspirit.surf.IPointMatch;
 	import ru.inspirit.surf_example.MatchElement;
@@ -7,6 +6,8 @@ package ru.inspirit.surf_example.utils
 	import flash.display.Bitmap;
 	import flash.display.Graphics;
 	import flash.display.Sprite;
+	import flash.events.Event;
+	import flash.net.FileFilter;
 	import flash.net.FileReference;
 	import flash.utils.ByteArray;
 
@@ -15,8 +16,10 @@ package ru.inspirit.surf_example.utils
 	 */
 	public class SURFUtils 
 	{
+		public static const SURF_POINTS_FILTER:FileFilter = new FileFilter ("FlashSURF Data file","*.fsurf");
 		
 		private static var fileReference:FileReference = new FileReference();
+		private static var onOpenFile:Function;
 		
 		public static function drawMatches(gfx:Graphics, ipts:Vector.<IPointMatch>, scale:Number = 1, offset:Number = 0):void
 		{
@@ -140,8 +143,11 @@ package ru.inspirit.surf_example.utils
 			for(var i:int = 0; i < n; ++i)
 			{
 				var b:Bitmap = new Bitmap(matches[i].bitmap);
-				b.width = w;
-				b.scaleY = b.scaleX;
+				if(b.width > w)
+				{
+					b.width = w;
+					b.scaleY = b.scaleX;
+				}
 				b.y = h;
 				
 				h += b.height + 10;
@@ -158,12 +164,30 @@ package ru.inspirit.surf_example.utils
 		
 		public static function savePointsData(pointsData:ByteArray):void
 		{
-			var ba:ByteArray = new ByteArray();
-			ba.writeBytes(pointsData);
-			ba.compress();
-			ba.position = 0;
+			fileReference.save(pointsData, 'points.fsurf');
+		}
+		
+		public static function openPointsDataFile(onOpen:Function):void
+		{
+			onOpenFile = onOpen;
 			
-			fileReference.save(ba, 'points.surf');
+			fileReference.addEventListener(Event.SELECT, onFileSelect);
+			fileReference.addEventListener(Event.COMPLETE, onFileLoadComplete);
+			
+			fileReference.browse( [ SURF_POINTS_FILTER ] );
+		}
+		
+		protected static function onFileSelect(e:Event):void
+		{
+			fileReference.load();
+		}
+		
+		protected static function onFileLoadComplete(e:Event):void
+		{
+			fileReference.removeEventListener(Event.SELECT, onFileSelect);
+			fileReference.removeEventListener(Event.COMPLETE, onFileLoadComplete);
+			
+			onOpenFile(fileReference.data);
 		}
 	}
 }
