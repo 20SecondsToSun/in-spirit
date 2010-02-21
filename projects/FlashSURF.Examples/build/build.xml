@@ -62,13 +62,19 @@
 			<param name="file" value="CameraMatchMultipleReferences"/>
 		</antcall>
 	</target>
-	
+	<target name="DynamicMatchesWithSaveAndLoadRefs">
+		<antcall target="compile">
+			<param name="file" value="DynamicMatchesWithSaveAndLoadRefs"/>
+		</antcall>
+	</target>
 	
 	<target name="compileAll" depends="clean">
 		<antcall target="CameraIPoints" />
 		<antcall target="CameraMatchPreviousFrame" />
 		<antcall target="CameraMatchWithHomography" />
 		<antcall target="StitchImagesInPanorama" />
+		<antcall target="CameraMatchMultipleReferences" />
+		<antcall target="DynamicMatchesWithSaveAndLoadRefs" />
 	</target>
 	
 	<target name="compile">

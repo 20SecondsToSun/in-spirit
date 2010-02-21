@@ -1,5 +1,6 @@
 package  
 {
+	import ru.inspirit.surf_example.AverageHomographyMatrix;
 	import ru.inspirit.surf.FlashSURF;
 	import ru.inspirit.surf.IPointMatch;
 	import ru.inspirit.surf.SURFOptions;
@@ -44,6 +45,8 @@ package
 		public var quasimondoProcessor:QuasimondoImageProcessor = new QuasimondoImageProcessor();
 		public var buffer:BitmapData;
 		public var autoCorrect:Boolean = false;
+		
+		public var averageHomography:AverageHomographyMatrix;
 		
 		protected var view:Sprite;
 		protected var camera:CameraBitmap;
@@ -93,6 +96,8 @@ package
 			surfOptions = new SURFOptions(int(640 / SCALE), int(480 / SCALE), 200, 0.003, true, 4, 4, 2);
 			surf = new FlashSURF(surfOptions);
 			
+			averageHomography = new AverageHomographyMatrix();
+			
 			var refb:BitmapData = Bitmap( new defImg() ).bitmapData;
 			refBmp.bitmapData = refb;
 			
@@ -125,14 +130,18 @@ package
 			// and draw detected bounds
 			if(surf.homographyFound)
 			{
+				// we use average value of several homography matrices
+				// to smooth visual representation
+				averageHomography.addMatrix(surf.homography.clone());
+				
 				// as far as we scale down video source now we should scale homography
 				// to feet our bounds
-				surf.homography.scale(SCALE);
+				averageHomography.scale(SCALE);
 				
-				var pt0:Point = surf.homography.projectPoint(new Point(0, 0));
-				var pt1:Point = surf.homography.projectPoint(new Point(refBmp.bitmapData.width, 0));
-				var pt2:Point = surf.homography.projectPoint(new Point(refBmp.bitmapData.width, refBmp.bitmapData.height));
-				var pt3:Point = surf.homography.projectPoint(new Point(0, refBmp.bitmapData.height));
+				var pt0:Point = averageHomography.projectPoint(new Point(0, 0));
+				var pt1:Point = averageHomography.projectPoint(new Point(refBmp.bitmapData.width, 0));
+				var pt2:Point = averageHomography.projectPoint(new Point(refBmp.bitmapData.width, refBmp.bitmapData.height));
+				var pt3:Point = averageHomography.projectPoint(new Point(0, refBmp.bitmapData.height));
 				
 				gfx.lineStyle(2, 0x00FF00);
 				gfx.moveTo(pt0.x, pt0.y);
