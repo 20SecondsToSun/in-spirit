@@ -14,6 +14,9 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
 == Change Log ==
 
 ===2010.02.21===
+  * added *CameraRegionOfInterest* example and Lib functionality - fast change to be processed image area at runtime
+----
+===2010.02.21===
   * adding some notes to experiments
   * added *CameraMatchMultipleReferences* example
   * updated *Match with Homography* example (added average homography class to smooth visual representation)
