@@ -1,11 +1,10 @@
-package 
+package  
 {
 	import ru.inspirit.surf.FlashSURF;
 	import ru.inspirit.surf.IPoint;
+	import ru.inspirit.surf.RegionOfInterest;
 	import ru.inspirit.surf.SURFOptions;
 	import ru.inspirit.surf_example.FlashSURFExample;
-	import ru.inspirit.surf_example.MatchElement;
-	import ru.inspirit.surf_example.MatchList;
 	import ru.inspirit.surf_example.utils.QuasimondoImageProcessor;
 	import ru.inspirit.surf_example.utils.RegionSelector;
 	import ru.inspirit.surf_example.utils.SURFUtils;
@@ -25,19 +24,14 @@ package
 	import flash.geom.Matrix;
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
-	import flash.utils.ByteArray;
 
 	/**
-	 * Dynamicly add selected region as match reference
-	 * with ability to save current MatchList as local file
-	 * and also to load that file as MatchList
-	 *  
 	 * @author Eugene Zatepyakin
 	 */
-	 
-	[SWF(width='840',height='520',frameRate='33',backgroundColor='0x000000')]
 	
-	public class DynamicMatchesWithSaveAndLoadRefs extends FlashSURFExample 
+	[SWF(width='640',height='520',frameRate='33',backgroundColor='0x000000')]
+	
+	public class CameraRegionOfInterest extends FlashSURFExample 
 	{
 		public static const SCALE:Number = 1.5;
 		public static const INVSCALE:Number = 1 / SCALE;
@@ -51,18 +45,21 @@ package
 		public var buffer:BitmapData;
 		public var autoCorrect:Boolean = false;
 		
-		public var matchList:MatchList;
 		public var regionSelect:RegionSelector;
+		public var myROI:RegionOfInterest;
+		
+		public var moveRegion:Boolean = false;
+		public var rvx:int = 7;
+		public var rvy:int = 6;
 		
 		protected var view:Sprite;
 		protected var camera:CameraBitmap;
 		protected var overlay:Shape;
 		protected var screenBmp:Bitmap;
-		protected var matchView:Sprite;
 		
 		protected var stat_txt:Label;
-
-		public function DynamicMatchesWithSaveAndLoadRefs() 
+		
+		public function CameraRegionOfInterest()
 		{
 			super();
 			if(stage) init();
@@ -75,34 +72,27 @@ package
 			
 			stat_txt = new Label(p, 100, 5);
 			
-			var sl:HUISlider = new HUISlider(p, 340, 7, 'POINTS THRESHOLD', onThresholdChange);
+			var sl:HUISlider = new HUISlider(p, 310, 7, 'POINTS THRESHOLD', onThresholdChange);
 			sl.setSliderParams(0.001, 0.01, 0.003);
 			sl.labelPrecision = 4;
-			sl.width = 250;
+			sl.width = 240;
 			
-			new CheckBox(p, 230, 11, 'CORRECT LEVELS', onCorrectLevels);
+			new CheckBox(p, 210, 11, 'CORRECT LEVELS', onCorrectLevels);
 			
 			var pb:PushButton;
 			
-			pb = new PushButton(p, 590, 6, 'SELECT REGION', onSelectRegion);
+			pb = new PushButton(p, 550, 5, 'SELECT REGION', onSelectRegion);
 			pb.height = 16;
-			pb = new PushButton(p, 590, 21, 'CLEAR MATCHES', onClearList);
+			pb.width = 80;
+			pb = new PushButton(p, 550, 20, 'MOVING REGION', onMoveRegion);
 			pb.height = 16;
-			
-			pb = new PushButton(p, 700, 6, 'SAVE MATCHES', onSaveList);
-			pb.height = 16;
-			pb = new PushButton(p, 700, 21, 'LOAD MATCHES', onLoadList);
-			pb.height = 16;
+			pb.width = 80;
 			
 			view = new Sprite();
 			view.y = 40;
 			
 			screenBmp = new Bitmap();
 			view.addChild(screenBmp);
-			
-			matchView = new Sprite();
-			matchView.x = 640;
-			view.addChild(matchView);
 
 			overlay = new Shape();
 			view.addChild(overlay);
@@ -117,79 +107,98 @@ package
 			surfOptions = new SURFOptions(int(640 / SCALE), int(480 / SCALE), 200, 0.003, true, 4, 4, 2);
 			surf = new FlashSURF(surfOptions);
 			
+			myROI = new RegionOfInterest(0, 0, surfOptions.width, surfOptions.height);
+			
 			buffer = new BitmapData(surfOptions.width, surfOptions.height, false, 0x00);
 			buffer.lock();
 
 			addChild(view);
 			
-			matchList = new MatchList(surf);
-			
 			camera.addEventListener(Event.RENDER, render);
-		}
-
-		protected function onSaveList(e:Event):void 
-		{
-			SURFUtils.savePointsData( matchList.saveListToByteArray() );
-		}
-
-		protected function onLoadList(e:Event):void 
-		{
-			SURFUtils.openPointsDataFile(loadPointsDone);
-		}
-		
-		protected function loadPointsDone(data:ByteArray):void 
-		{
-			matchList.initListFromByteArray(data);
 		}
 
 		protected function render( e:Event ) : void
 		{
 			var gfx:Graphics = overlay.graphics;
+			gfx.clear();
 			
 			buffer.draw(camera.bitmapData, SCALE_MAT);
 			
+			if(moveRegion) 
+			{
+				myROI.x += rvx;
+				myROI.y += rvy;
+				if(myROI.left < 0) 
+				{
+					myROI.x = 0;
+					rvx *= -1;
+				}
+				if(myROI.top < 0) 
+				{
+					myROI.y = 0;
+					rvy *= -1;
+				}
+				if(myROI.right > surfOptions.width) 
+				{
+					myROI.x = surfOptions.width - myROI.width;
+					rvx *= -1;
+				}
+				if(myROI.bottom > surfOptions.height) 
+				{
+					myROI.y = surfOptions.height - myROI.height;
+					rvy *= -1;
+				}
+				
+				surf.updateROI(myROI);
+			}
+			
+			if(myROI.width < buffer.width || myROI.height < buffer.height)
+			{
+				gfx.lineStyle(1, 0xFFFFFF, 0.8);
+				gfx.beginFill(0x333333, 0.5);
+				gfx.drawRect(myROI.x * SCALE, myROI.y * SCALE, myROI.width * SCALE, myROI.height * SCALE);
+			}
+			
 			var ipts:Vector.<IPoint> = surf.getInterestPoints(buffer);
-			gfx.clear();
 			SURFUtils.drawIPoints(gfx, ipts, SCALE);
 			
-			var matched:Vector.<MatchElement> = matchList.getMatches();
-			
-			SURFUtils.drawMatchedBitmaps(matched, matchView);
-			
-			stat_txt.text = 'FOUND POINTS: ' + surf.currentPointsCount + '\nPOINTS TO MATCH: ' + matchList.pointsCount;
+			stat_txt.text = 'FOUND POINTS: ' + surf.currentPointsCount;
 		}
 
 		protected function onSelectRegion(e:Event = null):void
 		{
+			moveRegion = false;
+			
 			if(!regionSelect.visible)
 			{
 				regionSelect.init();
 				camera.active = false;
-				PushButton(e.currentTarget).label = 'ADD REGION';
+				overlay.graphics.clear();
 			} else
 			{
-				if(regionSelect.rect.width > 20 && regionSelect.rect.height > 20)
+				if(regionSelect.rect.width > 20 && regionSelect.rect.height > 20) 
 				{
-					var bmp:BitmapData = new BitmapData(regionSelect.rect.width, regionSelect.rect.height, false, 0x00);
-					bmp.copyPixels(camera.bitmapData, regionSelect.rect, new Point(0, 0));
+					myROI.x = regionSelect.rect.x * INVSCALE;
+					myROI.y = regionSelect.rect.y * INVSCALE;
+					myROI.width = regionSelect.rect.width * INVSCALE;
+					myROI.height = regionSelect.rect.height * INVSCALE;
 					
-					regionSelect.rect.x *= INVSCALE;
-					regionSelect.rect.y *= INVSCALE;
-					regionSelect.rect.width *= INVSCALE;
-					regionSelect.rect.height *= INVSCALE;
-					
-					matchList.addRegionAsMatch(regionSelect.rect, bmp);
+					surf.updateROI(myROI);
 				}
 				
 				regionSelect.uninit();
 				camera.active = true;
-				PushButton(e.currentTarget).label = 'SELECT REGION';
 			}
 		}
 		
-		protected function onClearList(e:Event):void 
+		protected function onMoveRegion(e:Event):void 
 		{
-			matchList.clear();
+			moveRegion = !moveRegion;
+			if(moveRegion)
+			{
+				if(myROI.width == surfOptions.width) myROI.width = surfOptions.width * 0.2;
+				if(myROI.height == surfOptions.height) myROI.height = surfOptions.height * 0.2;
+			}
 		}
 
 		protected function onCorrectLevels(e:Event):void

@@ -67,6 +67,11 @@
 			<param name="file" value="DynamicMatchesWithSaveAndLoadRefs"/>
 		</antcall>
 	</target>
+	<target name="CameraRegionOfInterest">
+		<antcall target="compile">
+			<param name="file" value="CameraRegionOfInterest"/>
+		</antcall>
+	</target>	
 	
 	<target name="compileAll" depends="clean">
 		<antcall target="CameraIPoints" />
@@ -75,6 +80,7 @@
 		<antcall target="StitchImagesInPanorama" />
 		<antcall target="CameraMatchMultipleReferences" />
 		<antcall target="DynamicMatchesWithSaveAndLoadRefs" />
+		<antcall target="CameraRegionOfInterest" />
 	</target>
 	
 	<target name="compile">
