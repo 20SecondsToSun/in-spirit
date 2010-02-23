@@ -13,6 +13,13 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
 
 == Change Log ==
 
+===2010.02.21===
+  * adding some notes to experiments
+  * added *CameraMatchMultipleReferences* example
+  * updated *Match with Homography* example (added average homography class to smooth visual representation)
+  * added *Dynamic Matches with save and load references* example
+  * added *MatchList* class - kinda Matches manager with ability to add references on fly and to save/load references as local file with all points data and track image
+----
 ===2010.02.19===
   * separate projects/folder structure. Now *FlashSURF* - is only for SWC Lib related stuff, while *FlashSURF.Examples* is all about example-usage development
   * all build operations rewritten as *Ant* tasks. (please see build.xml to config your FLEX SDK paths)
