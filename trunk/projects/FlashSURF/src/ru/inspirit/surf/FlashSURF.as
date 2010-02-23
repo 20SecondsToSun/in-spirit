@@ -49,6 +49,11 @@ package ru.inspirit.surf
 		protected var matchedPointsCountPointer:int;
 		protected var homographyStatusPointer:int;
 		protected var homographyPointer:int;
+		protected var roiXPointer:int;
+		protected var roiYPointer:int;
+		protected var roiWidthPointer:int;
+		protected var roiHeightPointer:int;
+		protected var determinantPointer:int;
 
 		protected var integralData:Vector.<Number>;
 		public var buffer:BitmapData;
@@ -57,6 +62,7 @@ package ru.inspirit.surf
 
 		protected var options:SURFOptions;
 		protected var imageProc:ImageProcessor;
+		protected var imageROI:RegionOfInterest = new RegionOfInterest();
 
 		public var homography:HomographyMatrix = new HomographyMatrix();
 
@@ -83,6 +89,7 @@ package ru.inspirit.surf
 			SURF_LIB.setupSURF(options.width, options.height, options.octaves, options.intervals, options.sampleStep);
 
 			updateDataPointers();
+			updateROI(options.imageROI);
 			allocatePointsVector();
 		}
 		
@@ -377,6 +384,8 @@ package ru.inspirit.surf
 			SURF_LIB.resizeDataHolders(options.width, options.height, options.octaves, options.intervals, options.sampleStep);
 			updateDataPointers();
 			
+			updateROI(this.options.imageROI);
+			
 			buffer.dispose();
 			buffer = new BitmapData(options.width, options.height, false, 0x00);			
 			buffer.lock();
@@ -439,6 +448,26 @@ package ru.inspirit.surf
 			return options.imageProcessor;
 		}
 		
+		public function set regionOfInterest(region:RegionOfInterest):void
+		{
+			updateROI(region);
+		}
+
+		public function get regionOfInterest():RegionOfInterest
+		{
+			return options.imageROI;
+		}
+		
+		public function updateROI(region:RegionOfInterest):void
+		{
+			this.imageROI = options.imageROI = region;
+			
+			Memory.writeInt(region.x, roiXPointer);
+			Memory.writeInt(region.y, roiYPointer);
+			Memory.writeInt(region.width, roiWidthPointer);
+			Memory.writeInt(region.height, roiHeightPointer);
+		}
+		
 		/**
 		 * Clears all memory inside C library
 		 * after calling this method there is no way to use this instance 
@@ -485,6 +514,11 @@ package ru.inspirit.surf
 			matchedPointsCountPointer = int(pps[8]);
 			homographyStatusPointer = int(pps[9]);
 			homographyPointer = int(pps[10]);
+			roiXPointer = int(pps[11]);
+			roiYPointer = int(pps[12]);
+			roiWidthPointer = int(pps[13]);
+			roiHeightPointer = int(pps[14]);
+			determinantPointer = int(pps[15]);
 		}
 
 		protected function allocatePointsVector():void
@@ -508,38 +542,49 @@ package ru.inspirit.surf
 
 		protected function writeIntegralImageData(width:int, height:int, bmp:BitmapData):void
 		{
-			
 			imageProc.preProcess(bmp, buffer);
 			
 			var data:Vector.<uint> = buffer.getVector(buffer.rect);
+			//var data:Vector.<uint> = buffer.getVector(imageROI); // works incorrect while using only ROI integral
+			
+			var integral:Vector.<Number> = integralData;
 
 			var i:int, j:int, ind:int, ind2:int;
 			var sum:Number = 0;
 			var v:Number;
 			var pos:int = integralDataPointer;
 			var nw:int = width + iborder2;
+			//var roi_w:int = imageROI.width;
+			//var roi_h:int = imageROI.height;
+			//var diff_w:int = (width - (imageROI.x + roi_w)) + imageROI.x;
 
+			//i = imageROI.x + iborder + ((iborder + imageROI.y) * nw);
 			i = iborder + iborder * nw;
-			for( j = 0; j < width; ++j, ++i)
+			//for( j = 0; j < roi_w; ++j, ++i )
+			for( j = 0; j < width; ++j, ++i )
 			{
 				sum += (data[j] & 0xFF) * colorScale;
-				//sum += buffer.getPixel(j, 0) * colorScale;
-				integralData[j] = sum;
+				integral[j] = sum;
 				Memory.writeDouble(sum, pos + (i<<3));
 			}
 
+			//ind = roi_w;
+			//ind2 = imageROI.x + iborder + ((iborder + imageROI.y + 1) * nw);
 			ind = width;
 			ind2 = i + iborder2;
-			for(i = 1; i < height; ++i) 
+			
+			//for( i = 1; i < roi_h; ++i )
+			for( i = 1; i < height; ++i ) 
 			{
 				sum = 0;
-				for(j = 0; j < width; ++j, ++ind, ++ind2) 
+				//for( j = 0; j < roi_w; ++j, ++ind, ++ind2 )
+				for( j = 0; j < width; ++j, ++ind, ++ind2 ) 
 				{
 					sum += (data[ind] & 0xFF) * colorScale;
-					//sum += buffer.getPixel(j, i) * colorScale;
-					integralData[ind] = (v = sum + integralData[(ind - width) | 0]);
+					integral[ind] = (v = sum + integral[(ind - width) | 0]);
 					Memory.writeDouble(v, pos + (ind2<<3));
 				}
+				//ind2 += iborder2 + diff_w;
 				ind2 += iborder2;
 			}
 		}

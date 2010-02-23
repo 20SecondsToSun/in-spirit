@@ -133,6 +133,12 @@ int referencePointsCount = 0;
 int matchedPointsCount = 0;
 int homographyIsGood = 0;
 
+// Region Of Interest
+int roi_x = 0;
+int roi_y = 0;
+int roi_width = 0;
+int roi_height = 0;
+
 int octaves = OCTAVES;
 int intervals = INTERVALS;
 int sample_step = INIT_SAMPLE;
@@ -153,8 +159,11 @@ static void buildDeterminant(register double *integralData, register double *det
 	{
 		step = (int)(sample_step * pow(2, o));
 		border = border_cache[o];
-		hmb = height - border;
-		wmb = width - border;
+		//hmb = height - border;
+		//wmb = width - border;
+		
+		hmb = roi_y + roi_height - border;
+		wmb = roi_x + roi_width - border;
 
 		for(i = 0; i < intervals; ++i)
 		{
@@ -167,14 +176,14 @@ static void buildDeterminant(register double *integralData, register double *det
 			inverse_area = 1.0 / (w * w);
 			ind *= area;
 
-			for(r = border; r < hmb; r += step)
+			for(r = roi_y + border; r < hmb; r += step)
 			{
 				rw = r * width + ind;
 				r1 = r - l + iborder;
 				r2 = r - b - 1 + iborder;
 				r3 = r - l_2 - 1 + iborder;
 				r4 = r - l - 1 + iborder;
-				for(c = border; c < wmb; c += step)
+				for(c = roi_x + border; c < wmb; c += step)
 				{
 					//rr1 = r1;
 					//cc1 = c-b - 1 + iborder;
@@ -386,17 +395,21 @@ static int getInterestPoints(register double *determData, register double *point
 		step = (int)(sample_step * pow(2, o));
 		s2 = (step<<1);
 		border = border_cache[o];
-		hmb = height - border - step;
-		wmb = width - border - step;
+		
+		//hmb = height - border - step;
+		//wmb = width - border - step;
+		hmb = roi_y + roi_height - border - step;
+		wmb = roi_x + roi_width - border - step;
+		
 		oint = o * intervals;
 
 		for(i = 1; i < im1; i += 2)
 		{
 			ie = IMIN(im1, i + 2);
-			for(r = border+step; r < hmb; r += s2)
+			for(r = roi_y + border+step; r < hmb; r += s2)
 			{
 				re = IMIN(hmb, r + s2);
-				for(c = border+step; c < wmb; c += s2)
+				for(c = roi_x + border+step; c < wmb; c += s2)
 				{
 					int i_max = -1, r_max = -1, c_max = -1;
 					double max_val = 0;
@@ -918,6 +931,10 @@ static AS3_Val setupSURF(void* self, AS3_Val args)
 	area = width * height;
 	iwidth = width + iborder*2;
 	area2 = iwidth * (height + iborder*2);
+	
+	roi_x = roi_y = 0;
+	roi_width = width;
+	roi_height = height;
 
 	currentPointsData =		(double*)malloc( (POINTS_POOL*POINT_DATA_LENGTH)* sizeof(double) );
 	referencePointsData =	(double*)malloc( (POINTS_POOL*POINT_DATA_LENGTH)* sizeof(double) );
@@ -943,6 +960,10 @@ static AS3_Val resizeDataHolders(void* self, AS3_Val args)
 	area = width * height;
 	iwidth = width + iborder*2;
 	area2 = iwidth * (height + iborder*2);
+	
+	roi_x = roi_y = 0;
+	roi_width = width;
+	roi_height = height;
 
 	free(integral);
 	free(determinant);
@@ -971,6 +992,11 @@ static AS3_Val getDataPointers(void* self, AS3_Val args)
 	AS3_Set(pointers, AS3_Int(8), AS3_Ptr(&matchedPointsCount));
 	AS3_Set(pointers, AS3_Int(9), AS3_Ptr(&homographyIsGood));
 	AS3_Set(pointers, AS3_Int(10), AS3_Ptr(homography));
+	AS3_Set(pointers, AS3_Int(11), AS3_Ptr(&roi_x));
+	AS3_Set(pointers, AS3_Int(12), AS3_Ptr(&roi_y));
+	AS3_Set(pointers, AS3_Int(13), AS3_Ptr(&roi_width));
+	AS3_Set(pointers, AS3_Int(14), AS3_Ptr(&roi_height));
+	AS3_Set(pointers, AS3_Int(15), AS3_Ptr(determinant));
 	return pointers;
 }
 
@@ -982,7 +1008,7 @@ static AS3_Val setThreshold(void* self, AS3_Val args)
 }
 static AS3_Val setMaxPoints(void* self, AS3_Val args)
 {
-	AS3_ArrayValue(args, "IntType", &max_points );	
+	AS3_ArrayValue(args, "IntType", &max_points );
 	return 0;
 }
 

@@ -24,11 +24,12 @@ package ru.inspirit.surf
 		public var useOrientation:uint;
 		
 		public var imageProcessor:ImageProcessor;
+		public var imageROI:RegionOfInterest;
 		
 		/**
 		 * @param width					width of the provided image source
 		 * @param height				height of the provided image source
-		 * @param maxPoints				max points allowed to be detected (this number is limited to 10000 inside C lib)
+		 * @param maxPoints				max points allowed to be detected (this number is limited to 35000 inside C lib)
 		 * @param threshold				blob strength threshold
 		 * @param useOrientation		specify if you need orientation based descriptors (needed for different sources matching)
 		 * @param octaves				number of octaves to calculate
@@ -46,8 +47,10 @@ package ru.inspirit.surf
 			this.octaves = octaves;
 			this.intervals = intervals;
 			this.sampleStep = sampleStep;
+			
+			this.imageROI = new RegionOfInterest(0, 0, width, height);
 		}
-		
+
 		public function compare(options:SURFOptions):Boolean
 		{
 			if(width != options.width) return false;
@@ -58,6 +61,7 @@ package ru.inspirit.surf
 			if(octaves != options.octaves) return false;
 			if(intervals != options.intervals) return false;
 			if(sampleStep != options.sampleStep) return false;
+			if(!imageROI.equals(options.imageROI)) return false;
 			
 			return true;
 		}
