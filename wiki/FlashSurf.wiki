@@ -13,7 +13,7 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
 
 == Change Log ==
 
-===2010.02.21===
+===2010.02.23===
   * added *CameraRegionOfInterest* example and Lib functionality - fast change to be processed image area at runtime
 ----
 ===2010.02.21===
