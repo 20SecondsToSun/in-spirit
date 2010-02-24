@@ -1,0 +1,49 @@
+#summary SURF feature extraction library written in Flash using Alchemy.
+#labels Featured
+
+= ASSURF =
+
+[http://farm5.static.flickr.com/4019/4359007368_77a22e0302_o.png]
+
+SURF (Speeded Up Robust Features) is a robust image descriptor, first presented by Herbert Bay et al. in 2006, that can be used in computer vision tasks like object recognition or 3D reconstruction. SURF is based on sums of 2D Haar wavelet responses and makes an efficient use of integral images. As basic image features it uses a Haar wavelet approximation of the determinant of Hessian blob detector.
+
+I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dlib and JavaSurf...
+
+*[http://blog.inspirit.ru/?p=343 Some results and description]*
+
+== Change Log ==
+
+===2010.02.23===
+  * added *CameraRegionOfInterest* example and Lib functionality - fast change to be processed image area at runtime
+----
+===2010.02.21===
+  * adding some notes to experiments
+  * added *CameraMatchMultipleReferences* example
+  * updated *Match with Homography* example (added average homography class to smooth visual representation)
+  * added *Dynamic Matches with save and load references* example
+  * added *MatchList* class - kinda Matches manager with ability to add references on fly and to save/load references as local file with all points data and track image
+----
+===2010.02.19===
+  * separate projects/folder structure. Now *FlashSURF* - is only for SWC Lib related stuff, while *FlashSURF.Examples* is all about example-usage development
+  * all build operations rewritten as *Ant* tasks. (please see build.xml to config your FLEX SDK paths)
+----
+===2010.02.17===
+  * added missing documentation to all methods
+  * added *IPointMatch* class
+  * added *readCurrentInterestPointsToByteArray* method to quickly read all current points data to provided *ByteArray* object
+  * added *writePointsDataToReference* method to write provided Interest points data into Alchemy memory as reference data
+  * renamed *getMatchesTo* to *getMatchesToPointsData* to clear the meaning. now it returns *IPointMatch* Vector.
+----
+===2010.02.16===
+  * *ImageProcessor* class added to customize input image process before detection
+  * *calculateInterestPoints* method for quick Interest points calculation inside Alchemy memory without output
+  * *getInterestPointsRegionByteArray* method to write fitted in *Rectangle* Interest points data into specified *ByteArray* object
+  * *getInterestPointsByteArray* method for quick calculate Interest points data and write it into specified *ByteArray* object
+  * *getMatchesTo* method returns number of matched points between calculated in Alchemy memory data and provided data in *ByteArray* object
+
+----
+
+== SOURCE ==
+*[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/ASSURF ASSURF SWC Lib source code]*
+
+*[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/ASSURF.Examples Test usage examples]*
