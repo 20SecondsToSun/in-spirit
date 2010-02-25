@@ -1,5 +1,6 @@
 package ru.inspirit.surf_example.utils 
 {
+	import flash.filters.ColorMatrixFilter;
 	import flash.geom.Rectangle;
 	import ru.inspirit.surf.ImageProcessor;
 
@@ -13,7 +14,7 @@ package ru.inspirit.surf_example.utils
 	public class QuasimondoImageProcessor extends ImageProcessor 
 	{
 		public var cm:ColorMatrix = new ColorMatrix();
-		public var imageRect:Rectangle;
+		public var cmf:ColorMatrixFilter = new ColorMatrixFilter();
 		
 		public function QuasimondoImageProcessor(rect:Rectangle)
 		{
@@ -22,11 +23,11 @@ package ru.inspirit.surf_example.utils
 
 		override public function preProcess(input:BitmapData, output:BitmapData):void
 		{
-			output.copyPixels(input, imageRect, ORIGIN);
-			
 			cm.reset();
-			cm.autoDesaturate(output, imageRect, false, true);
-			cm.applyFilter(output);
+			cm.autoDesaturate(input, imageRect, false, true);
+			
+			cmf.matrix = cm.matrix;
+			output.applyFilter( input, imageRect, ORIGIN, cmf );
 		}
 	}
 }
