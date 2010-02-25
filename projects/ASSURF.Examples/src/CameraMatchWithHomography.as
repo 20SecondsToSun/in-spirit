@@ -1,7 +1,7 @@
 package  
 {
 	import ru.inspirit.surf_example.AverageHomographyMatrix;
-	import ru.inspirit.surf.FlashSURF;
+	import ru.inspirit.surf.ASSURF;
 	import ru.inspirit.surf.IPointMatch;
 	import ru.inspirit.surf.SURFOptions;
 	import ru.inspirit.surf_example.FlashSURFExample;
@@ -40,7 +40,7 @@ package
 		public static const SCALE_MAT:Matrix = new Matrix(1/SCALE, 0, 0, 1/SCALE, 0, 0);
 		public static const ORIGIN:Point = new Point();
 		
-		public var surf:FlashSURF;
+		public var surf:ASSURF;
 		public var surfOptions:SURFOptions;
 		public var quasimondoProcessor:QuasimondoImageProcessor = new QuasimondoImageProcessor();
 		public var buffer:BitmapData;
@@ -94,7 +94,7 @@ package
 			screenBmp.bitmapData = camera.bitmapData;
 			
 			surfOptions = new SURFOptions(int(640 / SCALE), int(480 / SCALE), 200, 0.003, true, 4, 4, 2);
-			surf = new FlashSURF(surfOptions);
+			surf = new ASSURF(surfOptions);
 			
 			averageHomography = new AverageHomographyMatrix();
 			

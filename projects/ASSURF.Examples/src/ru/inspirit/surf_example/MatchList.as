@@ -1,7 +1,7 @@
 package ru.inspirit.surf_example 
 {
 	import ru.inspirit.surf.SURFOptions;
-	import ru.inspirit.surf.FlashSURF;
+	import ru.inspirit.surf.ASSURF;
 	import ru.inspirit.surf.IPointMatch;
 
 	import flash.display.BitmapData;
@@ -20,7 +20,7 @@ package ru.inspirit.surf_example
 		public static var MATCH_THRESHOLD:int = 4;
 		public static var DEFAUL_OPTIONS:SURFOptions = new SURFOptions(320, 240, 200, 0.004, true, 4, 4, 2);
 		
-		public var surf:FlashSURF;
+		public var surf:ASSURF;
 		
 		public var pointsMap:Vector.<int>;
 		public var elements:Vector.<MatchElement>;
@@ -30,7 +30,7 @@ package ru.inspirit.surf_example
 		public var matchBundle:ByteArray;
 		public var writeBundleToMemory:Boolean;
 		
-		public function MatchList(surf:FlashSURF)
+		public function MatchList(surf:ASSURF)
 		{
 			this.surf = surf;
 			

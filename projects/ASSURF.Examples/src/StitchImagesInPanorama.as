@@ -1,6 +1,6 @@
 package  
 {
-	import ru.inspirit.surf.FlashSURF;
+	import ru.inspirit.surf.ASSURF;
 	import ru.inspirit.surf.IPointMatch;
 	import ru.inspirit.surf.SURFOptions;
 	import ru.inspirit.surf_example.FlashSURFExample;
@@ -30,7 +30,7 @@ package
 		[Embed(source = '../assets/pan_a.jpg')] private var pan_a:Class;
 		[Embed(source = '../assets/pan_b.jpg')] private var pan_b:Class;
 		
-		public var surf:FlashSURF;
+		public var surf:ASSURF;
 		public var surfOptions:SURFOptions;
 		
 		protected var imageDistortion:DistortImage;
@@ -86,7 +86,7 @@ package
 			refBmp.bitmapData.copyPixels(pa, pa.rect, new Point(0, pb.height));
 			
 			surfOptions = new SURFOptions(640, 480, 600, 0.0003, true, 4, 4, 2);
-			surf = new FlashSURF(surfOptions);
+			surf = new ASSURF(surfOptions);
 			
 			var opt2:SURFOptions = new SURFOptions(pb.width, pb.height, 600, 0.0003, true, 4, 4, 2);
 			
