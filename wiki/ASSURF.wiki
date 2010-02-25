@@ -21,7 +21,7 @@ I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dl
 
 === Change Log ===
 
-Please see [http://code.google.com/p/in-spirit/updates/list SVN Timeline] for all changes information
+Please see [http://code.google.com/p/in-spirit/source/list SVN Timeline] for all changes information
 
 === SOURCE ===
 
