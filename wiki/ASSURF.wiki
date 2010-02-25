@@ -9,7 +9,9 @@ SURF (Speeded Up Robust Features) is a robust image descriptor, first presented 
 
 I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dlib and JavaSurf...
 
-*[http://blog.inspirit.ru/?p=343 Some results and description]*
+*[http://blog.inspirit.ru/?p=401 FlashSURF -> ASSURF]*
+*[http://blog.inspirit.ru/?p=386 FlashSURF – moving further]*
+*[http://blog.inspirit.ru/?p=343 FlashSURF Lib initial release]*
 
 == Change Log ==
 
