@@ -91,7 +91,7 @@ package ru.inspirit.surf
 			buffer = new BitmapData(imageWidth, imageHeight, false, 0x00);
 			buffer.lock();
 			
-			imageRect = buffer.rect;
+			imageRect = this.imageProc.imageRect = buffer.rect;
 
 			integralData = new Vector.<Number>(imageWidth*imageHeight, true);
 
@@ -402,7 +402,7 @@ package ru.inspirit.surf
 			buffer = new BitmapData(imageWidth, imageHeight, false, 0x00);
 			buffer.lock();
 
-			imageRect = buffer.rect;
+			imageRect = this.imageProc.imageRect = buffer.rect;
 
 			integralData = new Vector.<Number>(imageWidth*imageHeight, true);
 		}
