@@ -374,7 +374,7 @@ static int interpolateExtremum(register double *determData, double *pointsData, 
 		register double *ptr = pointsData;
 		*(ptr++) = (double)(c + step * xc);
 		*(ptr++) = (double)(r + step * xr);
-		*(ptr++) = (double)((1.2/9.0) * (3*(pow(2, octv+1) * (intvl+xi+1)+1)));
+		*(ptr++) = (double)(0.1333 * (3*(pow(2, octv+1) * (intvl+xi+1)+1)));
 		*(ptr++) = 0.0;
 		*(ptr++) = (double)(determData[ind] < 0 ? -1.0 : 1.0);
 		

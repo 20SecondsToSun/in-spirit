@@ -88,6 +88,7 @@ THE SOFTWARE.
 
 package com.quasimondo.geom 
 {
+	import flash.geom.Rectangle;
 	import flash.display.BitmapData;
 	import flash.filters.ColorMatrixFilter;
 	import flash.geom.Matrix3D;
@@ -756,9 +757,9 @@ package com.quasimondo.geom
 		}
 */		
 		
-		public function autoDesaturate( bitmapData:BitmapData, stretchLevels:Boolean = false, outputToBlueOnly:Boolean = false ):void
+		public function autoDesaturate( bitmapData:BitmapData, rect:Rectangle, stretchLevels:Boolean = false, outputToBlueOnly:Boolean = false ):void
 		{
-			var histogram:Vector.<Vector.<Number>> = bitmapData.histogram(bitmapData.rect );
+			var histogram:Vector.<Vector.<Number>> = bitmapData.histogram( rect );
 			
 			var sum_r:Number = 0;
 			var sum_g:Number = 0;
@@ -766,14 +767,17 @@ package com.quasimondo.geom
 			var min:Number;
 			var max:Number;
 			var minFound:Boolean = false;
+			var histR:Vector.<Number> = histogram[0];
+			var histG:Vector.<Number> = histogram[1];
+			var histB:Vector.<Number> = histogram[2];
 			for ( var i:int = 0; i < 256; i++ )
 			{
-				sum_r += histogram[0][i] * i;
-				sum_g += histogram[1][i] * i;
-				sum_b += histogram[2][i] * i;
+				sum_r += histR[i] * i;
+				sum_g += histG[i] * i;
+				sum_b += histB[i] * i;
 				if ( stretchLevels )
 				{
-					if ( histogram[0][i] != 0 || histogram[1][i] != 0 || histogram[2][i] != 0 )
+					if ( histR[i] != 0 || histG[i] != 0 || histB[i] != 0 )
 					{
 						max = i;
 						if ( !minFound )

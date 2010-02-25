@@ -52,7 +52,7 @@ package
 		
 		public var surf:ASSURF;
 		public var surfOptions:SURFOptions;
-		public var quasimondoProcessor:QuasimondoImageProcessor = new QuasimondoImageProcessor();
+		public var quasimondoProcessor:QuasimondoImageProcessor;
 		public var buffer:BitmapData;
 		public var autoCorrect:Boolean = false;
 		
@@ -108,6 +108,8 @@ package
 			
 			buffer = new BitmapData(surfOptions.width, surfOptions.height, false, 0x00);
 			buffer.lock();
+			
+			quasimondoProcessor = new QuasimondoImageProcessor(buffer.rect);
 
 			addChild(view);
 			
@@ -124,7 +126,6 @@ package
 			buffer.draw(camera.bitmapData, SCALE_MAT);
 			
 			var ipts:Vector.<IPoint> = surf.getInterestPoints(buffer);
-			gfx.clear();
 			SURFUtils.drawIPoints(gfx, ipts, SCALE);
 			
 			// Lets look if we can find any of our images
