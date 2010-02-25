@@ -1,7 +1,7 @@
 #summary SURF feature extraction library written in Flash using Alchemy.
 #labels Featured
 
-= ASSURF =
+= SURF library for Adobe Flash Platform =
 
 [http://farm5.static.flickr.com/4019/4359007368_77a22e0302_o.png]
 
