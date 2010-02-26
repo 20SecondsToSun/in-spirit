@@ -7,6 +7,7 @@
 #include "lmfit/lmmin.c"
 
 static const double INLIER_THRESHOLD = 1.5;
+static const double INLIER_THRESHOLD_SQ = 1.5 * 1.5;
 static const double PROBABILITY_REQUIRED = 0.99;
 
 int PseudoInverse(register double *inv, register double *matx, const int M, const int N);
@@ -69,11 +70,11 @@ void ransac(register double *corners1, register double *corners2, int npoints, r
 		i = 0;
 		while( i < 4 )
 		{
-			int index = rand() % npoints;
+			int index = (rand() % npoints) * 2;
 			int duplicate = 0;
 			for( j = 0; j < i; ++j)
 			{
-				if(points1[j*2] == corners1[index*2] && points1[j*2+1] == corners1[index*2+1])
+				if(points1[j*2] == corners1[index] && points1[j*2+1] == corners1[index+1])
 				{
 					duplicate = 1;
 					break;
@@ -82,10 +83,10 @@ void ransac(register double *corners1, register double *corners2, int npoints, r
 			if(duplicate) continue;
 			
 			// add to list
-			points1[i*2] = corners1[index*2];
-			points1[i*2+1] = corners1[index*2+1];
-			points2[i*2] = corners2[index*2];
-			points2[i*2+1] = corners2[index*2+1];
+			points1[i*2] = corners1[index];
+			points1[i*2+1] = corners1[index+1];
+			points2[i*2] = corners2[index];
+			points2[i*2+1] = corners2[index+1];
 			i++;
 		}
 		
@@ -106,17 +107,17 @@ void ransac(register double *corners1, register double *corners2, int npoints, r
 		{
 			double dx = image1_coord[i*2] - corners1[i*2];
 			double dy = image1_coord[i*2 + 1] - corners1[i*2 + 1];
-			double distance = sqrt(dx*dx + dy*dy);
+			double distance = (dx*dx + dy*dy);
 			
-			if( distance < INLIER_THRESHOLD )
+			if( distance < INLIER_THRESHOLD_SQ )
 			{
 				inlier_set1[num_inliers*2] =		corners1[i*2];
 				inlier_set1[num_inliers*2 + 1] =	corners1[i*2 + 1];
 				inlier_set2[num_inliers*2] =		corners2[i*2];
 				inlier_set2[num_inliers*2 + 1] =	corners2[i*2 + 1];
 				num_inliers++;
-				sum_distance += distance;
-				sum_distance_squared += distance*distance;
+				sum_distance += sqrt(distance);
+				sum_distance_squared += distance;
 			}
 		}
 		
@@ -149,14 +150,14 @@ void ransac(register double *corners1, register double *corners2, int npoints, r
 		if(num_inliers > 0)
 		{
 			double inv_epsilon = 1.0 - (1.0 - ((double)num_inliers) / ((double)npoints));
-			double inv_epsilon2 = inv_epsilon * inv_epsilon;
-			double inv_epsilon4 = inv_epsilon2 * inv_epsilon2;
-			double log_den = log(1.0 - inv_epsilon4);
-			int temp = (int)(log(1.0 - PROBABILITY_REQUIRED) / log_den);
+			//double inv_epsilon2 = inv_epsilon * inv_epsilon;
+			//double inv_epsilon4 = inv_epsilon2 * inv_epsilon2;
+			//double log_den = log(1.0 - inv_epsilon4);
+			//int temp = (int)(log(1.0 - PROBABILITY_REQUIRED) / log_den);
+			int temp = (int)(log(1.0 - PROBABILITY_REQUIRED)/log(1.0 - (inv_epsilon * inv_epsilon * inv_epsilon * inv_epsilon ) ) );
 			if(temp > 0 && temp < N){
 				N = temp;
 			}
-			//N = (int)(log(1.0 - PROBABILITY_REQUIRED)/log(1.0 - (inv_epsilon * inv_epsilon * inv_epsilon * inv_epsilon ) ) );
 		}
 	}
 	

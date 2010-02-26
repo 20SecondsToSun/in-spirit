@@ -9,7 +9,7 @@ package ru.inspirit.surf
 	import flash.utils.ByteArray;
 
 	/***********************************************************
-	*  FlashSURF
+	*  ASSURF
 	*
 	*  SURF feature extraction library written in C and Flash
 	*  using Adobe Alchemy.
@@ -24,7 +24,7 @@ package ru.inspirit.surf
 	*
 	*  Eugene Zatepyakin
 	*  http://blog.inspirit.ru
-	*  http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/FlashSURF
+	*  http://code.google.com/p/in-spirit/wiki/ASSURF
 	*
 	************************************************************/
 
@@ -56,6 +56,7 @@ package ru.inspirit.surf
 		protected var roiWidthPointer:int;
 		protected var roiHeightPointer:int;
 		protected var determinantPointer:int;
+		protected var pointMatchFactorPointer:int;
 
 		protected var integralData:Vector.<Number>;
 		protected var ipoints:Vector.<IPoint>;
@@ -471,6 +472,16 @@ package ru.inspirit.surf
 		{
 			return options.imageROI;
 		}
+		
+		public function set pointMatchFactor(value:Number):void
+		{
+			Memory.writeDouble(value, pointMatchFactorPointer);
+		}
+		
+		public function get pointMatchFactor():Number
+		{
+			return Memory.readDouble(pointMatchFactorPointer);
+		}
 
 		public function updateROI(region:RegionOfInterest):void
 		{
@@ -533,6 +544,7 @@ package ru.inspirit.surf
 			roiWidthPointer = int(pps[13]);
 			roiHeightPointer = int(pps[14]);
 			determinantPointer = int(pps[15]);
+			pointMatchFactorPointer = int(pps[16]);
 		}
 
 		protected function allocatePointsVector():void
