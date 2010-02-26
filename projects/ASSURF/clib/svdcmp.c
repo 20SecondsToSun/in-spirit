@@ -10,7 +10,7 @@ static inline double SIGN(register double a, register double b)
 	return ((b) >= 0 ? fabs(a) : -fabs(a));
 }
 
-static inline float PYTHAG(register double a, register double b)
+static inline double PYTHAG(register double a, register double b)
 {
 	register double absa, absb, ct;
 	absa = fabs(a);
@@ -25,7 +25,7 @@ static inline float PYTHAG(register double a, register double b)
 	}
 }
 
-static int _mossNRsvdcmp(register double **a, int m, int n, double w[], register double **v)
+static int _mossNRsvdcmp(register double **a, const int m, const int n, double w[], register double **v)
 {
 	int flag,i,its,j,jj,k,l,nm;
 	double anorm,c,f,g,h,s,scale,x,y,z, rv11[n+1];
@@ -213,7 +213,7 @@ static int _mossNRsvdcmp(register double **a, int m, int n, double w[], register
 	return 0;
 }
 
-static int mossSVD(register double *U, register double *W, register double *V, register double *matx, int M, int N)
+static int mossSVD(register double *U, register double *W, register double *V, register double *matx, const int M, const int N)
 {
 	//char me[]="mossSVD", err[128];
 	register double **nrU, *nrW, **nrV;

@@ -1,5 +1,5 @@
 /*********************************************************** 
-*  FlashSURF
+*  ASSURF
 *                                                          
 *  SURF feature extraction library written in C and Flash  
 *  using Adobe Alchemy.
@@ -38,7 +38,7 @@ inline double FMAX(register double a, register double b)
 	return (((a) < (b)) ? (b) : (a));
 }
 
-inline double IGAUSSIAN(register int x, const int y, register double sig)
+inline double IGAUSSIAN(register int x, register int y, register double sig)
 {
 	return (1.0 / (two_pi*sig*sig) * exp( -(x*x+y*y) / (2.0*sig*sig)));
 }
@@ -108,6 +108,7 @@ static const int border_cache [4] = {14,26,50,98};
 #define MAXPOINTS 200
 #define POINTS_POOL 30000
 #define POINT_DATA_LENGTH 69
+#define POINT_MATCH_FACTOR 0.6
 
 
 double *referencePointsData;
@@ -144,6 +145,7 @@ int intervals = INTERVALS;
 int sample_step = INIT_SAMPLE;
 double threshold = THRESHOLD;
 int max_points = MAXPOINTS;
+double point_match_factor = POINT_MATCH_FACTOR;
 
 
 static void buildDeterminant(register double *integralData, register double *determData)
@@ -743,7 +745,7 @@ static int locateObject(const int minPointsForHomography)
 {
 	if(matchedPointsCount < minPointsForHomography) return 0;
 	
-	if(matchedPointsCount == 4)
+	if(matchedPointsCount >= 4 && matchedPointsCount <= 10)
 	{
 		const int np2 = matchedPointsCount * 2;
 
@@ -780,9 +782,9 @@ static int locateObject(const int minPointsForHomography)
 		{
 			double dx = *(mp++) - *(cnp1++);
 			double dy = *(mp++) - *(cnp1++);
-			double distance = sqrt(dx*dx + dy*dy);
+			double distance = (dx*dx + dy*dy);
 			
-			if( distance < INLIER_THRESHOLD )
+			if( distance < INLIER_THRESHOLD_SQ )
 			{
 				num_inliers++;
 			}
@@ -790,7 +792,7 @@ static int locateObject(const int minPointsForHomography)
 		
 		if(num_inliers < 4) return 0;
 		
-	} else if(matchedPointsCount > 4)
+	} else if(matchedPointsCount > 10)
 	{
 		double corners1[matchedPointsCount*2];
 		double corners2[matchedPointsCount*2];		
@@ -855,7 +857,7 @@ static void findMatches(double *set1, double *set2, const int num1, const int nu
 
 	for(i = 0; i < num1; ++i)
 	{
-		d1 = d2 = 100000.0;
+		d1 = d2 = 1000000.0;
 		ind2 = 5;
 		lap = set1[ind1 - 1];
 		desc2 = set2+4;
@@ -878,7 +880,7 @@ static void findMatches(double *set1, double *set2, const int num1, const int nu
 				dist += diff * diff;
 			}
 
-			dist = sqrt(dist);
+			//dist = sqrt(dist);
 
 			if(dist<d1) // if this feature matches better than current best
 			{
@@ -894,8 +896,8 @@ static void findMatches(double *set1, double *set2, const int num1, const int nu
 			desc2 += 4;
 		}
 
-		// If match has a d1:d2 ratio < 0.65 ipoints are a match
-		if(d1/d2 < 0.65)
+		// If match has a d1:d2 ratio < 0.6 || 0.65 || 0.5 ipoints are a match
+		if(d1 < point_match_factor * d2)
 		{
 			*(mpr++) = i;
 			*(mpr++) = (match_idx - 5) / 69;
@@ -997,6 +999,7 @@ static AS3_Val getDataPointers(void* self, AS3_Val args)
 	AS3_Set(pointers, AS3_Int(13), AS3_Ptr(&roi_width));
 	AS3_Set(pointers, AS3_Int(14), AS3_Ptr(&roi_height));
 	AS3_Set(pointers, AS3_Int(15), AS3_Ptr(determinant));
+	AS3_Set(pointers, AS3_Int(16), AS3_Ptr(&point_match_factor));
 	return pointers;
 }
 
