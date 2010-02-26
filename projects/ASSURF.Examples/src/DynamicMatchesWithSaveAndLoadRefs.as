@@ -75,9 +75,14 @@ package
 			
 			stat_txt = new Label(p, 100, 5);
 			
-			var sl:HUISlider = new HUISlider(p, 340, 7, 'POINTS THRESHOLD', onThresholdChange);
+			var sl:HUISlider = new HUISlider(p, 340, 6, 'POINTS THRESHOLD', onThresholdChange);
 			sl.setSliderParams(0.001, 0.01, 0.003);
 			sl.labelPrecision = 4;
+			sl.width = 250;
+			
+			sl = new HUISlider(p, 340, 19, 'MATCH FACTOR     ', onMatchFactorChange);
+			sl.setSliderParams(0.3, 0.65, 0.55);
+			sl.labelPrecision = 2;
 			sl.width = 250;
 			
 			new CheckBox(p, 230, 11, 'CORRECT LEVELS', onCorrectLevels);
@@ -116,6 +121,8 @@ package
 			
 			surfOptions = new SURFOptions(int(640 / SCALE), int(480 / SCALE), 200, 0.003, true, 4, 4, 2);
 			surf = new ASSURF(surfOptions);
+			
+			surf.pointMatchFactor = 5.5;
 			
 			buffer = new BitmapData(surfOptions.width, surfOptions.height, false, 0x00);
 			buffer.lock();
@@ -203,6 +210,11 @@ package
 		protected function onThresholdChange(e:Event):void
 		{
 			surf.pointsThreshold = HUISlider(e.currentTarget).value;
+		}
+		
+		protected function onMatchFactorChange(e:Event):void
+		{
+			surf.pointMatchFactor = HUISlider(e.currentTarget).value;
 		}
 	}
 }

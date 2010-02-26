@@ -74,6 +74,11 @@ package
 			sl.labelPrecision = 4;
 			sl.width = 250;
 			
+			sl = new HUISlider(p, 640, 7, 'MATCH FACTOR', onMatchFactorChange);
+			sl.setSliderParams(0.3, 0.65, 0.55);
+			sl.labelPrecision = 2;
+			sl.width = 250;
+			
 			new CheckBox(p, 250, 11, 'CORRECT LEVELS', onCorrectLevels);
 			
 			view = new Sprite();
@@ -95,6 +100,8 @@ package
 			
 			surfOptions = new SURFOptions(int(640 / SCALE), int(480 / SCALE), 200, 0.003, true, 4, 4, 2);
 			surf = new ASSURF(surfOptions);
+			
+			surf.pointMatchFactor = 0.55;
 			
 			averageHomography = new AverageHomographyMatrix();
 			
@@ -167,6 +174,11 @@ package
 		protected function onThresholdChange(e:Event):void
 		{
 			surf.pointsThreshold = HUISlider(e.currentTarget).value;
+		}
+		
+		protected function onMatchFactorChange(e:Event):void
+		{
+			surf.pointMatchFactor = HUISlider(e.currentTarget).value;
 		}
 	}
 }
