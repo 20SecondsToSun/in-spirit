@@ -76,3 +76,7 @@ function parseData(data:ByteArray):void
 
 Data can be encoded in BASE64 to process it as string.
 If you get BASE64 encoded string you just need to decode it first and then the same parse operation.
+
+=== Download ===
+
+[http://in-spirit.googlecode.com/files/ASSURFBundleManager.zip ASSURF Bundle Manager]
