@@ -1,0 +1,78 @@
+#summary Helper application for ASSURF Lib usage
+#labels Featured
+
+= ASSURF Bundle Manager =
+
+[http://farm3.static.flickr.com/2547/4397923478_73b2e6a698_o.png]
+
+This aim of the application is to help users quickly create packages for later use with [http://code.google.com/p/in-spirit/w/edit/ASSURF ASSURF]. <br>It can produce compressed binary file or BASE64 encoded string that is easily can be parsed in your code.
+
+=== Features ===
+
+  * Video and Image data input
+  * Realtime match test with current list of references
+  * Realtime reference elements and its points editing
+  * Export/Import data as binary file or BASE64 string
+
+=== Parsing output files ===
+
+Output data is binary. After loading file and getting access to its *ByteArray* data you have to parse it:
+{{{
+function parseData(data:ByteArray):void
+{
+    // binary file is compressed
+    data.uncompress();
+
+    // see if file also contains BitmapData bytes
+    var includeImages:Boolean = data.readBoolean();
+
+    // number of included references
+    var referenceCount:int = data.readInt();
+
+    var pointsCount:int = 0;
+
+    for( var i:int = 0; i < referenceCount; ++i )
+    {
+	var pointsInReference = data.readInt();
+
+        if(includeImages)
+        {
+            // get included BitmapData width and height
+            var bitmap:BitmapData = new BitmapData(data.readInt(), data.readInt(), false, 0x00);
+            // next bytes are bitmap ByteArray
+            bitmap.setPixels(bitmap.rect, data);
+        }
+        pointsCount += pointsInReference;
+    }
+
+    // after getting all references info
+    // we get interest points data that is stored as single chunk
+    var pointsData:ByteArray = new ByteArray();
+    pointsData.endian = Endian.LITTLE_ENDIAN;
+
+    var pos:int = data.position;
+    var pointSize:int = 69 << 3;
+
+    pointsData.writeBytes(data, pos, pointsCount * pointSize);
+
+    // if you want to get information of each point
+    // here is how data in single point presented
+    for( i = 0; i < pointsCount; ++i )
+    {
+        pointsData.position = i * pointSize;
+
+        var iPoint:Object = {};
+
+        iPoint.x = pointsData.readDouble();
+        iPoint.y = pointsData.readDouble();
+        iPoint.scale = 2.5 * pointsData.readDouble();
+        iPoint.orientation = pointsData.readDouble();
+        iPoint.laplacian = pointsData.readDouble();
+
+        // other 64 << 3 bytes chunk - point descriptors
+    }
+}
+}}}
+
+Data can be encoded in BASE64 to process it as string.
+If you get BASE64 encoded string you just need to decode it first and then the same parse operation.
