@@ -5,7 +5,7 @@
 
 [http://farm3.static.flickr.com/2547/4397923478_73b2e6a698_o.png]
 
-This aim of the application is to help users quickly create packages for later use with [http://code.google.com/p/in-spirit/w/edit/ASSURF ASSURF]. <br>It can produce compressed binary file or BASE64 encoded string that is easily can be parsed in your code.
+This aim of the application is to help users quickly create packages for later use with [http://code.google.com/p/in-spirit/wiki/ASSURF ASSURF]. <br>It can produce compressed binary file or BASE64 encoded string that is easily can be parsed in your code.
 
 === Features ===
 
