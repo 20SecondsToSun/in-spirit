@@ -17,7 +17,7 @@ At this very moment only FFT2D class available. I will add one dimensional _FFT_
   * Phase of Real and Imaginary parts calculation
   * 2 dimensional data handling (images)
   * RGB and Single Channel (BLUE) data manipulation
-  * Output/input as ByteArray or Vector objects
+  * Output/input as ByteArray, Vector and BitmapData objects
 
 === Usage info ===
 
@@ -62,7 +62,7 @@ fft.setDataByteArray(out, FFT2D.REAL_FFT_DATA);
 fft.inverseFFT();
 
 // and plot original image to BitmapData
-fft.draw(FFT2D.REAL_DATA, transformedImageBitmapData, false, false);
+fft.draw(FFT2D.REAL_RAW_DATA, transformedImageBitmapData, false, false);
 
 }}}
 
