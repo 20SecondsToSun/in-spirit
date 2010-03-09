@@ -1,0 +1,27 @@
+#summary Fast Fourier Transform for Flash.
+#labels Featured
+
+= ASFFT =
+
+[http://farm5.static.flickr.com/4065/4419633556_3deaf1e791_o.png]
+
+A [http://en.wikipedia.org/wiki/Fast_Fourier_transform Fast Fourier transform (FFT)] is an efficient algorithm to compute the discrete Fourier transform (DFT) and its inverse.
+
+The lib consists of 2 classes _FFT2D_ and _FFT_. First one is to work with two dimensional data mostly presented as images. The second one is for streaming (or not) one dimensional data. Usually used in sound signal manipulations/transformation.
+At this very moment only FFT2D class available. I will add one dimensional _FFT_ class in near future.
+
+=== Features ===
+
+  * Forward and Inverse transforms
+  * Magnitude of Real and Imaginary parts calculation
+  * Phase of Real and Imaginary parts calculation
+  * 2 dimensional data handling (images)
+  * RGB and Single Channel (BLUE) data manipulation
+  * Output/input as ByteArray or Vector objects
+
+=== Usage info ===
+
+I recommend to use compiled ASFFT.swc as far as the Lib is build using Alchemy and TDSI to optimize performance. And if you don't want to process you project with TDSI every compilation simply include ASFFT.swc in your source path.
+
+[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/ASFFT ASFFT SWC Lib project sources]<br>
+[http://in-spirit.googlecode.com/files/ASFFT.swc.zip ASFFT.swc download]
