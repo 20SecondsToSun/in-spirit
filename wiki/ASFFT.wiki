@@ -21,6 +21,51 @@ At this very moment only FFT2D class available. I will add one dimensional _FFT_
 
 === Usage info ===
 
+input and output data can be presented as ByteArray or Vector objects in following format:
+{{{
+// fft is an FFT2D instance
+
+// firt we should init some data in lib
+fft.initFromRGBBitmap(ImageBitmapData);
+
+// calculate FFT Real and Imaginary parts
+fft.forwardFFT();
+
+// extract Real and Imaginary parts
+var data_real:ByteArray = fft.getDataByteArray(FFT2D.REAL_FFT_DATA);
+
+// allocate object for manipulation result
+var out:ByteArray = new ByteArray();
+out.endian = Endian.LITTLE_ENDIAN;
+
+// FFT works only with data dimensions of power of 2
+// so if image size for example is 320x440
+// in FFT it will be presented with dimensions of next power of 2
+// in this particular example 512x512
+
+var w2:int = MemoryMath.nextPow2(ImageBitmapData.width);
+var h2:int = MemoryMath.nextPow2(ImageBitmapData.height);
+
+// here is the most interesting part
+// due to data format (r, g, b, r, g, b floats)
+// we can pass that ByteArray object directly to Pixel Bender
+lowPassFilter_shader.data.src.input = data_real;
+_shaderJob = new ShaderJob(lowPassFilter_shader, out, w2, h2);
+_shaderJob.start(true);
+
+// and now we can set result data back to FFT instance
+fft.setDataByteArray(out, FFT2D.REAL_FFT_DATA);
+
+// the same operations can be done with any of presented data
+// after you finish all manipulations
+// you can see the result image by applying inverse transform
+fft.inverseFFT();
+
+// and plot original image to BitmapData
+fft.draw(FFT2D.REAL_DATA, transformedImageBitmapData, false, false);
+
+}}}
+
 I recommend to use compiled ASFFT.swc as far as the Lib is build using Alchemy and TDSI to optimize performance. And if you don't want to process you project with TDSI every compilation simply include ASFFT.swc in your source path.
 
 [http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/ASFFT ASFFT SWC Lib project sources]<br>
