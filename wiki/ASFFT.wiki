@@ -31,7 +31,7 @@ fft.initFromRGBBitmap(ImageBitmapData);
 // calculate FFT Real and Imaginary parts
 fft.forwardFFT();
 
-// extract Real and Imaginary parts
+// extract Real part
 var data_real:ByteArray = fft.getDataByteArray(FFT2D.REAL_FFT_DATA);
 
 // allocate object for manipulation result
