@@ -1,5 +1,6 @@
 package ru.inspirit.math
 {
+	import flash.geom.Rectangle;
 	import flash.utils.Endian;
 	import com.joa_ebert.apparat.memory.MemoryMath;
 	import com.joa_ebert.apparat.memory.Memory;
@@ -18,10 +19,10 @@ package ru.inspirit.math
 	*/
 	public final class FFT2D
 	{
-		public static const REAL_DATA:int = 0;
-		public static const IMAG_DATA:int = 1;
+		public static const REAL_RAW_DATA:int = 0;
+		public static const IMAGINARY_RAW_DATA:int = 1;
 		public static const REAL_FFT_DATA:int = 2;
-		public static const IMAG_FFT_DATA:int = 3;
+		public static const IMAGINARY_FFT_DATA:int = 3;
 		public static const AMPLITUDE_DATA:int = 4;
 		public static const PHASE_DATA:int = 5;
 
@@ -52,6 +53,22 @@ package ru.inspirit.math
 			alchemyRAM = (ns::gstate).ds;
 
 			getMemoryPointers();
+		}
+		
+		public function init(width:int, height:int, numChannels:int = 3):Rectangle
+		{
+			var w:int = imageW = width;
+			var h:int = imageH = height;
+
+			var w2:int = imageW2 = MemoryMath.nextPow2(w);
+			var h2:int = imageH2 = MemoryMath.nextPow2(h);
+
+			this.numChannels = numChannels;
+			area2 = imageW2 * imageH2 * numChannels;
+
+			FFT_LIB.allocateBuffers(w, h, w2, h2, numChannels);
+			
+			return new Rectangle(0, 0, w2, h2);
 		}
 
 		public function initFromRGBBitmap(bmp:BitmapData):void
@@ -137,6 +154,67 @@ package ru.inspirit.math
 		public function analyzeImage(getFFT:Boolean = true, getAmplitude:Boolean = false, getPhase:Boolean = false, getIFFT:Boolean = false):void
 		{
 			FFT_LIB.analyzeImage(getFFT ? 1 : 0, getAmplitude ? 1 : 0, getPhase ? 1 : 0, getIFFT ? 1 : 0);
+		}
+		
+		public function setDataBitmapData(bmp:BitmapData, dataType:int = 0, shiftCorners:Boolean = false, sub128:Boolean = false):void
+		{
+			var w:int= bmp.width;
+			var h:int= bmp.height;
+			var w2:int = imageW2;
+			var h2:int = imageH2;
+			var hw:int = w2 >> 1;
+			var hh:int = h2 >> 1;
+			
+			var ind:int;
+			var i:int, j:int;
+			var c:uint;
+			
+			var realPos:int = Memory.readInt(DATA_POINTERS[dataType]);
+			
+			if(numChannels == 3) 
+			{
+				for(i = 0; i < h; ++i)
+				{
+					ind = (i * w2) * 3;
+					for(j = 0; j < w; ++j, ++ind)
+					{
+						c = bmp.getPixel(j, i);
+						
+						if(shiftCorners)
+						{
+							ind = (((i + hh) % h2) * w2 + ((j + hw) % w2)) * 3;
+						}
+						
+						if(sub128)
+						{
+							Memory.writeFloat((c >> 16 & 0xFF) - 128, realPos + (ind << 2));
+							Memory.writeFloat((c >> 8 & 0xFF) - 128, realPos + ((++ind) << 2));
+							Memory.writeFloat((c & 0xFF) - 128, realPos + ((++ind) << 2));
+						}
+						else
+						{
+							Memory.writeFloat(c >> 16 & 0xFF, realPos + (ind << 2));
+							Memory.writeFloat(c >> 8 & 0xFF, realPos + ((++ind) << 2));
+							Memory.writeFloat(c & 0xFF, realPos + ((++ind) << 2));
+						}
+					}
+				}
+			}
+			else
+			{
+				for(i = 0; i < h; ++i)
+				{
+					ind = i * w2;
+					for(j = 0; j < w; ++j, ++ind)
+					{
+						if(shiftCorners)
+						{
+							ind = ((i + hh) % h2) * w2 + ((j + hw) % w2);
+						}
+						Memory.writeFloat((bmp.getPixel(j, i) & 0xFF) - (sub128 ? 128 : 0), realPos + (ind << 2));
+					}
+				}
+			}
 		}
 
 		public function setDataByteArray(data:ByteArray, dataType:int = 0, shiftCorners:Boolean = false):void
