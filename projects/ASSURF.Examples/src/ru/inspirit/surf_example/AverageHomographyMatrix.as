@@ -1,5 +1,6 @@
 package ru.inspirit.surf_example 
 {
+	import flash.utils.getTimer;
 	import ru.inspirit.surf.HomographyMatrix;
 
 	/**
@@ -10,9 +11,12 @@ package ru.inspirit.surf_example
 	 */
 	public class AverageHomographyMatrix extends HomographyMatrix 
 	{
-		public static var maxLength:int = 3;
+		public static var maxLength:int = 5;
+		public static var maxMatrixLife:int = 2500; // time in ms
 		
 		public var matrices:Vector.<HomographyMatrix>;
+		public var inliers:Vector.<int>;
+		public var oldest:Vector.<int>;
 		public var lastIndex:int;
 		
 		public function AverageHomographyMatrix(data:Vector.<Number> = null) 
@@ -21,11 +25,16 @@ package ru.inspirit.surf_example
 			
 			lastIndex = 0;
 			matrices = new Vector.<HomographyMatrix>();
+			inliers = new Vector.<int>();
+			oldest = new Vector.<int>();
 		}
 
-		public function addMatrix(matrix:HomographyMatrix):void 
+		public function addMatrix(matrix:HomographyMatrix, inliersN:int):void 
 		{
 			matrices[lastIndex] = matrix;
+			inliers[lastIndex] = inliersN;
+			oldest[lastIndex] = getTimer();
+			
 			var n:int = matrices.length;
 			var m:HomographyMatrix;
 			
@@ -57,7 +66,50 @@ package ru.inspirit.surf_example
 			m32 *= invDel;
 			m33 *= invDel;
 			
-			lastIndex = ++lastIndex % maxLength;
+			if(++lastIndex > maxLength)
+			{
+				removeWorstOne();
+				--lastIndex;
+			}
+		}
+		
+		public function removeWorstOne():void
+		{
+			var t:int = getTimer();
+			var n:int = matrices.length;
+			var nn:int, rem:int, remt:int;
+			var min:int = 1000;
+			var old:int = 0;
+			for(var i:int = 0; i < n; ++i)
+			{
+				nn = inliers[i];
+				if(nn < min)
+				{
+					min = nn;
+					rem = i;
+				}
+				nn = t - oldest[i];
+				if(nn > old)
+				{
+					old = nn;
+					remt = i;
+				}
+			}
+			if(rem == remt)
+			{
+				matrices.splice(rem, 1);
+				inliers.splice(rem, 1);
+			}
+			else if(old > maxMatrixLife)
+			{
+				matrices.splice(remt, 1);
+				inliers.splice(remt, 1);
+			}
+			else 
+			{
+				matrices.splice(rem, 1);
+				inliers.splice(rem, 1);
+			}
 		}
 	}
 }

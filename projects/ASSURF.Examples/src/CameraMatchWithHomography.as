@@ -141,7 +141,7 @@ package
 			{
 				// we use average value of several homography matrices
 				// to smooth visual representation
-				averageHomography.addMatrix(surf.homography.clone());
+				averageHomography.addMatrix(surf.homography.clone(), surf.numberOfInliers);
 				
 				// as far as we scale down video source now we should scale homography
 				// to feet our bounds
