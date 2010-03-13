@@ -57,6 +57,7 @@ package ru.inspirit.surf
 		protected var roiHeightPointer:int;
 		protected var determinantPointer:int;
 		protected var pointMatchFactorPointer:int;
+		protected var numberOfInliersPointer:int;
 
 		protected var integralData:Vector.<Number>;
 		protected var ipoints:Vector.<IPoint>;
@@ -77,6 +78,7 @@ package ru.inspirit.surf
 		public var referencePointsCount:int = 0;
 		public var matchedPointsCount:int = 0;
 		public var homographyFound:Boolean = false;
+		public var numberOfInliers:int = 0;
 
 		public function ASSURF(options:SURFOptions)
 		{
@@ -510,6 +512,8 @@ package ru.inspirit.surf
 		protected function updateHomography():void
 		{
 			homographyFound = Memory.readInt(homographyStatusPointer) == 1;
+			numberOfInliers = Memory.readInt(numberOfInliersPointer);
+			
 			if(homographyFound)
 			{
 				homography.m11 = Memory.readDouble(homographyPointer);
@@ -545,6 +549,7 @@ package ru.inspirit.surf
 			roiHeightPointer = int(pps[14]);
 			determinantPointer = int(pps[15]);
 			pointMatchFactorPointer = int(pps[16]);
+			numberOfInliersPointer = int(pps[17]);
 		}
 
 		protected function allocatePointsVector():void
