@@ -65,7 +65,7 @@ inline double ANGLE(register double X, register double Y)
 int PseudoInverse(register double *inv, register double *matx, const int M, const int N);
 void MultiplyMat(register double *m1, register double *m2, register double *res, const int M1, const int N1, const int M2, const int N2);
 void ransac(register double *corners1, register double *corners2, int npoints, register double *best_inlier_set1, 
-			register double *best_inlier_set2, int *number_of_inliers, register double *bestH);
+			register double *best_inlier_set2, int *best_inlier_ids, int *number_of_inliers, register double *bestH);
 int findHomography(const int np, register double *obj, register double *img, register double *mat);
 void refineHomography(double *ransac_H, double *inlier_set1, double *inlier_set2, int number_of_inliers);
 
@@ -133,6 +133,7 @@ int prevFramePointsCount = 0;
 int referencePointsCount = 0;
 int matchedPointsCount = 0;
 int homographyIsGood = 0;
+int numberOfInliers = 0;
 
 // Region Of Interest
 int roi_x = 0;
@@ -330,32 +331,36 @@ static int interpolateExtremum(register double *determData, double *pointsData, 
 	double _dx, _dy, _ds, dxx, dyy, dss, dxy, dxs, dys, v1, v2;
 	int ind = (octv * intervals + intvl) * area + (r * width + c);
 	int sw = step * width;
+	int indpstep = ind + step;
+	int indmstep = ind - step;
+	int indparea = ind + area;
+	int indmarea = ind - area;
 
-	v1 = fabs(determData[ ind + step ]);
-	v2 = fabs(determData[ ind - step ]);
+	v1 = fabs(determData[ indpstep ]);
+	v2 = fabs(determData[ indmstep ]);
 
 	_dx = (v1 - v2) * 0.5;
-	dxx = (v1 + v2) - 2 * val;
+	dxx = (v1 + v2) - 2.0 * val;
 
 	v1 = fabs(determData[ ind + sw ]);
 	v2 = fabs(determData[ ind - sw ]);
 
 	_dy = (v1 - v2) * 0.5;
-	dyy = (v1 + v2) - 2 * val;
+	dyy = (v1 + v2) - 2.0 * val;
 
-	v1 = fabs(determData[ ind + area ]);
-	v2 = fabs(determData[ ind - area ]);
+	v1 = fabs(determData[ indparea ]);
+	v2 = fabs(determData[ indmarea ]);
 
 	_ds = (v1 - v2) * 0.5;
-	dss = (v1 + v2) - 2 * val;
+	dss = (v1 + v2) - 2.0 * val;
 
 	// Hessian 3D
 
-	dxy = (fabs(determData[ ind + step + sw ]) - fabs(determData[ ind - step + sw ]) - fabs(determData[ ind + step - sw ]) + fabs(determData[ ind - step - sw ])) * 0.25;
+	dxy = (fabs(determData[ indpstep + sw ]) - fabs(determData[ indmstep + sw ]) - fabs(determData[ indpstep - sw ]) + fabs(determData[ indmstep - sw ])) * 0.25;
 
-	dxs = (fabs(determData[ ind + area + step ]) - fabs(determData[ ind + area - step ]) - fabs(determData[ ind - area + step ]) + fabs(determData[ ind - area - step ])) * 0.25;
+	dxs = (fabs(determData[ indparea + step ]) - fabs(determData[ indparea - step ]) - fabs(determData[ indmarea + step ]) + fabs(determData[ indmarea - step ])) * 0.25;
 
-	dys = (fabs(determData[ ind + area + sw ]) - fabs(determData[ ind + area - sw ]) - fabs(determData[ ind - area + sw ]) + fabs(determData[ ind - area - sw ])) * 0.25;
+	dys = (fabs(determData[ indparea + sw ]) - fabs(determData[ indparea - sw ]) - fabs(determData[ indmarea + sw ]) + fabs(determData[ indmarea - sw ])) * 0.25;
 
 	double det = -1.0 / ( dxx * ( dyy*dss-dys*dys) - dxy * (dxy*dss-dxs*dys) + dxs * (dxy*dys-dxs*dyy) );
 
@@ -743,7 +748,11 @@ static void writePointsResult(const int useOrientation, const int count, registe
 
 static int locateObject(const int minPointsForHomography)
 {
-	if(matchedPointsCount < minPointsForHomography) return 0;
+	if(matchedPointsCount < minPointsForHomography) 
+	{
+		numberOfInliers = 0;
+		return 0;
+	}
 	
 	if(matchedPointsCount >= 4 && matchedPointsCount <= 10)
 	{
@@ -754,23 +763,29 @@ static int locateObject(const int minPointsForHomography)
 		double corners1[np2];
 		double corners2[np2];
 		double image1_coord[np2];
+		double points_idx[np2];
 		
-		register double *cnp1, *cnp2, *mp;
+		register double *cnp1, *cnp2, *mp, *pti;
 		
 		cnp1 = corners1;
 		cnp2 = corners2;
 		mp = matchedPointsData;
+		pti = points_idx;
 		
 		for(i = 0; i < matchedPointsCount; ++i)
 		{
-			mp += 2;
+			//mp += 2;
+			*(pti++) = *(mp++);
+			*(pti++) = *(mp++);
 			*(cnp1++) = *(mp++);
 			*(cnp1++) = *(mp++);
 			*(cnp2++) = *(mp++);
 			*(cnp2++) = *(mp++);
 		}
 		
-		if(findHomography(matchedPointsCount, corners1, corners2, homography)){
+		if(findHomography(matchedPointsCount, corners1, corners2, homography))
+		{
+			numberOfInliers = 0;
 			return 0;
 		}
 		projectPoints(homography, corners2, &*image1_coord, matchedPointsCount);
@@ -778,6 +793,7 @@ static int locateObject(const int minPointsForHomography)
 		int num_inliers = 0;
 		mp = image1_coord;
 		cnp1 = corners1;
+		cnp2 = matchedPointsData;
 		for( i = 0; i < matchedPointsCount; ++i )
 		{
 			double dx = *(mp++) - *(cnp1++);
@@ -786,9 +802,17 @@ static int locateObject(const int minPointsForHomography)
 			
 			if( distance < INLIER_THRESHOLD_SQ )
 			{
+				*(cnp2++) = points_idx[i*2];
+				*(cnp2++) = points_idx[i*2+1];
+				*(cnp2++) = *(cnp1-2);
+				*(cnp2++) = *(cnp1-1);
+				*(cnp2++) = corners2[i*2];
+				*(cnp2++) = corners2[i*2+1];
 				num_inliers++;
 			}
 		}
+		
+		numberOfInliers = num_inliers;
 		
 		if(num_inliers < 4) return 0;
 		
@@ -796,20 +820,25 @@ static int locateObject(const int minPointsForHomography)
 	{
 		double corners1[matchedPointsCount*2];
 		double corners2[matchedPointsCount*2];		
+		double points_idx[matchedPointsCount*2];
 		double best_inlier_set1[matchedPointsCount*2];
 		double best_inlier_set2[matchedPointsCount*2];
+		int best_inlier_ids[matchedPointsCount];
 		
-		int number_of_inliers, i;
+		int number_of_inliers, i, j;
 		
-		register double *cnp1, *cnp2, *mp;
+		register double *cnp1, *cnp2, *mp, *pti;
 		
 		cnp1 = corners1;
 		cnp2 = corners2;
 		mp = matchedPointsData;
+		pti = points_idx;
 		
 		for(i = 0; i < matchedPointsCount; ++i)
 		{
-			mp += 2;
+			//mp += 2;
+			*(pti++)  = *(mp++);
+			*(pti++)  = *(mp++);
 			*(cnp1++) = *(mp++);
 			*(cnp1++) = *(mp++);
 			*(cnp2++) = *(mp++);
@@ -817,7 +846,8 @@ static int locateObject(const int minPointsForHomography)
 		}
 		
 		//ransac(matchedPointsData, matchedPointsCount, &*best_inlier_set1, &*best_inlier_set2, &number_of_inliers, homography);
-		ransac(corners1, corners2, matchedPointsCount, &*best_inlier_set1, &*best_inlier_set2, &number_of_inliers, homography);
+		ransac(corners1, corners2, matchedPointsCount, &*best_inlier_set1, &*best_inlier_set2, 
+														&*best_inlier_ids, &number_of_inliers, homography);
 		
 		if(number_of_inliers < 4) return 0;
 		
@@ -827,7 +857,10 @@ static int locateObject(const int minPointsForHomography)
 		
 		for( i = 0; i < number_of_inliers; ++i )
 		{
-			mp += 2;
+			//mp += 2;
+			j = best_inlier_ids[i] * 2;
+			*(mp++) = points_idx[ j++ ];
+			*(mp++) = points_idx[ j ];
 			*(mp++) = *(cnp1++);
 			*(mp++) = *(cnp1++);
 			*(mp++) = *(cnp2++);
@@ -835,11 +868,13 @@ static int locateObject(const int minPointsForHomography)
 		}
 		
 		matchedPointsCount = number_of_inliers;
+		numberOfInliers = number_of_inliers;
 		
 		refineHomography(homography, best_inlier_set1, best_inlier_set2, number_of_inliers);
 		
 	} else 
 	{
+		numberOfInliers = 0;
 		return 0;
 	}
 	return 1;
@@ -1000,6 +1035,7 @@ static AS3_Val getDataPointers(void* self, AS3_Val args)
 	AS3_Set(pointers, AS3_Int(14), AS3_Ptr(&roi_height));
 	AS3_Set(pointers, AS3_Int(15), AS3_Ptr(determinant));
 	AS3_Set(pointers, AS3_Int(16), AS3_Ptr(&point_match_factor));
+	AS3_Set(pointers, AS3_Int(17), AS3_Ptr(&numberOfInliers));
 	return pointers;
 }
 
@@ -1041,7 +1077,8 @@ static AS3_Val runSURFTasks(void* self, AS3_Val args)
 	int minPointsForHomography;
 	AS3_ArrayValue(args, "IntType, IntType, IntType", &useOrientation, &options, &minPointsForHomography);
 
-	if(options == 4){
+	if(options == 4)
+	{
 		prevFramePointsCount = currentPointsCount;
 		memcpy(prevFramePointsData, currentPointsData, (currentPointsCount*POINT_DATA_LENGTH) * sizeof(double));
 	}
@@ -1055,10 +1092,14 @@ static AS3_Val runSURFTasks(void* self, AS3_Val args)
 
 	if(options == 2) {
 		findMatches(currentPointsData, referencePointsData, currentPointsCount, referencePointsCount);
-	} else if(options == 3) {
+	} 
+	else if(options == 3) 
+	{
 		findMatches(currentPointsData, referencePointsData, currentPointsCount, referencePointsCount);
 		homographyIsGood = locateObject(minPointsForHomography);
-	} else if(options == 4) {
+	} 
+	else if(options == 4) 
+	{
 		findMatches(currentPointsData, prevFramePointsData, currentPointsCount, prevFramePointsCount);
 	}
 

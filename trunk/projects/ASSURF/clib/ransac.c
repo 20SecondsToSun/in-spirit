@@ -34,7 +34,7 @@ typedef struct
 
 //void ransac(register double *matched_points, int npoints, register double *best_inlier_set1, 
 void ransac(register double *corners1, register double *corners2, int npoints, register double *best_inlier_set1, 
-			register double *best_inlier_set2, int *number_of_inliers, register double *bestH)
+			register double *best_inlier_set2, int *best_inlier_ids, int *number_of_inliers, register double *bestH)
 {
 	int N, sample_count;
 	int i, j;
@@ -46,6 +46,8 @@ void ransac(register double *corners1, register double *corners2, int npoints, r
 	int max_inliers = 0;
 	double best_variance = 0.0;
 	double H[9];
+	
+	int inlier_ids[npoints];
 	
 	double inlier_set1[npoints*2];
 	double inlier_set2[npoints*2];
@@ -87,6 +89,7 @@ void ransac(register double *corners1, register double *corners2, int npoints, r
 			points1[i*2+1] = corners1[index+1];
 			points2[i*2] = corners2[index];
 			points2[i*2+1] = corners2[index+1];
+			
 			i++;
 		}
 		
@@ -115,6 +118,7 @@ void ransac(register double *corners1, register double *corners2, int npoints, r
 				inlier_set1[num_inliers*2 + 1] =	corners1[i*2 + 1];
 				inlier_set2[num_inliers*2] =		corners2[i*2];
 				inlier_set2[num_inliers*2 + 1] =	corners2[i*2 + 1];
+				inlier_ids[num_inliers] = 			i;
 				num_inliers++;
 				sum_distance += sqrt(distance);
 				sum_distance_squared += distance;
@@ -135,6 +139,8 @@ void ransac(register double *corners1, register double *corners2, int npoints, r
 				memcpy(bestH, H, 9 * sizeof(double));
 				memcpy(best_inlier_set1, inlier_set1, num_inliers*2 * sizeof(double));
 				memcpy(best_inlier_set2, inlier_set2, num_inliers*2 * sizeof(double));
+				memcpy(best_inlier_ids, inlier_ids, num_inliers * sizeof(int));
+				
 				/*for ( i = 0; i < num_inliers; ++i )
 				{
 					best_inlier_set1[i*2 + 0] = inlier_set1[i*2 + 0];
