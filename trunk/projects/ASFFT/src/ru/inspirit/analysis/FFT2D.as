@@ -1,4 +1,4 @@
-package ru.inspirit.math
+package ru.inspirit.analysis
 {
 	import flash.geom.Rectangle;
 	import flash.utils.Endian;
@@ -26,9 +26,9 @@ package ru.inspirit.math
 		public static const AMPLITUDE_DATA:int = 4;
 		public static const PHASE_DATA:int = 5;
 
-		protected const FFT_LIB:Object = (new CLibInit()).init();
 		protected const DATA_POINTERS:Vector.<int> = new Vector.<int>(8, true);
-
+		
+		protected var FFT_LIB:Object;
 		protected var alchemyRAM:ByteArray;
 
 		protected var realDataPtr:int;
@@ -49,20 +49,35 @@ package ru.inspirit.math
 
 		public function FFT2D():void
 		{
+			FFT_LIB = (new CLibInit()).init();
+			
 			var ns:Namespace = new Namespace( "cmodule.fft" );
 			alchemyRAM = (ns::gstate).ds;
 
 			getMemoryPointers();
 		}
 		
-		public function init(width:int, height:int, numChannels:int = 3):Rectangle
+		/**
+		 * Returned Rectangle represents actual data dimensions
+		 * inside Lib. width and height rounded to min/max power of 2
+		 */
+		public function init(width:int, height:int, numChannels:int = 3, highPrecision:Boolean = true):Rectangle
 		{
 			var w:int = imageW = width;
 			var h:int = imageH = height;
-
-			var w2:int = imageW2 = MemoryMath.nextPow2(w);
-			var h2:int = imageH2 = MemoryMath.nextPow2(h);
-
+			
+			var w2:int;
+			var h2:int;
+			
+			if(highPrecision)
+			{
+				w2 = imageW2 = Math.max(MemoryMath.nextPow2(w), MemoryMath.nextPow2(h));
+			} else {
+				w2 = imageW2 = Math.min(MemoryMath.nextPow2(w), MemoryMath.nextPow2(h));
+			}
+			
+			h2 = imageH2 = w2;
+			
 			this.numChannels = numChannels;
 			area2 = imageW2 * imageH2 * numChannels;
 
@@ -70,14 +85,27 @@ package ru.inspirit.math
 			
 			return new Rectangle(0, 0, w2, h2);
 		}
-
-		public function initFromRGBBitmap(bmp:BitmapData):void
+		
+		/**
+		 * All 3 Channels used as inut
+		 * data buffer size is extended to next power of 2 (if needed)
+		 */
+		public function initFromRGBBitmap(bmp:BitmapData, highPrecision:Boolean = true):void
 		{
 			var w:int = imageW = bmp.width;
 			var h:int = imageH = bmp.height;
 
-			var w2:int = imageW2 = MemoryMath.nextPow2(w);
-			var h2:int = imageH2 = MemoryMath.nextPow2(h);
+			var w2:int;
+			var h2:int;
+			
+			if(highPrecision)
+			{
+				w2 = imageW2 = Math.max(MemoryMath.nextPow2(w), MemoryMath.nextPow2(h));
+			} else {
+				w2 = imageW2 = Math.min(MemoryMath.nextPow2(w), MemoryMath.nextPow2(h));
+			}
+			
+			h2 = imageH2 = w2;
 
 			area2 = (imageW2 * imageH2 * 3);
 			numChannels = 3;
@@ -103,13 +131,26 @@ package ru.inspirit.math
 			}
 		}
 
-		public function initFromGrayBitmap(bmp:BitmapData):void
+		/**
+		 * Only BLUE Channel data is used as input
+		 * data buffer size is extended to next power of 2 (if needed)
+		 */
+		public function initFromGrayBitmap(bmp:BitmapData, highPrecision:Boolean = true):void
 		{
 			var w:int = imageW = bmp.width;
 			var h:int = imageH = bmp.height;
 
-			var w2:int = imageW2 = MemoryMath.nextPow2(w);
-			var h2:int = imageH2 = MemoryMath.nextPow2(h);
+			var w2:int;
+			var h2:int;
+			
+			if(highPrecision)
+			{
+				w2 = imageW2 = Math.max(MemoryMath.nextPow2(w), MemoryMath.nextPow2(h));
+			} else {
+				w2 = imageW2 = Math.min(MemoryMath.nextPow2(w), MemoryMath.nextPow2(h));
+			}
+			
+			h2 = imageH2 = w2;
 
 			area2 = imageW2 * imageH2;
 			numChannels = 1;
@@ -130,33 +171,53 @@ package ru.inspirit.math
 				}
 			}
 		}
-
+		
+		/**
+		 * Perform forward FFT
+		 */
 		public function forwardFFT():void
 		{
 			FFT_LIB.analyzeImage(1, 0, 0, 0);
 		}
 
+		/**
+		 * Perform inverse FFT
+		 */
 		public function inverseFFT():void
 		{
 			FFT_LIB.analyzeImage(0, 0, 0, 1);
 		}
-
+	
+		/**
+		 * Calculate amplitude of Real and Imaginary FFT parts
+		 * sqrt(real*real + imaginary*imaginary);  
+		 */
 		public function calculateAmplitude():void
 		{
 			FFT_LIB.analyzeImage(0, 1, 0, 0);
 		}
-
+		
+		/**
+		 * Calculate phase of Real and Imaginary FFT parts
+		 * atan2(real, imaginary)
+		 */
 		public function calculatePhase():void
 		{
 			FFT_LIB.analyzeImage(0, 0, 1, 0);
 		}
 
+		/**
+		 * Short cut to perform several actions
+		 */
 		public function analyzeImage(getFFT:Boolean = true, getAmplitude:Boolean = false, getPhase:Boolean = false, getIFFT:Boolean = false):void
 		{
 			FFT_LIB.analyzeImage(getFFT ? 1 : 0, getAmplitude ? 1 : 0, getPhase ? 1 : 0, getIFFT ? 1 : 0);
 		}
 		
-		public function setDataBitmapData(bmp:BitmapData, dataType:int = 0, shiftCorners:Boolean = false, sub128:Boolean = false):void
+		/**
+		 * Set specified data from BitmapData
+		 */
+		public function setDataBitmapData(bmp:BitmapData, dataType:int = 0):void
 		{
 			var w:int= bmp.width;
 			var h:int= bmp.height;
@@ -165,9 +226,13 @@ package ru.inspirit.math
 			var hw:int = w2 >> 1;
 			var hh:int = h2 >> 1;
 			
+			var maxd:Number = Math.sqrt( 2 * hw * hh );
+			var d:Number;
+			
 			var ind:int;
-			var i:int, j:int;
+			var i:int, j:int, x:int, y:int;
 			var c:uint;
+			var pix:int;
 			
 			var realPos:int = Memory.readInt(DATA_POINTERS[dataType]);
 			
@@ -180,23 +245,21 @@ package ru.inspirit.math
 					{
 						c = bmp.getPixel(j, i);
 						
-						if(shiftCorners)
-						{
-							ind = (((i + hh) % h2) * w2 + ((j + hw) % w2)) * 3;
-						}
+						// shift corners
+						ind = (((i + hh) % h2) * w2 + ((j + hw) % w2)) * 3;
 						
-						if(sub128)
-						{
-							Memory.writeFloat((c >> 16 & 0xFF) - 128, realPos + (ind << 2));
-							Memory.writeFloat((c >> 8 & 0xFF) - 128, realPos + ((++ind) << 2));
-							Memory.writeFloat((c & 0xFF) - 128, realPos + ((++ind) << 2));
-						}
-						else
-						{
-							Memory.writeFloat(c >> 16 & 0xFF, realPos + (ind << 2));
-							Memory.writeFloat(c >> 8 & 0xFF, realPos + ((++ind) << 2));
-							Memory.writeFloat(c & 0xFF, realPos + ((++ind) << 2));
-						}
+						x = j-hw;
+			 			y = i-hh;
+						
+						d = maxd / ( 1 +  Math.sqrt( x*x+y*y ) );
+						
+						pix = c >> 16 & 0xFF;
+						
+						Memory.writeFloat(((Math.abs(pix-127)*1.7*d) * ( pix < 127 ? -1 : 1)), realPos + (ind << 2));
+						pix = c >> 8 & 0xFF;
+						Memory.writeFloat(((Math.abs(pix-127)*1.7*d) * ( pix < 127 ? -1 : 1)), realPos + ((++ind) << 2));
+						pix = c & 0xFF;
+						Memory.writeFloat(((Math.abs(pix-127)*1.7*d) * ( pix < 127 ? -1 : 1)), realPos + ((++ind) << 2));
 					}
 				}
 			}
@@ -207,16 +270,40 @@ package ru.inspirit.math
 					ind = i * w2;
 					for(j = 0; j < w; ++j, ++ind)
 					{
-						if(shiftCorners)
-						{
-							ind = ((i + hh) % h2) * w2 + ((j + hw) % w2);
-						}
-						Memory.writeFloat((bmp.getPixel(j, i) & 0xFF) - (sub128 ? 128 : 0), realPos + (ind << 2));
+						// shift corners
+						ind = ((i + hh) % h2) * w2 + ((j + hw) % w2);
+						
+						x = j-hw;
+			 			y = i-hh;
+						
+						d = maxd / ( 1 +  Math.sqrt( x*x+y*y ) );
+						
+						pix = bmp.getPixel(j, i) & 0xFF;
+						
+						Memory.writeFloat(((Math.abs(pix-127)*1.7*d) * ( pix < 127 ? -1 : 1)), realPos + (ind << 2));
 					}
 				}
 			}
 		}
+		
+		/**
+		 * Get/draw specified data to BitmapData
+		 */
+		public function getDataBitmapData(bmp:BitmapData, dataType:int = 0):void
+		{
+			FFT_LIB.drawImagePreserveData(dataType, 1);
 
+			alchemyRAM.position = Memory.readInt(drawDataPtr);
+
+			bmp.lock();
+			bmp.setPixels(bmp.rect, alchemyRAM);
+			bmp.unlock();
+		}
+
+		/**
+		 * Set specified data from ByteArray
+		 * Note that bytearray should be LITTLE_ENDIAN
+		 */
 		public function setDataByteArray(data:ByteArray, dataType:int = 0, shiftCorners:Boolean = false):void
 		{
 			data.position = 0;
@@ -235,6 +322,10 @@ package ru.inspirit.math
 
 		}
 
+		/**
+		 * Get specified data to ByteArray
+		 * Note that returned bytearray would be LITTLE_ENDIAN
+		 */
 		public function getDataByteArray(dataType:int = 0, shiftCorners:Boolean = false):ByteArray
 		{
 			var realPos:int;
@@ -260,6 +351,9 @@ package ru.inspirit.math
 			return data;
 		}
 
+		/**
+		 * Set specified data from Vector.<Number>
+		 */
 		public function setDataVector(data:Vector.<Number>, dataType:int = 0, shiftCorners:Boolean = false):void
 		{
 			var realPos:int = Memory.readInt(DATA_POINTERS[dataType]);
@@ -320,6 +414,9 @@ package ru.inspirit.math
 			}
 		}
 
+		/**
+		 * Get specified data to Vector.<Number>
+		 */
 		public function getDataVector(dataType:int = 0, shiftCorners:Boolean = false):Vector.<Number>
 		{
 			var realPos:int = Memory.readInt(DATA_POINTERS[dataType]);
@@ -382,7 +479,11 @@ package ru.inspirit.math
 			return data;
 		}
 
-		//public function draw(data:Vector.<Number>, bmp:BitmapData, shiftCorners:Boolean = false, add128:Boolean = false):void
+		/**
+		 * Draw specified data to bitmapData
+		 * Note: shiftCorners is used to see radial (from center to borders) data visual representation
+		 * add128 is used with FFT Real and Imaginary data types cause they can be negative
+		 */
 		public function draw(dataType:int, bmp:BitmapData, shiftCorners:Boolean = false, add128:Boolean = false):void
 		{
 			var w:int = bmp.width;
@@ -439,7 +540,11 @@ package ru.inspirit.math
 
 			bmp.unlock();*/
 		}
-
+	
+		/**
+		 * Clear instance memory buffers
+		 * should be performed before reiniting or when decided to finish working with instance 
+		 */
 		public function clear():void
 		{
 			FFT_LIB.freeBuffers();
