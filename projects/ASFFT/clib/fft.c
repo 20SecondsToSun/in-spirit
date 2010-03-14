@@ -22,15 +22,32 @@ int imageH2;
 int numChannels;
 int area2;
 
+int spectrumLength;
+
 static const float INV_LOG2 = 1.4426950408889634;
 
 static void cleanUp();
-static void calculateAmp(int n, int m, float *gAmp, float *gRe, float *gIm);
-static void calculatePhase(int n, int m, float *gPhase, float *gRe, float *gIm);
+static void calculateAmp(int len, float *gAmp, float *gRe, float *gIm);
+static void calculateSpectrum(int len, float *gAmp, float *gRe, float *gIm, int normalize);
+static void calculatePhase(int len, float *gPhase, float *gRe, float *gIm);
 static void FFT2DRGB(int n, int m, int inverse, float *gRe, float *gIm, float *GRe, float *GIm);
 static void FFT2DGray(int n, int m, int inverse, float *gRe, float *gIm, float *GRe, float *GIm);
+static void FFT1D(int n, int inverse, float *gRe, float *gIm, float *GRe, float *GIm);
 static void plotImageData(int tw, int th, float *data, int *outData, int shift, int add128);
 static void shiftData(float *from, float *to);
+static void plotImageCarefull(float *data, int *outData, int shift);
+
+
+int sampleRate = 44100;
+int octaves;
+int avgPerOctave;
+int averagesNumber = 256;
+int spectrumAverageType = 0;
+float bandWidth;
+
+//static float indexToFreq(int i);
+static int freqToIndex(float freq);
+static float calcAvg(int offset, float lowFreq, float hiFreq);
 
 
 static AS3_Val getBufferPointers(void* self, AS3_Val args)
@@ -86,6 +103,262 @@ static AS3_Val allocateBuffers(void* self, AS3_Val args)
 	return 0;
 }
 
+static AS3_Val initSignalBuffers(void* self, AS3_Val args)
+{
+	int nl, nch;
+	AS3_ArrayValue( args, "IntType, IntType", &nl, &nch );
+	
+	if(nl != imageW || nch != numChannels)
+	{
+		imageW = imageW2 = nl;
+		numChannels = nch;
+		
+		bandWidth = (2.0 / (float)imageW) * ((float)sampleRate / 2.0);
+		spectrumLength = (imageW >> 1) + 1;
+		
+		cleanUp();
+
+		area2 = imageW * numChannels;
+		
+		realData = (float*)malloc( area2 * sizeof(float) );
+		imagData = (float*)malloc( area2 * sizeof(float) );
+
+		realFFTData = (float*)malloc( area2 * sizeof(float) );
+		imagFFTData = (float*)malloc( area2 * sizeof(float) );
+
+		amplFFTData = (float*)malloc( area2 * sizeof(float) );
+		phaseFFTData = (float*)malloc( area2 * sizeof(float) );
+		
+		shiftedData = (float*)malloc( area2 * sizeof(float) );
+	}
+	
+	memset(realData, 0.0, area2 * sizeof(float));
+	memset(imagData, 0.0, area2 * sizeof(float));
+	
+	return 0;
+}
+
+static AS3_Val splitChannels(void* self, AS3_Val args)
+{
+	int offset = imageW;
+	register float *re1 = realData, *re2 = realData+offset, *input = shiftedData, *end = realData+offset;
+	
+	for(; re1 < end;)
+	{
+		*(re1++) = *(input++);
+		*(re2++) = *(input++);
+	}
+	
+	return 0;
+}
+
+static AS3_Val mergeChannels(void* self, AS3_Val args)
+{
+	int offset = imageW;
+	register float *re1 = realData, *re2 = realData+offset, *input = shiftedData, *end = realData+offset;
+	
+	for(; re1 < end;)
+	{
+		*(input++) = *(re1++);
+		*(input++) = *(re2++);
+	}
+	
+	return 0;
+}
+
+static AS3_Val initNoAverages(void* self, AS3_Val args)
+{	
+	spectrumAverageType = 0;
+	
+	return 0;
+}
+static AS3_Val initLinearAverages(void* self, AS3_Val args)
+{
+	AS3_ArrayValue( args, "IntType", &averagesNumber );
+	
+	spectrumAverageType = 1;
+	
+	return 0;
+}
+static AS3_Val initLogarithmicAverages(void* self, AS3_Val args)
+{
+	int minBandwidth = 11;
+	int bandsPerOctave = 1;
+	
+	AS3_ArrayValue( args, "IntType, IntType, IntType", &minBandwidth, &bandsPerOctave, &sampleRate );
+	
+	bandWidth = (2.0 / (float)imageW) * ((float)sampleRate / 2.0);
+	
+	float nyq = (float)sampleRate / 2.0;
+	octaves = 1;
+	while ((nyq /= 2.0) > minBandwidth)
+	{
+		octaves++;
+	}
+	
+	avgPerOctave = bandsPerOctave;
+	averagesNumber = octaves * bandsPerOctave;
+	
+	spectrumAverageType = 2;
+	
+	return AS3_Int(averagesNumber);
+}
+
+static AS3_Val analyzeSpectrum(void* self, AS3_Val args)
+{
+	int normalizeSpectrum = 0;
+	
+	AS3_ArrayValue( args, "IntType", &normalizeSpectrum );
+	
+	calculateSpectrum(spectrumLength, amplFFTData, realFFTData, imagFFTData, normalizeSpectrum);
+	
+	if (spectrumAverageType == 1)
+    {
+		int avgWidth = (int) spectrumLength / averagesNumber;
+		int i, j, offset;
+		float avg;
+		for (i = 0; i < averagesNumber; i++)
+		{
+			avg = 0.0;
+			for (j = 0; j < avgWidth; j++)
+			{
+				offset = j + i * avgWidth;
+				if (offset < spectrumLength)
+				{
+					avg += amplFFTData[offset];
+				}
+				else
+				{
+					break;
+				}
+			}
+			shiftedData[i] = avg / (float)(j+1);
+		}
+		
+		if(numChannels == 2)
+		{
+			for (i = 0; i < averagesNumber; i++)
+			{
+				avg = 0.0;
+				for (j = 0; j < avgWidth; j++)
+				{
+					offset = j + i * avgWidth;
+					if (offset < spectrumLength)
+					{
+						avg += amplFFTData[ spectrumLength + offset ];
+					}
+					else
+					{
+						break;
+					}
+				}
+				shiftedData[ averagesNumber + i ] = avg / (float)(j+1);
+			}
+		}
+	}
+	else if (spectrumAverageType == 2)
+    {
+		int i, j, offset;
+		float lowFreq, hiFreq, freqStep, f;
+		for (i = 0; i < octaves; i++)
+		{
+		
+			if (i == 0)
+			{
+				lowFreq = 0;
+			}
+			else
+			{
+				lowFreq = (float)(sampleRate / 2.0) / (float)pow(2.0, octaves - i);
+			}
+			hiFreq = (float)(sampleRate / 2.0) / (float)pow(2.0, octaves - i - 1);
+			freqStep = (hiFreq - lowFreq) / avgPerOctave;
+			f = lowFreq;
+			for (j = 0; j < avgPerOctave; j++)
+			{
+				offset = j + i * avgPerOctave;
+				shiftedData[offset] = calcAvg(0, f, f + freqStep);
+				f += freqStep;
+			}
+		}
+	
+		if(numChannels == 2)
+		{
+			for (i = 0; i < octaves; i++)
+			{
+				if (i == 0)
+				{
+					lowFreq = 0;
+				}
+				else
+				{
+					lowFreq = (float)(sampleRate / 2.0) / (float)pow(2.0, octaves - i);
+				}
+				hiFreq = (float)(sampleRate / 2.0) / (float)pow(2.0, octaves - i - 1);
+				freqStep = (hiFreq - lowFreq) / avgPerOctave;
+				f = lowFreq;
+				for (j = 0; j < avgPerOctave; j++)
+				{
+					offset = j + i * avgPerOctave;
+					shiftedData[averagesNumber + offset] = calcAvg(spectrumLength, f, f + freqStep);
+					f += freqStep;
+				}
+			}
+		}
+	}
+	
+	return 0;
+}
+
+static AS3_Val analyzeSignal(void* self, AS3_Val args)
+{
+	int doFFT = 0;
+	int doInverse = 0;
+	int doSpectrum = 0;
+	int normalizeSpectrum = 0;
+	
+	AS3_ArrayValue(args, "IntType, IntType, IntType, IntType", &doFFT, &doSpectrum, &doInverse, &normalizeSpectrum );
+	
+	if(numChannels == 2)
+	{
+		if(doFFT == 1)
+		{
+			FFT1D(imageW, -1, realData, imagData, realFFTData, imagFFTData);
+			FFT1D(imageW, -1, realData+imageW, imagData+imageW, realFFTData+imageW, imagFFTData+imageW);
+		}
+		
+		if(doSpectrum == 1)
+		{
+			calculateSpectrum(spectrumLength, amplFFTData, realFFTData, imagFFTData, normalizeSpectrum);
+		}
+		
+		if(doInverse == 1)
+		{
+			FFT1D(imageW, 1, realFFTData, imagFFTData, realData, imagData);
+			FFT1D(imageW, 1, realFFTData+imageW, imagFFTData+imageW, realData+imageW, imagData+imageW);
+		}
+	}
+	else
+	{
+		if(doFFT == 1)
+		{
+			FFT1D(imageW, -1, realData, imagData, realFFTData, imagFFTData);
+		}
+		
+		if(doSpectrum == 1)
+		{
+			calculateSpectrum(spectrumLength, amplFFTData, realFFTData, imagFFTData, normalizeSpectrum);
+		}
+		
+		if(doInverse == 1)
+		{
+			FFT1D(imageW, 1, realFFTData, imagFFTData, realData, imagData);
+		}
+	}
+	
+	return 0;
+}
+
 static AS3_Val analyzeImage(void* self, AS3_Val args)
 {
 	int doFFT = 0;
@@ -104,11 +377,11 @@ static AS3_Val analyzeImage(void* self, AS3_Val args)
 		
 		if(doAmplitude == 1)
 		{
-			calculateAmp(imageW2, imageH2, amplFFTData, realFFTData, imagFFTData);
+			calculateAmp(area2, amplFFTData, realFFTData, imagFFTData);
 		}
 		if(doPhase == 1)
 		{
-			calculatePhase(imageW2, imageH2, phaseFFTData, realFFTData, imagFFTData);
+			calculatePhase(area2, phaseFFTData, realFFTData, imagFFTData);
 		}
 	
 		if(doInverse == 1)
@@ -125,11 +398,11 @@ static AS3_Val analyzeImage(void* self, AS3_Val args)
 		
 		if(doAmplitude == 1)
 		{
-			calculateAmp(imageW2, imageH2, amplFFTData, realFFTData, imagFFTData);
+			calculateAmp(area2, amplFFTData, realFFTData, imagFFTData);
 		}
 		if(doPhase == 1)
 		{
-			calculatePhase(imageW2, imageH2, phaseFFTData, realFFTData, imagFFTData);
+			calculatePhase(area2, phaseFFTData, realFFTData, imagFFTData);
 		}
 	
 		if(doInverse == 1)
@@ -166,6 +439,33 @@ static AS3_Val drawImageData(void* self, AS3_Val args)
 	} else if(dataType == 4)
 	{
 		plotImageData(tw, th, amplFFTData, drawData, shift, add128);
+	}
+	
+	return 0;
+}
+
+static AS3_Val drawImagePreserveData(void* self, AS3_Val args)
+{
+	int shift = 1;
+	int dataType = 0;
+	
+	AS3_ArrayValue(args, "IntType, IntType", &dataType, &shift );
+	
+	if(dataType == 0)
+	{
+		plotImageCarefull(realData, drawData, shift);
+	} else if(dataType == 1)
+	{
+		plotImageCarefull(imagData, drawData, shift);
+	} else if(dataType == 2)
+	{
+		plotImageCarefull(realFFTData, drawData, shift);
+	} else if(dataType == 3)
+	{
+		plotImageCarefull(imagFFTData, drawData, shift);
+	} else if(dataType == 4)
+	{
+		plotImageCarefull(amplFFTData, drawData, shift);
 	}
 	
 	return 0;
@@ -231,13 +531,8 @@ static void FFT2DRGB(int n, int m, int inverse, float *gRe, float *gIm, float *G
 	float tx = 0, ty = 0;
 	float u1, u2, t1, t2, z, ca, sa, d;
 	
-	/*int l2n = 0, p = 1; //l2n will become log_2(n)
-	while(p < n) {p <<= 1; l2n++;}
-	int l2m = 0; p = 1; //l2m will become log_2(m)
-	while(p < m) {p <<= 1; l2m++;}*/
 	int l2n = log(n) * INV_LOG2 + 0.5;
 	int l2m = log(m) * INV_LOG2 + 0.5;
-	//m = 1 << l2m; n = 1 << l2n; //Make sure m and n will be powers of 2, otherwise you'll get in an infinite loop
 	
 	//Erase all history of this array
 	memcpy(GRe, gRe, area2 * sizeof(float));
@@ -415,8 +710,8 @@ static void FFT2DRGB(int n, int m, int inverse, float *gRe, float *gIm, float *G
 		}
 	}
  
-	if(inverse == 1) d = 1.0 / (float)n; else d = 1.0 / (float)m;
-	
+	//if(inverse == 1) d = 1.0 / (float)n; else d = 1.0 / (float)m;
+	d = 1.0 / (float)n;
 	register float *re2, *im2, *end;
 	for( re2 = GRe, im2 = GIm, end = GRe+area2; re2 < end; )
 	{
@@ -433,13 +728,8 @@ static void FFT2DGray(int n, int m, int inverse, float *gRe, float *gIm, float *
 	float tx = 0, ty = 0;
 	float u1, u2, t1, t2, z, ca, sa, d;
 	
-	/*int l2n = 0, p = 1; //l2n will become log_2(n)
-	while(p < n) {p <<= 1; l2n++;}
-	int l2m = 0; p = 1; //l2m will become log_2(m)
-	while(p < m) {p <<= 1; l2m++;}*/
 	int l2n = log(n) * INV_LOG2 + 0.5;
 	int l2m = log(m) * INV_LOG2 + 0.5;
-	//m = 1 << l2m; n = 1 << l2n; //Make sure m and n will be powers of 2, otherwise you'll get in an infinite loop
 	
 	//Erase all history of this array
 	memcpy(GRe, gRe, area2 * sizeof(float));
@@ -567,8 +857,8 @@ static void FFT2DGray(int n, int m, int inverse, float *gRe, float *gIm, float *
 		}
 	}
  
-	if(inverse == 1) d = 1.0 / (float)n; else d = 1.0 / (float)m;
-	
+	//if(inverse == 1) d = 1.0 / (float)n; else d = 1.0 / (float)m;
+	d = 1.0 / (float)n;
 	register float *re2, *im2, *end;
 	for( re2 = GRe, im2 = GIm, end = GRe+area2; re2 < end; )
 	{
@@ -577,19 +867,174 @@ static void FFT2DGray(int n, int m, int inverse, float *gRe, float *gIm, float *
 	}
 }
 
-static void calculateAmp(int n, int m, float *gAmp, float *gRe, float *gIm)
+static void FFT1D(int n, int inverse, float *gRe, float *gIm, float *GRe, float *GIm)
+{
+	int i, j, k;
+	int i1, l1, l2, l;
+	float tx, ty;
+	float u1, u2, t1, t2, z, ca, sa, d;
+	
+	int l2n = log(n) * INV_LOG2 + 0.5;
+	
+	//Erase all history of this array
+	memcpy(GRe, gRe, n * sizeof(float));
+	memcpy(GIm, gIm, n * sizeof(float));
+	
+	j = 0;
+	i1 = n>>1;
+	for(i = 0; i < n - 1; i++)
+	{
+		if(i < j)
+		{
+			tx = GRe[i];
+			ty = GIm[i];
+			GRe[i] = GRe[j];
+			GIm[i] = GIm[j];
+			GRe[j] = tx;
+			GIm[j] = ty;
+		}
+		k = i1;
+		while (k <= j) {j -= k; k>>=1;}
+		j += k;
+	}
+	
+	//This is the 1D FFT:
+	ca = -1.0;
+	sa = 0.0;
+	l1 = 1;
+	l2 = 1;
+	for(l=0; l < l2n; l++)
+	{
+		l1 = l2;
+		l2 <<= 1;
+		u1 = 1.0;
+		u2 = 0.0;
+		for(j = 0; j < l1; j++)
+		{
+			for(i = j; i < n; i += l2)
+			{
+				i1 = i + l1;
+				
+				t1 = u1 * GRe[i1] - u2 * GIm[i1];
+				t2 = u1 * GIm[i1] + u2 * GRe[i1];
+				GRe[i1] = GRe[i] - t1;
+				GIm[i1] = GIm[i] - t2;
+				GRe[i] += t1;
+				GIm[i] += t2;
+			}
+			z =  u1 * ca - u2 * sa;
+			u2 = u1 * sa + u2 * ca;
+			u1 = z;
+		}
+		sa = (float)inverse * sqrt((1.0 - ca) * 0.5);
+		ca = sqrt((1.0 + ca) * 0.5);
+	}
+	
+	if(inverse == 1) 
+	{
+		d = 1.0 / (float)n;
+	
+		register float *re2, *im2, *end;
+		for( re2 = GRe, im2 = GIm, end = GRe+n; re2 < end; )
+		{
+			*(re2++) *= d;
+			*(im2++) *= d;
+		}
+	}
+}
+
+static void calculateAmp(int len, float *gAmp, float *gRe, float *gIm)
 {
 	register float *re, *im, *am, *end;
-	for( re = gRe, im = gIm, am = gAmp, end = gAmp+area2; am < end; re++, im++)
+	for( re = gRe, im = gIm, am = gAmp, end = gAmp+len; am < end; re++, im++)
 	{
 		*(am++) = sqrt((*re) * (*re) + (*im) * (*im));
 	}
 }
 
-static void calculatePhase(int n, int m, float *gPhase, float *gRe, float *gIm)
+static void calculateSpectrum(int len, float *gAmp, float *gRe, float *gIm, int normalize)
+{
+	register float *re, *im, *am, *end;
+	float leftpeak = 0.0, rightPeak = 0.0;
+	
+	for( re = gRe, im = gIm, am = gAmp, end = gAmp+len; am < end; re++, im++, am++)
+	{
+		*(am) = sqrt((*re) * (*re) + (*im) * (*im));
+		if(*am > leftpeak) leftpeak = *am;
+	}
+	
+	if(normalize == 1)
+	{
+		leftpeak = 1.0 / leftpeak;
+		for( am = gAmp, end = gAmp+len; am < end;)
+		{
+			*(am++) *= leftpeak;
+		}
+	}
+	
+	if(numChannels == 2)
+	{
+		
+		for( re = gRe+imageW, im = gIm+imageW, am = gAmp+len, end = gAmp+len+len; am < end; re++, im++, am++)
+		{
+			*(am) = sqrt((*re) * (*re) + (*im) * (*im));
+			if(*am > rightPeak) rightPeak = *am;
+		}
+		
+		if(normalize == 1)
+		{
+			rightPeak = 1.0 / rightPeak;
+			for( am = gAmp+len, end = gAmp+len+len; am < end;)
+			{
+				*(am++) *= rightPeak;
+			}
+		}
+	}
+}
+
+static float calcAvg(int offset, float lowFreq, float hiFreq)
+{
+	int lowBound = freqToIndex(lowFreq);
+	int hiBound = freqToIndex(hiFreq);
+	float avg = 0.0;
+	int i;
+	for (i = lowBound; i <= hiBound; i++)
+	{
+		avg += amplFFTData[i + offset];
+	}
+	avg /= (float)(hiBound - lowBound + 1);
+	return avg;
+}
+
+static int freqToIndex(float freq)
+{
+	if (freq < bandWidth / 2.0) return 0;
+	if (freq > sampleRate / 2.0 - bandWidth / 2.0) return spectrumLength - 1;
+	
+	float fraction = freq / (float) sampleRate;
+	int i = (int)(imageW * fraction + 0.5);
+	return i;
+}
+/*
+static float indexToFreq(int i)
+{
+	float bw = bandWidth;
+	
+	if ( i == 0 ) return bw * 0.25;
+	
+	if ( i == spectrumLength - 1 ) 
+	{
+	  float lastBinBeginFreq = (sampleRate / 2.0) - (bw / 2.0);
+	  float binHalfWidth = bw * 0.25;
+	  return lastBinBeginFreq + binHalfWidth;
+	}
+	return i * bw;
+}
+*/
+static void calculatePhase(int len, float *gPhase, float *gRe, float *gIm)
 {
 	register float *re, *im, *ph, *end;
-	for( re = gRe, im = gIm, ph = gPhase, end = gPhase+area2; ph < end; re++, im++)
+	for( re = gRe, im = gIm, ph = gPhase, end = gPhase+len; ph < end; re++, im++)
 	{
 		*(ph++) = atan2((*re), (*im));
 	}
@@ -628,6 +1073,80 @@ static void shiftData(float *from, float *to)
 
 				*(out++) = from[ind];
 			}
+		}
+	}
+}
+static void plotImageCarefull(float *data, int *outData, int shift)
+{
+	int i, j, ind = 0;
+	int x, y;
+	int r, g, b;
+	int hw = imageW2 >> 1;
+	int hh = imageH2 >> 1;
+	//int stride = (imageW2 - tw) * numChannels;
+	
+	//float maxd = (float)sqrt( 2.0 * hw * hh );
+	float maxd = (float)sqrt( 2.0 * (float)pow( (hw > hh ? hw : hh), 2 ) );
+	float d;
+	
+	register int *out = outData;
+	
+	if(numChannels == 3)
+	{
+		for(i = 0; i < imageH2; i++)
+		{
+			for(j = 0; j < imageW2; j++)
+			{
+				//if(shift)
+				//{
+					ind = (((i + hh) % imageH2) * imageW2 + ((j + hw) % imageW2)) * 3;
+				//}
+				
+				x = j-hw;
+				y = i-hh;
+				
+				d = maxd / ( 1.0 +  (float)sqrt( x*x+y*y ) );
+				
+				r = 127 + ( data[ind] < 0 ? -1 : 1 ) * (int)( abs(data[ind]) / ( 1.7 * d) + 0.5 );
+				ind++;
+				g = 127 + ( data[ind] < 0 ? -1 : 1 ) * (int)( abs(data[ind]) / ( 1.7 * d) + 0.5 );
+				ind++;
+				b = 127 + ( data[ind] < 0 ? -1 : 1 ) * (int)( abs(data[ind]) / ( 1.7 * d) + 0.5 );
+				ind++;
+
+				r = r < 0 ? 0 : (r > 255 ? 255 : r);
+				g = g < 0 ? 0 : (g > 255 ? 255 : g);
+				b = b < 0 ? 0 : (b > 255 ? 255 : b);
+
+				*(out++) = ((r<<16)+(g<<8)+b);
+			}
+			//ind += stride;
+		}
+	}
+	else
+	{
+		for(i = 0; i < imageH2; i++)
+		{
+			for(j = 0; j < imageW2; j++)
+			{
+				//if(shift)
+				//{
+					ind = (((i + hh) % imageH2) * imageW2 + ((j + hw) % imageW2));
+				//}
+
+				x = j-hw;
+				y = i-hh;
+				
+				d = maxd / ( 1.0 +  (float)sqrt( x*x+y*y ) );
+				
+				r = 127 + ( data[ind] < 0 ? -1.0 : 1.0 ) * (int)( abs(data[ind]) / ( 1.7 * d) + 0.5 );
+				ind++;
+				
+				r = r < 0 ? 0 : (r > 255 ? 255 : r);
+
+				*(out++) = ((r<<16)+(r<<8)+r);
+			}
+			//ind += stride;
 		}
 	}
 }
@@ -700,7 +1219,6 @@ static void plotImageData(int tw, int th, float *data, int *outData, int shift, 
 	}
 }
 
-
 static void cleanUp()
 {
 	if(realData) free(realData);
@@ -721,7 +1239,7 @@ static AS3_Val freeBuffers(void* self, AS3_Val args)
 	imageW2 = 0;
 	imageH2 = 0;
 	numChannels = 0;
-		
+	
 	return 0;
 }
 
@@ -733,9 +1251,20 @@ int main()
 	AS3_Val analyzeImage_m = AS3_Function( NULL, analyzeImage );
 	AS3_Val drawImageData_m = AS3_Function( NULL, drawImageData );
 	AS3_Val shiftImageData_m = AS3_Function( NULL, shiftImageData );
+	AS3_Val drawImagePreserveData_m = AS3_Function( NULL, drawImagePreserveData );
+	
+	AS3_Val analyzeSignal_m = AS3_Function( NULL, analyzeSignal );
+	AS3_Val splitChannels_m = AS3_Function( NULL, splitChannels );
+	AS3_Val mergeChannels_m = AS3_Function( NULL, mergeChannels );
+	AS3_Val initSignalBuffers_m = AS3_Function( NULL, initSignalBuffers );	
+	
+	AS3_Val initLinearAverages_m = AS3_Function( NULL, initLinearAverages );
+	AS3_Val initLogarithmicAverages_m = AS3_Function( NULL, initLogarithmicAverages );
+	AS3_Val initNoAverages_m = AS3_Function( NULL, initNoAverages );
+	AS3_Val analyzeSpectrum_m = AS3_Function( NULL, analyzeSpectrum );
 
-	AS3_Val result = AS3_Object("getBufferPointers: AS3ValType, allocateBuffers: AS3ValType, freeBuffers: AS3ValType, analyzeImage: AS3ValType, drawImageData: AS3ValType, shiftImageData: AS3ValType",
-	getBufferPointers_m, allocateBuffers_m, freeBuffers_m, analyzeImage_m, drawImageData_m, shiftImageData_m);
+	AS3_Val result = AS3_Object("getBufferPointers: AS3ValType, allocateBuffers: AS3ValType, freeBuffers: AS3ValType, analyzeImage: AS3ValType, drawImageData: AS3ValType, shiftImageData: AS3ValType, drawImagePreserveData: AS3ValType, analyzeSignal: AS3ValType, splitChannels: AS3ValType, mergeChannels: AS3ValType, initSignalBuffers: AS3ValType, initLinearAverages: AS3ValType, initLogarithmicAverages: AS3ValType, initNoAverages: AS3ValType, analyzeSpectrum: AS3ValType",
+	getBufferPointers_m, allocateBuffers_m, freeBuffers_m, analyzeImage_m, drawImageData_m, shiftImageData_m, drawImagePreserveData_m, analyzeSignal_m, splitChannels_m, mergeChannels_m, initSignalBuffers_m, initLinearAverages_m, initLogarithmicAverages_m, initNoAverages_m, analyzeSpectrum_m);
 
 	AS3_Release( getBufferPointers_m );
 	AS3_Release( allocateBuffers_m );
@@ -743,6 +1272,17 @@ int main()
 	AS3_Release( analyzeImage_m );
 	AS3_Release( drawImageData_m );
 	AS3_Release( shiftImageData_m );
+	AS3_Release( drawImagePreserveData_m );
+	
+	AS3_Release( analyzeSignal_m );
+	AS3_Release( splitChannels_m );
+	AS3_Release( mergeChannels_m );
+	AS3_Release( initSignalBuffers_m );
+	
+	AS3_Release( initLinearAverages_m );
+	AS3_Release( initLogarithmicAverages_m );
+	AS3_Release( initNoAverages_m );
+	AS3_Release( analyzeSpectrum_m );
 
 	AS3_LibInit( result );
 
