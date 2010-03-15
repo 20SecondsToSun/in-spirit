@@ -1,4 +1,5 @@
 #summary Fast Fourier Transform for Flash.
+#labels Deprecated
 
 = ASFFT =
 
