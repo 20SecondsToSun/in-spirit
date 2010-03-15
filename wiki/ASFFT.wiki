@@ -55,7 +55,7 @@ sound = new Sound();
 sound.addEventListener( SampleDataEvent.SAMPLE_DATA, onSampleData);
 sound.play();
 
-// here is actual analyze take place
+// here is actual analysis take place
 
 function sampleData( event:SampleDataEvent ):void
 {
@@ -104,7 +104,7 @@ function sampleData( event:SampleDataEvent ):void
     }
 }
 }}}
-
+----
 {{{
 //
 // Example of FFT2D usage
