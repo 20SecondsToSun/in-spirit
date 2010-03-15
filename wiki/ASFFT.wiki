@@ -1,5 +1,4 @@
 #summary Fast Fourier Transform for Flash.
-#labels Featured
 
 = ASFFT =
 
