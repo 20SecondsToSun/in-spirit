@@ -1,4 +1,4 @@
-#summary SURF feature extraction library written in Flash using Alchemy.
+#summary SURF feature extraction library in ActionScript for the Adobe Flash Platform.
 #labels Featured
 
 = SURF library for Adobe Flash Platform =
@@ -7,7 +7,7 @@
 
 SURF (Speeded Up Robust Features) is a robust image descriptor, first presented by Herbert Bay et al. in 2006, that can be used in computer vision tasks like object recognition or 3D reconstruction. SURF is based on sums of 2D Haar wavelet responses and makes an efficient use of integral images. As basic image features it uses a Haar wavelet approximation of the determinant of Hessian blob detector.
 
-I've used lot of resources for this lib such as OpenCV, OpenSURF, libmv SURF, Dlib and JavaSurf...
+ASSURF based on OpenCV and OpenSURF implementations of SURF mostly
 
 === Related blog posts ===
 
