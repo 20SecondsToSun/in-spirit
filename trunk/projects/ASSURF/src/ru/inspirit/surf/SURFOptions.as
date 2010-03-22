@@ -42,11 +42,11 @@ package ru.inspirit.surf
 			this.width = width;
 			this.height = height;
 			this.maxPoints = maxPoints;
-			this.threshold = threshold;
+			this.threshold = Math.max(threshold, 0);
 			this.useOrientation = useOrientation ? 1 : 0;
-			this.octaves = octaves;
+			this.octaves = Math.min(octaves, 5);
 			this.intervals = intervals;
-			this.sampleStep = sampleStep;
+			this.sampleStep = Math.max(1, Math.min(sampleStep, 6));
 			
 			this.imageROI = new RegionOfInterest(0, 0, width, height);
 		}
@@ -66,6 +66,15 @@ package ru.inspirit.surf
 			return true;
 		}
 		
+		public function clone():SURFOptions
+		{
+			var opt:SURFOptions = new SURFOptions(width, height, maxPoints, threshold, useOrientation ? true : false, octaves, intervals, sampleStep);
+			opt.imageROI = RegionOfInterest.fromRectangle(imageROI);
+			opt.imageProcessor = imageProcessor;
+			
+			return opt;
+		}
+
 		public function toString():String 
 		{
 			return "SURFOptions{width:" + width + ', height:' + height + ', maxPoints:' + maxPoints + ', threshold:' + threshold + ', useOrientation:' + useOrientation + ', octaves:' + octaves + ', intervals:' + intervals + ', sampleStep:' + sampleStep + '}';
