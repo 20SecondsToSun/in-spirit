@@ -85,10 +85,10 @@ package
 			refBmp.bitmapData.copyPixels(pb, pb.rect, new Point(0, 0));
 			refBmp.bitmapData.copyPixels(pa, pa.rect, new Point(0, pb.height));
 			
-			surfOptions = new SURFOptions(640, 480, 600, 0.0003, true, 4, 4, 2);
+			surfOptions = new SURFOptions(640, 480, 600, 0.001, true, 4, 4, 2);
 			surf = new ASSURF(surfOptions);
 			
-			var opt2:SURFOptions = new SURFOptions(pb.width, pb.height, 600, 0.0003, true, 4, 4, 2);
+			var opt2:SURFOptions = new SURFOptions(pb.width, pb.height, 600, 0.001, true, 4, 4, 2);
 			
 			var match:Vector.<IPointMatch> = surf.getMatchesBetweenImages(panoBase, pb, surfOptions, opt2, true, 4);
 			

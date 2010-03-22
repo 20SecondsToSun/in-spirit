@@ -43,10 +43,12 @@ package ru.inspirit.surf_example
 		}
 		
 		public function getMatches():Vector.<MatchElement>
-		{
+		{			
 			var i:int, ind:int = -1, n:int;
 			var el:MatchElement;
 			var matched:Vector.<MatchElement> = new Vector.<MatchElement>();
+			
+			if(elementsCount == 0) return matched;
 			
 			n = elementsCount;
 			for( i = 0; i < n; ++i ) elements[i].matchCount = 0;

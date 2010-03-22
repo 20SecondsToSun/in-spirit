@@ -11,8 +11,8 @@ package ru.inspirit.surf_example
 	 */
 	public class AverageHomographyMatrix extends HomographyMatrix 
 	{
-		public static var maxLength:int = 5;
-		public static var maxMatrixLife:int = 2500; // time in ms
+		public static var maxLength:int = 4;
+		public static var maxMatrixLife:int = 1500; // time in ms
 		
 		public var matrices:Vector.<HomographyMatrix>;
 		public var inliers:Vector.<int>;

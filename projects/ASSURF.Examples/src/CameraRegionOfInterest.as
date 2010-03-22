@@ -24,6 +24,7 @@ package
 	import flash.geom.Matrix;
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
+	import flash.utils.getTimer;
 
 	/**
 	 * @author Eugene Zatepyakin
@@ -161,10 +162,15 @@ package
 				gfx.drawRect(myROI.x * SCALE, myROI.y * SCALE, myROI.width * SCALE, myROI.height * SCALE);
 			}
 			
+			var t:int = getTimer();
+			
 			var ipts:Vector.<IPoint> = surf.getInterestPoints(buffer);
+			
+			stat_txt.text = 'PROCESSED IN: ' + (getTimer() - t) + 'ms';
+			
 			SURFUtils.drawIPoints(gfx, ipts, SCALE);
 			
-			stat_txt.text = 'FOUND POINTS: ' + surf.currentPointsCount;
+			stat_txt.text += '\nFOUND POINTS: ' + surf.currentPointsCount;
 		}
 
 		protected function onSelectRegion(e:Event = null):void
