@@ -16,8 +16,8 @@ package ru.inspirit.surf
 	*
 	*  Wikipedia: http://en.wikipedia.org/wiki/SURF
 	*
-	*  I've used lot of resources for this lib such as
-	*  OpenCV, OpenSURF, libmv SURF, Dlib and JavaSurf
+	*  This version based on OpenCV and OpenSURF
+	*  implementations of SURF mostly
 	*
 	*  released under MIT License (X11)
 	*  http://www.opensource.org/licenses/mit-license.php
@@ -41,6 +41,9 @@ package ru.inspirit.surf
 
 		protected var alchemyRAM:ByteArray;
 		protected var integralDataPointer:int;
+		protected var integralBuffDataPointer:int;
+		protected var _integralDataPointer:int;
+		protected var _integralBuffDataPointer:int;
 		protected var currentPointsPointer:int;
 		protected var referencePointsPointer:int;
 		protected var matchedPointsPointer:int;
@@ -55,7 +58,6 @@ package ru.inspirit.surf
 		protected var roiYPointer:int;
 		protected var roiWidthPointer:int;
 		protected var roiHeightPointer:int;
-		protected var determinantPointer:int;
 		protected var pointMatchFactorPointer:int;
 		protected var numberOfInliersPointer:int;
 
@@ -96,11 +98,12 @@ package ru.inspirit.surf
 			
 			imageRect = this.imageProc.imageRect = buffer.rect;
 
-			integralData = new Vector.<Number>(imageWidth*imageHeight, true);
+			//integralData = new Vector.<Number>(imageWidth*imageHeight, true);
 
+			SURF_LIB.setupSURF(imageWidth, imageHeight, options.octaves, options.intervals, options.sampleStep);
+			
 			SURF_LIB.setThreshold(options.threshold);
 			SURF_LIB.setMaxPoints(options.maxPoints);
-			SURF_LIB.setupSURF(imageWidth, imageHeight, options.octaves, options.intervals, options.sampleStep);
 
 			updateDataPointers();
 			updateROI(options.imageROI);
@@ -120,7 +123,7 @@ package ru.inspirit.surf
 
 			currentPointsCount = Memory.readInt(currentPointsCountPointer);
 			var i:int = currentPointsCount;
-			var address:int = currentPointsPointer;
+			var address:int =  currentPointsPointer;
 			var step:int = POINT_SIZE;
 			var ip:IPoint;
 
@@ -163,7 +166,7 @@ package ru.inspirit.surf
 		public function getInterestPointsRegionByteArray(rect:Rectangle, ba:ByteArray):int
 		{
 			var i:int = currentPointsCount;
-			var address:int = currentPointsPointer;
+			var address:int =  currentPointsPointer;
 			var step:int = POINT_SIZE;
 			var cnt:int = 0;
 
@@ -195,7 +198,7 @@ package ru.inspirit.surf
 			SURF_LIB.runSURFTasks( options.useOrientation, 1 );
 
 			currentPointsCount = Memory.readInt(currentPointsCountPointer);
-
+			
 			ba.writeBytes(alchemyRAM, currentPointsPointer, POINT_SIZE * currentPointsCount);
 
 			return currentPointsCount;
@@ -281,7 +284,7 @@ package ru.inspirit.surf
 		 * @param updatePointsData	specify if data should be written as reference (it may be already done and you dont want to write it again)
 		 * @return					matched points Vector
 		 */
-		public function getMatchesToPointsData(pointsCount:int, pointsData:ByteArray, updatePointsData:Boolean = true):Vector.<IPointMatch>
+		public function getMatchesToPointsData(pointsCount:int, pointsData:ByteArray, updatePointsData:Boolean = true, findHomography:Boolean = false, minPointsForHomography:int = 4):Vector.<IPointMatch>
 		{
 			if(updatePointsData)
 			{
@@ -290,7 +293,7 @@ package ru.inspirit.surf
 				alchemyRAM.writeBytes(pointsData);
 			}
 
-			SURF_LIB.findReferenceMatches(pointsCount);
+			SURF_LIB.findReferenceMatches(pointsCount, findHomography ? 1 : 0, minPointsForHomography);
 
 			matchedPointsCount = Memory.readInt(matchedPointsCountPointer);
 
@@ -311,6 +314,8 @@ package ru.inspirit.surf
 
 				address += step;
 			}
+			
+			if(findHomography) updateHomography();
 
 			return matchedPoints.slice(0, matchedPointsCount);
 		}
@@ -389,15 +394,14 @@ package ru.inspirit.surf
 		{
 			this.options = options;
 			this.imageProc = this.options.imageProcessor || defaultImageProcessor;
-
-			SURF_LIB.setThreshold(options.threshold);
-			SURF_LIB.setMaxPoints(options.maxPoints);
 			
-			imageWidth = options.width;
-			imageHeight = options.height;
+			imageWidth = this.options.width;
+			imageHeight = this.options.height;
 
 			SURF_LIB.resizeDataHolders(imageWidth, imageHeight, options.octaves, options.intervals, options.sampleStep);
-			updateDataPointers();
+			
+			SURF_LIB.setThreshold(options.threshold);
+			SURF_LIB.setMaxPoints(options.maxPoints);
 
 			updateROI(this.options.imageROI);
 
@@ -407,7 +411,13 @@ package ru.inspirit.surf
 
 			imageRect = this.imageProc.imageRect = buffer.rect;
 
-			integralData = new Vector.<Number>(imageWidth*imageHeight, true);
+			//integralData = new Vector.<Number>(imageWidth*imageHeight, true);
+			integralDataPointer = Memory.readInt(_integralDataPointer);
+			
+			if(ipoints.length < this.options.maxPoints) 
+			{
+				allocatePointsVector();
+			}
 		}
 
 		/**
@@ -419,16 +429,18 @@ package ru.inspirit.surf
 		public function setReferenceImage(image:BitmapData, referenceOptions:SURFOptions):void
 		{
 			var oldOptions:SURFOptions = options;
-
+			var flip:Boolean = false;
+			
 			if(!options.compare(referenceOptions)) {
 				changeSurfOptions(referenceOptions);
+				flip = true;
 			}
-
+			
 			writeIntegralImageData(imageWidth, imageHeight, image);
 
 			SURF_LIB.updateReferencePointsData(options.useOrientation);
 
-			if(!oldOptions.compare(options)) {
+			if(flip) {
 				changeSurfOptions(oldOptions);
 			}
 		}
@@ -447,7 +459,6 @@ package ru.inspirit.surf
 		{
 			options.maxPoints = value;
 			SURF_LIB.setMaxPoints(value);
-			updateDataPointers();
 		}
 
 		public function get maximumPoints():uint
@@ -516,15 +527,16 @@ package ru.inspirit.surf
 			
 			if(homographyFound)
 			{
-				homography.m11 = Memory.readDouble(homographyPointer);
-				homography.m12 = Memory.readDouble(homographyPointer + 8);
-				homography.m13 = Memory.readDouble(homographyPointer + 16);
-				homography.m21 = Memory.readDouble(homographyPointer + 24);
-				homography.m22 = Memory.readDouble(homographyPointer + 32);
-				homography.m23 = Memory.readDouble(homographyPointer + 40);
-				homography.m31 = Memory.readDouble(homographyPointer + 48);
-				homography.m32 = Memory.readDouble(homographyPointer + 56);
-				homography.m33 = Memory.readDouble(homographyPointer + 64);
+				var hp:int = homographyPointer;
+				homography.m11 = Memory.readDouble(hp);
+				homography.m12 = Memory.readDouble(hp + 8);
+				homography.m13 = Memory.readDouble(hp + 16);
+				homography.m21 = Memory.readDouble(hp + 24);
+				homography.m22 = Memory.readDouble(hp + 32);
+				homography.m23 = Memory.readDouble(hp + 40);
+				homography.m31 = Memory.readDouble(hp + 48);
+				homography.m32 = Memory.readDouble(hp + 56);
+				homography.m33 = Memory.readDouble(hp + 64);
 			}
 		}
 
@@ -532,7 +544,8 @@ package ru.inspirit.surf
 		{
 			var pps:Array = SURF_LIB.getDataPointers();
 
-			integralDataPointer = int(pps[0]);
+			_integralDataPointer = int(pps[0]);
+			integralDataPointer = Memory.readInt(_integralDataPointer);
 			currentPointsPointer = int(pps[1]);
 			referencePointsPointer = int(pps[2]);
 			prevFramePointsPointer = int(pps[3]);
@@ -547,9 +560,8 @@ package ru.inspirit.surf
 			roiYPointer = int(pps[12]);
 			roiWidthPointer = int(pps[13]);
 			roiHeightPointer = int(pps[14]);
-			determinantPointer = int(pps[15]);
-			pointMatchFactorPointer = int(pps[16]);
-			numberOfInliersPointer = int(pps[17]);
+			pointMatchFactorPointer = int(pps[15]);
+			numberOfInliersPointer = int(pps[16]);
 		}
 
 		protected function allocatePointsVector():void
@@ -571,8 +583,8 @@ package ru.inspirit.surf
 			}
 		}
 
-		protected function writeIntegralImageData(width:int, height:int, bmp:BitmapData):void
-		{
+	/*	protected function _writeIntegralImageData(width:int, height:int, bmp:BitmapData):void
+		{			
 			imageProc.preProcess(bmp, buffer);
 
 			var data:Vector.<uint> = buffer.getVector(imageRect);
@@ -613,10 +625,46 @@ package ru.inspirit.surf
 				{
 					sum += (data[ind] & 0xFF) * colorScale;
 					integral[ind] = (v = sum + integral[(ind - width) | 0]);
+					//integral[ind] = (v = sum + integral[(ind - roi_w) | 0]);
 					Memory.writeDouble(v, pos + (ind2<<3));
 				}
 				//ind2 += iborder2 + diff_w;
 				ind2 += iborder2;
+			}
+		}
+	*/	
+		protected function writeIntegralImageData(width:int, height:int, bmp:BitmapData):void
+		{			
+			imageProc.preProcess(bmp, buffer);
+
+			var data:Vector.<uint> = buffer.getVector(imageRect);
+
+			var i:int, j:int, ind:int, ind2:int;
+			var sum:Number = 0;
+			var pos:int = integralDataPointer;
+			var nw:int = width + iborder2;
+			
+			i = iborder + iborder * nw;
+			for( j = 0; j < width; ++j, ++i )
+			{
+				sum += (data[j] & 0xFF) * colorScale;
+				Memory.writeDouble(sum, pos + (i<<3));
+			}
+
+			ind = width;
+			ind2 = i + iborder2;
+			var ind3:int = ind2 - nw;
+
+			for( i = 1; i < height; ++i )
+			{
+				sum = 0;
+				for( j = 0; j < width; ++j, ++ind, ++ind2, ++ind3 )
+				{
+					sum += (data[ind] & 0xFF) * colorScale;
+					Memory.writeDouble(Memory.readDouble(pos + (ind3<<3)) + sum, pos + (ind2<<3));
+				}
+				ind2 += iborder2;
+				ind3 += iborder2;
 			}
 		}
 	}

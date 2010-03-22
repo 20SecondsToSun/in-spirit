@@ -1,36 +1,19 @@
 #include <math.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-
 static const double TINY_NEAR_ZERO = 1.0E-12;
 
-static inline double SIGN(register double a, register double b)
-{
-	return ((b) >= 0 ? fabs(a) : -fabs(a));
-}
+void MultiplyMat(register double *m1, register double *m2, register double *res, const int M1, const int N1, const int M2, const int N2);
+int PseudoInverse(register double *inv, register double *matx, const int M, const int N);
+int invert3x3(double *src, double *inv);
 
-static inline double PYTHAG(register double a, register double b)
-{
-	register double absa, absb, ct;
-	absa = fabs(a);
-	absb = fabs(b);
-
-	if(absa > absb) {
-		ct = absb/absa;
-		return absa * sqrt(1.0 + ct*ct);
-	} else {
-		ct = absa/absb;
-		return (absb == 0) ? 0 : absb * sqrt(1.0 + ct*ct);
-	}
-}
-
-static int _mossNRsvdcmp(register double **a, const int m, const int n, double w[], register double **v)
+int _mossNRsvdcmp(register double **a, const int m, const int n, double w[], register double **v)
 {
 	int flag,i,its,j,jj,k,l,nm;
 	double anorm,c,f,g,h,s,scale,x,y,z, rv11[n+1];
-
-	//rv1 = (double *)malloc((n)*sizeof(double));
+	
 	register double *rv1 = rv11;
 	g = scale = anorm = 0.0;
 	for (i=1;i<=n;i++) {
@@ -213,9 +196,8 @@ static int _mossNRsvdcmp(register double **a, const int m, const int n, double w
 	return 0;
 }
 
-static int mossSVD(register double *U, register double *W, register double *V, register double *matx, const int M, const int N)
+int mossSVD(register double *U, register double *W, register double *V, register double *matx, const int M, const int N)
 {
-	//char me[]="mossSVD", err[128];
 	register double **nrU, *nrW, **nrV;
 	int problem, i;
 
@@ -236,8 +218,6 @@ static int mossSVD(register double *U, register double *W, register double *V, r
 		}
 	}
 	if (problem) {
-		//sprintf(err, "%s: couldn't allocate arrays", me);
-		//biffAdd(MOSS, err);
 		return 1;
 	}
 
@@ -246,48 +226,11 @@ static int mossSVD(register double *U, register double *W, register double *V, r
 		memcpy(&(nrU[i][1]), matx + N*(i-1), N*sizeof(double));
 	}
 
-	/*
-	printf("%s: given matx:\n", me);
-	for (i=1; i<=M; i++) {
-	printf("%s:", me);
-	for (j=1; j<=N; j++) {
-	printf(" %g", nrU[i][j]);
-	}
-	printf("\n");
-	}
-	printf("%s:\n", me);
-	*/
-
 	/* HERE IT IS: do SVD */
 	if (_mossNRsvdcmp(nrU, M, N, nrW, nrV)) {
 		//sprintf(err, "%s: trouble in core SVD calculation", me);
-		//biffAdd(MOSS, err);
 		return 1;
 	}
-	/*
-	printf("%s: svdcmp returned U:\n", me);
-	for (i=1; i<=M; i++) {
-	for (j=1; j<=N; j++) {
-	printf(" %g", -nrU[i][j]);
-	}
-	printf("\n");
-	}
-	printf("%s:\n", me);
-	printf("%s: svdcmp returned W:\n", me);
-	for (i=1; i<=N; i++) {
-	printf(" %g", nrW[i]);
-	}
-	printf("\n");
-	printf("%s:\n", me);
-	printf("%s: svdcmp returned V:\n", me);
-	for (i=1; i<=N; i++) {
-	for (j=1; j<=N; j++) {
-	printf(" %g", -nrV[i][j]);
-	}
-	printf("\n");
-	}
-	printf("%s:\n", me);
-	*/
 
 	/* copy results into caller's arrays */
 	for (i=1; i<=M; i++) {
@@ -297,31 +240,6 @@ static int mossSVD(register double *U, register double *W, register double *V, r
 	for (i=1; i<=N; i++) {
 		memcpy(V + N*(i-1), &(nrV[i][1]), N*sizeof(double));
 	}
-
-	/*
-	printf("%s: we will return U:\n", me);
-	for (i=0; i<=M-1; i++) {
-	for (j=0; j<=N-1; j++) {
-	printf(" %g", U[j+N*i]);
-	}
-	printf("\n");
-	}
-	printf("%s:\n", me);
-	printf("%s: we will return W:\n", me);
-	for (i=0; i<=N-1; i++) {
-	printf(" %g", W[i]);
-	}
-	printf("\n");
-	printf("%s:\n", me);
-	printf("%s: we will return V:\n", me);
-	for (i=0; i<=N-1; i++) {
-	for (j=0; j<=N-1; j++) {
-	printf(" %g", V[j+N*i]);
-	}
-	printf("\n");
-	}
-	printf("%s:\n", me);
-	*/
 
 	/* free Numerical Recipes arrays */
 	for (i=1; i<=M; i++) free(nrU[i]);
@@ -336,42 +254,26 @@ static int mossSVD(register double *U, register double *W, register double *V, r
 	return 0;
 }
 
-int PseudoInverse(register double *inv, register double *matx, const int M, const int N) {
-	//char me[]="_mossPseudoInverse", err[128];
+int PseudoInverse(register double *inv, register double *matx, const int M, const int N) 
+{
 	register double *U, *W, *V, ans;
 	int i, j, k;
 
-	/*
-	printf("%s: given M=%d, N=%d, matx=:\n", me, M, N);
-	for (i=0; i<=M-1; i++) {
-	printf("%s:", me);
-	for (j=0; j<=N-1; j++) {
-	printf(" %g", matx[j + N*i]);
-	}
-	printf("\n");
-	}
-	printf("%s:\n", me);
-	*/
 	U = (double *)malloc(M*N*sizeof(double));
 	W = (double *)malloc(N*sizeof(double));
 	V = (double *)malloc(N*N*sizeof(double));
 
 	if (!(U && W && V)) {
-		//sprintf(err, "%s: couldn't alloc matrices", me);
-		//biffAdd(MOSS, err);
 		return 1;
 	}
 	if (mossSVD(U, W, V, matx, M, N)) {
 		//sprintf(err, "%s: trouble in SVD computation", me);
-		//biffAdd(MOSS, err);
 		return 1;
 	}
 
 	for (i=0; i<=N-1; i++) {
-		if (fabs(W[i]) < TINY_NEAR_ZERO) {
-			/*sprintf(err, "%s: abs(W[%d]) = %g < %g = tiny",
-				me, i, fabs(W[i]), MOSS_TINYVAL);
-			biffAdd(MOSS, err);*/
+		if (fabs(W[i]) < TINY_NEAR_ZERO) 
+		{
 			return 1;
 		}
 	}
@@ -392,16 +294,31 @@ int PseudoInverse(register double *inv, register double *matx, const int M, cons
 	free(U);
 	free(W);
 	free(V);
-	/*
-	printf("%s: returning inv:\n", me);
-	for (i=0; i<=N-1; i++) {
-	for (j=0; j<=M-1; j++) {
-	printf(" %g", inv[j + M*i]);
-	}
-	printf("\n");
-	}
-	printf("%s:\n", me);
-	*/
+	
+	return 0;
+}
+
+int invert3x3(double *src, double *inv)
+{
+	double m11 = src[0], m12 = src[1], m13 = src[2], m21 = src[3], m22 = src[4], m23 = src[5], m31 = src[6], m32 = src[7], m33 = src[8];
+	double det = m11 * (m22*m33 - m23*m32) - m12 * (m21*m33 - m23*m31) + m13 * (m21*m32 - m22*m31);
+	
+	if(det == 0) return 1;
+	
+	det = 1.0 / det;
+	
+	inv[0] = det * (m22*m33 - m23*m32);
+	inv[1] = det * (m13*m32 - m12*m33);
+	inv[2] = det * (m12*m23 - m13*m22);
+	
+	inv[3] = det * (m23*m31 - m21*m33);
+	inv[4] = det * (m11*m33 - m13*m31);
+	inv[5] = det * (m13*m21 - m11*m23);
+	
+	inv[6] = det * (m21*m32 - m22*m31);
+	inv[7] = det * (m12*m31 - m11*m32);
+	inv[8] = det * (m11*m22 - m12*m21);
+	
 	return 0;
 }
 
@@ -412,12 +329,12 @@ void MultiplyMat(register double *m1, register double *m2, register double *res,
 	double sum;
 
 	int row, col, inner;
-	for( row = 0; row < timesRows; ++row )
+	for( row = 0; row < timesRows; row++ )
 	{
-		for( col = 0; col < timesCols; ++col )
+		for( col = 0; col < timesCols; col++ )
 		{
 			sum = 0;
-			for( inner = 0; inner < timesInner; ++inner )
+			for( inner = 0; inner < timesInner; inner++ )
 			{
 				sum += m1[row*N1 + inner] * m2[inner*N2 + col];
 			}
