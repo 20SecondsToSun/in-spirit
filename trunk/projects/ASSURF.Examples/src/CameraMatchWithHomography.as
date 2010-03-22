@@ -35,7 +35,7 @@ package
 	{
 		[Embed(source = '../assets/graffiti_400.png')] private var defImg:Class;
 		
-		public static const SCALE:Number = 1.5;
+		public static const SCALE:Number = 1.4;
 
 		public static const SCALE_MAT:Matrix = new Matrix(1/SCALE, 0, 0, 1/SCALE, 0, 0);
 		public static const ORIGIN:Point = new Point();
@@ -98,7 +98,7 @@ package
 			
 			screenBmp.bitmapData = camera.bitmapData;
 			
-			surfOptions = new SURFOptions(int(640 / SCALE), int(480 / SCALE), 200, 0.003, true, 4, 4, 2);
+			surfOptions = new SURFOptions(int(640 / SCALE), int(480 / SCALE), 200, 0.003, true, 3, 4, 2);
 			surf = new ASSURF(surfOptions);
 			
 			surf.pointMatchFactor = 0.55;
@@ -112,7 +112,7 @@ package
 			buffer.draw(refb);
 			buffer.lock();
 			
-			surf.setReferenceImage(buffer, new SURFOptions(refb.width, refb.height, 200, 0.004, true, 4, 4, 2));
+			surf.setReferenceImage(buffer, new SURFOptions(refb.width, refb.height, 200, 0.004, true, 3, 4, 2));
 			
 			buffer = new BitmapData(surfOptions.width, surfOptions.height, false, 0x00);
 			buffer.lock();

@@ -49,6 +49,9 @@ package
 		
 		protected var stat_txt:Label;
 		
+		protected var maxPts:int = 0;
+		protected var maxPtsT:int = 200;
+		
 		public function CameraIPoints()
 		{
 			super();
@@ -103,13 +106,30 @@ package
 			
 			buffer.draw(camera.bitmapData, SCALE_MAT);
 			
+			//var t:int = getTimer();
+			
 			// This is simple points extraction
 			var ipts:Vector.<IPoint> = surf.getInterestPoints(buffer);
+			
+			//var tt:int = getTimer() - t;
+			
 			SURFUtils.drawIPoints(gfx, ipts, SCALE);
 			
 			stat_txt.text = 'FOUND POINTS: ' + surf.currentPointsCount;
+			/*t = surf.currentPointsCount;
+			if(t > maxPts) 
+			{
+				maxPts = surf.currentPointsCount;
+				maxPtsT = tt;
+			} else if(t == maxPts) 
+			{
+				maxPtsT = (maxPtsT + tt) * 0.5;
+			}
+			
+			stat_txt.text = 'MAX PROCESSED IN: ' + maxPtsT;
+			stat_txt.text += '\nMAX FOUND POINTS: ' + maxPts;*/
 		}
-		
+
 		protected function onCorrectLevels(e:Event):void
 		{
 			autoCorrect = CheckBox(e.currentTarget).selected;
