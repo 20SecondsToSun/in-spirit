@@ -1,0 +1,56 @@
+#labels Featured
+#Viola-Jones object detection using Adobe Flash.
+
+= Haar Cascades Detector =
+
+[http://farm5.static.flickr.com/4016/4474350420_58c3386fc1_o.png]
+
+Simplified for the best performance implementation of [http://en.wikipedia.org/wiki/Viola-Jones_object_detection_framework Viola-Jones object detection] using Adobe Flash.
+
+=== Features ===
+
+  * Stump and Tree based cascades XML files
+  * Built in Region of interest support
+  * Optional start detection size, scale up speed and region analyzation step factor
+
+=== Usage info ===
+
+{{{
+// init detector instance. second argument is to set if cascade file is Tree based or not
+var detector:HaarCascadesDetector = new HaarCascadesDetector('path_to_cascade.xml', false);
+
+// setting image to use for detection
+detector.image = bitmapDataObject;
+
+// now we call detect method to find all available objects
+// please note that detector uses only BLUE channel of the image
+// so u have to GRAYSCALE it first. I haven't included this operation inside
+// to allow users make any pre-processing operations with the image
+
+// bounds Rectangle - where to search our object
+
+// base Scale factor of initial search window size 
+// ex. if cascade size is 20x20 and u specify base scale 1.2 
+// detector will start analyzation from window size: 20*1.2 x 20*1.2
+
+// scale Increment factor of window scale up during analyzation cycles
+
+// step Increment factor of window analyzation ex. when we have window size 20x20
+// and step increment 0.1 it will divide each size of window into steps to process 
+// 20*0.1 = 10 steps in width and 20*0.1 = 10 steps in height
+
+// skipIntegralMath - useful when you using several detectors with one image.
+// If so you will need to call prepare() method before running first detector
+// and then specify skipIntegralMath as true for all other detector instances
+
+var rects:Vector.<Rectangle> = detector.detect(boundsRectangle, baseScale, scaleIncrement, stepIncrement, skipIntegralMath);
+
+// if we found smth it will be in rects Vector object
+// however there may be too much rectangles that represent the same object
+// you can filter them yourself or use built it merge method
+
+rects = detector.merge(rects);
+
+// now you only have to draw result rectangles or to use them for other analyzation
+
+}}}
