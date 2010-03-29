@@ -1,5 +1,5 @@
+#summary Viola-Jones object detection using Adobe Flash.
 #labels Featured
-#Viola-Jones object detection using Adobe Flash.
 
 = Haar Cascades Detector =
 
@@ -54,3 +54,7 @@ rects = detector.merge(rects);
 // now you only have to draw result rectangles or to use them for other analyzation
 
 }}}
+
+=== Download ===
+
+[http://in-spirit.googlecode.com/files/HaarCascadesDetector.swc.zip HaarCascadesDetector.swc download]
