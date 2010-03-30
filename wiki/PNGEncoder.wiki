@@ -3,7 +3,7 @@
 
 = PNG Encoder =
 
-This package allows you asynchronously encode or merge several BitmapData objects into single PNG image. 
+This package allows you asynchronously encode and merge several/single BitmapData objects into single PNG image. 
 It is a very easy task until you need to save a really large/huge image file (for print purpose or whatever). As far as Flash don’t have ability to compress/deflate ByteArrays in append way or simply partly we surely will crash flash player while compressing image data for image larger then 10.000×10.000 px. I've compiled custom ZLIB library using Alchemy to be able to compress image data asynchronously during encoding.
 Along with asynchronous methods the package also allows you encode PNG files in normal way like default Adobe encoder but bringing more power to this operations with custom ZLIB compression levels and PNG Filters.
 
