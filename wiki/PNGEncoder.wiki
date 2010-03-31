@@ -1,5 +1,4 @@
 #summary Extended PNG Encoder for Adobe Flash.
-#labels Featured
 
 = PNG Encoder =
 
