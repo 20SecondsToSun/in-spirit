@@ -1,6 +1,0 @@
-#summary SURF feature extraction library written in Flash using Alchemy.
-#labels Featured
-
-*THE PROJECT MOVED TO NEW BRANCH BECAUSE OF POLICY REASONS*
-
-*[http://code.google.com/p/in-spirit/wiki/ASSURF ASSURF Wiki Page]*
