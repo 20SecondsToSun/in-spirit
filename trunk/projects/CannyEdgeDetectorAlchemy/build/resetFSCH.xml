@@ -1,5 +1,0 @@
-<project name="resetFSCH" default="default">
-	<target name="default" >
-		<fdt.launch.resetFCSH />
-	</target>
-</project>
