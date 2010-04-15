@@ -12,6 +12,7 @@ Simplified for the best performance implementation of [http://en.wikipedia.org/w
   * Stump and Tree based cascades XML files
   * Built in Region of interest support
   * Optional start detection size, scale up speed and region analyzation step factor
+  * Optional Edges Map to speed up process by skipping low-edged areas
 
 === Usage info ===
 
@@ -39,11 +40,14 @@ detector.image = bitmapDataObject;
 // and step increment 0.1 it will divide each size of window into steps to process 
 // 20*0.1 = 10 steps in width and 20*0.1 = 10 steps in height
 
-// skipIntegralMath - useful when you using several detectors with one image.
-// If so you will need to call prepare() method before running first detector
-// and then specify skipIntegralMath as true for all other detector instances
+// edgeBitmap - you can provide BitmapData object with detected edges to speed up
+// detection process. (I recommend to use CannyEdgeDetector)
 
-var rects:Vector.<Rectangle> = detector.detect(boundsRectangle, baseScale, scaleIncrement, stepIncrement, skipIntegralMath);
+// otherDetector - instance of other HaarCascadesDetector
+// useful when you using several detectors with one image.
+// it will use calculated image data from other detector
+
+var rects:Vector.<Rectangle> = detector.detect(boundsRectangle, baseScale, scaleIncrement, stepIncrement, edgeBitmap, otherDetector);
 
 // if we found smth it will be in rects Vector object
 // however there may be too much rectangles that represent the same object
