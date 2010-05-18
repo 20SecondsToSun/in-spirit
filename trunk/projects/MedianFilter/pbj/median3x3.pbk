@@ -1,0 +1,90 @@
+<languageVersion : 1.0;>
+
+kernel MedianSimple
+<   namespace: "ru.inspirit";
+	vendor: "Eugene Zatepyakin & Mario Klingemann";
+    version : 1;
+    description : "Median Filter: 3x3";
+>
+{
+    input image4 src;
+    output pixel4 dst;
+
+    // Sorts a 3x3 window of pixels to select median value for each channel.
+    // Obviously a bubble sort aint great, the easiest i could do without loops.
+    // Larger windows would benefit from an optomised sorting algorithm.
+    //
+    // Optimized by Mario Klingemann
+    // http://www.quasimondo.com
+
+    #define comp(a,b,m) m = max( a, b ); b = a + b - m; a = m;
+
+    void evaluatePixel()
+    {
+        // 3x3 window
+        // tl tm tr
+        // ml mm mr
+        // bl bm br
+        float2 pos = outCoord();
+        float3 mm = sampleNearest(src, pos ).rgb;
+        pos.x -= 1.0;
+        float3 ml = sampleNearest(src, pos ).rgb;
+        pos.y -= 1.0;
+        float3 tl = sampleNearest(src, pos ).rgb;
+        pos.x += 1.0;
+        float3 tm = sampleNearest(src, pos ).rgb;
+        pos.x += 1.0;
+        float3 tr = sampleNearest(src, pos ).rgb;
+        pos.y += 1.0;
+        float3 mr = sampleNearest(src, pos ).rgb;
+        pos.y += 1.0;
+        float3 br = sampleNearest(src, pos ).rgb;
+        pos.x -= 1.0;
+        float3 bm = sampleNearest(src, pos ).rgb;
+        pos.x -= 1.0;
+        float3 bl = sampleNearest(src, pos ).rgb;
+
+        float3 swap = float3( 0.0,0.0,0.0 );
+
+        comp(tl,tm,swap);
+        comp(tl,tr,swap);
+        comp(tl,ml,swap);
+        comp(tl,mm,swap);
+        comp(tl,mr,swap);
+        comp(tl,bl,swap);
+        comp(tl,bm,swap);
+        comp(tl,br,swap);
+
+        comp(tm,tr,swap);
+        comp(tm,ml,swap);
+        comp(tm,mm,swap);
+        comp(tm,mr,swap);
+        comp(tm,bl,swap);
+        comp(tm,bm,swap);
+        comp(tm,br,swap);
+
+        comp(tr,ml,swap);
+        comp(tr,mm,swap);
+        comp(tr,mr,swap);
+        comp(tr,bl,swap);
+        comp(tr,bm,swap);
+        comp(tr,br,swap);
+
+        comp(ml,mm,swap);
+        comp(ml,mr,swap);
+        comp(ml,bl,swap);
+        comp(ml,bm,swap);
+        comp(ml,br,swap);
+
+        comp(mm,mr,swap);
+        comp(mm,bl,swap);
+        comp(mm,bm,swap);
+        comp(mm,br,swap);
+
+        // Maintain alhpa
+        dst = sampleNearest(src,outCoord());
+        // Apply Median value to output.
+        dst.rgb = mm;
+
+    }
+    }

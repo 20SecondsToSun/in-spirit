@@ -16,14 +16,17 @@ package ru.inspirit.image.filter
 
 	/**
 	 * Alchemy based version of Median Filter
-	 * also included Pixel Bender filter for 3x3 median processing
+	 * 
+	 * also included Pixel Bender filters for 3x3 & 5x5 median processing
+	 * optimized by Mario Klingemann (http://www.quasimondo.com)
 	 *
 	 * @author Eugene Zatepyakin
 	 * @link http://blog.inspirit.ru
 	 */
 	final public class MedianFilter extends EventDispatcher
 	{
-		[Embed('../../../../../pbj/MedianSimple3x3.pbj', mimeType='application/octet-stream')] private static const median3x3PBJ:Class;
+		[Embed('../../../../../pbj/median3x3.pbj', mimeType='application/octet-stream')] private static const median3x3PBJ:Class;
+		[Embed('../../../../../pbj/median5x5.pbj', mimeType='application/octet-stream')] private static const median5x5PBJ:Class;
 
 		protected var MEDIAN_LIB:Object;
 		protected var alchemyRAM:ByteArray;
@@ -35,14 +38,16 @@ package ru.inspirit.image.filter
 		protected var asyncTimer:Timer;
 		protected var buffer:BitmapData;
 
-		protected var median3x3_shader:Shader;
-		protected var median3x3_job:ShaderJob;
+		protected var median3x3_shader:Shader;		
+		protected var median5x5_shader:Shader;
+		protected var median_job:ShaderJob;
 
 		public function MedianFilter()
 		{
 			init();
 
 			median3x3_shader = new Shader(new median3x3PBJ() as ByteArray);
+			median5x5_shader = new Shader(new median5x5PBJ() as ByteArray);
 
 			asyncTimer = new Timer(10);
 		}
@@ -66,8 +71,18 @@ package ru.inspirit.image.filter
 			median3x3_shader.data.src.height = src.height;
 			median3x3_shader.data.src.input = src;
 
-			median3x3_job = new ShaderJob(median3x3_shader, dst, dst.width, dst.height);
-			median3x3_job.start(true);
+			median_job = new ShaderJob(median3x3_shader, dst, dst.width, dst.height);
+			median_job.start(true);
+		}
+		
+		public function median5x5(src:BitmapData, dst:BitmapData):void
+		{
+			median5x5_shader.data.src.width = src.width;
+			median5x5_shader.data.src.height = src.height;
+			median5x5_shader.data.src.input = src;
+
+			median_job = new ShaderJob(median5x5_shader, dst, dst.width, dst.height);
+			median_job.start(true);
 		}
 
 		public function medianRGB(src:BitmapData, dst:BitmapData, radius:int):void
