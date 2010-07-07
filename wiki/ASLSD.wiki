@@ -38,6 +38,39 @@ while( --i > -1 )
 lsd.dispose();
 }}}
 
+=== Async usage ===
+{{{
+
+var lsd:ASLSD = new ASLSD();
+lsd.source = bitmapDataObject;
+
+lsd.addEventListener(Event.COMPLETE, onAsyncEnd);
+lsd.addEventListener(ProgressEvent.PROGRESS, onAsyncProgress);
+
+lsd.getLineSegmentsAsync();
+
+function onAsyncProgress(e:ProgressEvent):void
+{
+    //'PROGRESS: ' + String(int(e.bytesLoaded / e.bytesTotal * 100 + 0.5));
+}
+
+function onAsyncEnd(e:Event):void
+{
+    var res:Vector.<int> = lsd.lineSegments;
+    var i:int = lsd.segmentsCount;
+    var j:int = -1;
+			
+    while( --i > -1 )
+    {
+        var x1:int = res[++j];
+        var y1:int = res[++j];
+        var x2:int = res[++j];
+        var y2:int = res[++j];
+        drawLine(x1, y1, x2, y2);
+    }
+}
+}}}
+
 === Download ===
 *[http://in-spirit.googlecode.com/files/ASLSD.zip Compiled SWC Lib]*
 
