@@ -1,5 +1,5 @@
 #summary Helper application for ASSURF Lib usage
-#labels Featured
+#labels Deprecated
 
 = ASSURF Bundle Manager =
 
