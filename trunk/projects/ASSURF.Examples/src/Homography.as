@@ -20,6 +20,10 @@ package
 	import flash.text.TextField;
 	import flash.utils.Timer;
 	import flash.utils.getTimer;
+	
+	/**
+	 * @author Eugene Zatepyakin
+	 */
 
 	[SWF(width='640',height='590',frameRate='30',backgroundColor='0xFFFFFF')]
 

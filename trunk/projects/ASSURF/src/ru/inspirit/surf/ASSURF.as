@@ -407,6 +407,11 @@ package ru.inspirit.surf
 			return mask_sh;
 		}
 		
+		public function get referencePointsCount():int
+		{
+			return Memory.readInt(testPtr + ((maxScreenPoints+3) << 2));
+		}
+		
 		/**
 		 * Clear all allocated memory inside Alchemy
 		 */

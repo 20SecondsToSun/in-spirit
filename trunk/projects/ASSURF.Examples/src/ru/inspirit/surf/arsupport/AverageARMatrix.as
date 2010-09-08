@@ -1,4 +1,4 @@
-package ru.inspirit.surf.arsupport  
+package ru.inspirit.surf.arsupport
 {
 	import ru.inspirit.surf.ar.ARTransformMatrix;
 
@@ -7,35 +7,33 @@ package ru.inspirit.surf.arsupport
 	/**
 	 * @author Eugene Zatepyakin
 	 */
-	public final class AverageARMatrix extends ARTransformMatrix 
+	public final class AverageARMatrix extends ARTransformMatrix
 	{
-		public static var maxLength:int = 4;
-		public static var maxMatrixLife:int = 150; // time in ms
-		
+		public static var maxLength:int = 3;
+		public static var maxMatrixLife:int = 150;
+		// time in ms
+
 		public var entries:AverageEntry = new AverageEntry();
 		public var count:uint = 0;
-		
+
 		public function AverageARMatrix()
 		{
 			reset();
 		}
-		
-		public function addMatrix(matrix:ARTransformMatrix, error:Number):void 
-		{			
-			var entr : AverageEntry = new AverageEntry();
+
+		public function addMatrix( matrix:ARTransformMatrix, error:Number ):void
+		{
+			var entr:AverageEntry = new AverageEntry();
 			entr.next = entries;
 			entries = entr;
-			
 			count++;
-			
 			entr.transform = matrix;
 			entr.life = getTimer();
 			entr.error = error;
-			
 			var n:int = count;
-			//var n2:int = n >> 1;
+			// var n2:int = n >> 1;
+
 			var m:ARTransformMatrix;
-			
 			m00 = 0;
 			m01 = 0;
 			m02 = 0;
@@ -48,12 +46,10 @@ package ru.inspirit.surf.arsupport
 			m21 = 0;
 			m22 = 0;
 			m23 = 0;
-			
 			entr = entries;
-			while(entr.next) 
+			while(entr.next)
 			{
 				m = entr.transform;
-				
 				m00 += m.m00;
 				m01 += m.m01;
 				m02 += m.m02;
@@ -66,7 +62,6 @@ package ru.inspirit.surf.arsupport
 				m21 += m.m21;
 				m22 += m.m22;
 				m23 += m.m23;
-				
 				/*if(i >= 2)
 				{
 					m03 += m.m03;
@@ -75,9 +70,7 @@ package ru.inspirit.surf.arsupport
 				}*/
 				entr = entr.next;
 			}
-			
 			var invDel:Number = 1 / n;
-			
 			m00 *= invDel;
 			m01 *= invDel;
 			m02 *= invDel;
@@ -90,15 +83,14 @@ package ru.inspirit.surf.arsupport
 			m21 *= invDel;
 			m22 *= invDel;
 			m23 *= invDel;
-			
 			if(count > maxLength)
 			{
 				removeWorstOne();
 				--count;
 			}
 		}
-		
-		public function reset():void 
+
+		public function reset():void
 		{
 			if(count)
 			{
@@ -106,7 +98,7 @@ package ru.inspirit.surf.arsupport
 				entries = new AverageEntry();
 			}
 		}
-		
+
 		private function removeWorstOne():void
 		{
 			var t:uint = getTimer();
@@ -115,10 +107,9 @@ package ru.inspirit.surf.arsupport
 			var old:uint = 0;
 			var td:uint;
 			var remErr:AverageEntry;
-			var remTime:AverageEntry;			
-			var entr : AverageEntry = entries;
-			
-			while(entr.next) 
+			var remTime:AverageEntry;
+			var entr:AverageEntry = entries;
+			while(entr.next)
 			{
 				err = entr.error;
 				if(err > maxErr)
@@ -134,27 +125,19 @@ package ru.inspirit.surf.arsupport
 				}
 				entr = entr.next;
 			}
-			
-			if(old > maxMatrixLife) 
+			if(old > maxMatrixLife)
 			{
-				removeEntry(remTime);
+				removeEntry( remTime );
 			}
-			else 
+			else
 			{
-				removeEntry(remErr);
+				removeEntry( remErr );
 			}
 		}
-		
+
 		public function getAway3DLiteMatrix():Vector.<Number>
 		{
-			
-			return Vector.<Number>([
-					m00,	m10,	m20,	0,
-					m01,	m11,	m21,	0,
-					m02,	m12,	m22,	0,
-					m03,	m13,	m23,	1
-					]);
-			
+			return Vector.<Number>( [ m00, m10, m20, 0, m01, m11, m21, 0, m02, m12, m22, 0, m03, m13, m23, 1 ] );
 			/*
 			// may be useful
 			return Vector.<Number>([
@@ -164,18 +147,18 @@ package ru.inspirit.surf.arsupport
 					 m03,	 m13,	 m23, 1
 					]);*/
 		}
-		
-		private function removeEntry(entr:AverageEntry):void
+
+		private function removeEntry( entr:AverageEntry ):void
 		{
 			var tmp:AverageEntry;
-			if(entr == entries) 
+			if(entr == entries)
 			{
 				tmp = entries;
-				if(count > 1) 
+				if(count > 1)
 				{
 					entries = entries.next;
 				}
-				else 
+				else
 				{
 					entries = null;
 				}
@@ -183,7 +166,8 @@ package ru.inspirit.surf.arsupport
 			else
 			{
 				tmp = entries;
-				while (tmp.next != entr) tmp = tmp.next;
+				while (tmp.next != entr)
+					tmp = tmp.next;
 				tmp.next = entr.next;
 			}
 		}

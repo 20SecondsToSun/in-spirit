@@ -1,10 +1,8 @@
-package ru.inspirit.surf.arsupport  
+package ru.inspirit.surf.arsupport
 {
 	import away3dlite.containers.ObjectContainer3D;
 
 	import ru.inspirit.surf.ar.ARTransformMatrix;
-
-	import flash.events.Event;
 
 	/**
 	 * @author Eugene Zatepyakin
@@ -12,37 +10,35 @@ package ru.inspirit.surf.arsupport
 	public class ARAway3DLiteDisplayObject extends ObjectContainer3D
 	{
 		public var averageMatrix:AverageARMatrix = new AverageARMatrix();
-		
-		public var maxLostCount:uint = 5;
+		public var maxLostCount:uint = 7;
 		public var lostCount:uint = 0;
 		public var detected:Boolean = false;
-		
+
 		public function ARAway3DLiteDisplayObject()
 		{
 			super();
 		}
-		
-		public function setTransform(tm:ARTransformMatrix, matrixError:Number):void
+
+		public function setTransform( tm:ARTransformMatrix, matrixError:Number ):void
 		{
-			averageMatrix.addMatrix(tm, matrixError);
-			
+			averageMatrix.addMatrix( tm, matrixError );
+
 			this.transform.matrix3D.rawData = averageMatrix.getAway3DLiteMatrix();
-			//this.transform.matrix3D.rawData = tm.getAway3DLiteMatrix();
-			
+
 			visible = true;
 			detected = true;
 			lostCount = 0;
 		}
-		
+
 		public function lost():void
 		{
-			if(++lostCount > maxLostCount)
+			if(++lostCount == maxLostCount)
 			{
 				hideObject();
 			}
 		}
-		
-		protected function hideObject(e:Event = null):void
+
+		protected function hideObject():void
 		{
 			visible = false;
 			detected = false;
