@@ -63,8 +63,6 @@ int DETECT_PRECISION = 1;
 // --------------------------------------------
 // KDTREE STRUCTURE
 
-void buildRefIndexTree(double *descriptorsRef, const int referencePointsCount, const int dimension);
-int getMatchesByTree(IPoint *currP, IPoint *refP, const int num1, const int num2, IPointMatch *matches, int prevMatchedCount, const double point_match_factor);
 #include "match_kdtree.c"
 
 // --------------------------------------------
@@ -240,6 +238,7 @@ AS3_Val createRefObject(void* self, AS3_Val args)
 	obj.width = iw;
 	obj.height = ih;
 	obj.pointsCount = 0;
+	obj.descriptors = descriptorsRef+(referencePointsCount*DESCRIPTOR_SIZE);
 	obj.points = referencePoints+referencePointsCount;
 	obj.matches = refMatches + ( referenceCount * max_points_pool );
 	
@@ -295,6 +294,7 @@ AS3_Val pushDataToRefObject(void* self, AS3_Val args)
 		ipt->x = *iptr++;
 		ipt->y = *iptr++;
 		ipt->scale = *iptr++;
+		ipt->localIndex = i;
 		
 		dptr = (double*)(out+24);
 			
@@ -365,6 +365,7 @@ AS3_Val pushImageToRefObject(void* self, AS3_Val args)
 		pts[i].y *= scale;
 		pts[i].refIndex = refID;
 		pts[i].index = j;
+		pts[i].localIndex = i;
 	}
 	
 	RefObject *obj_ptr = &refObjectsMap[refID];
@@ -377,6 +378,11 @@ AS3_Val pushImageToRefObject(void* self, AS3_Val args)
 
 AS3_Val clearReferenceObjects(void* self, AS3_Val args)
 {
+	int i;
+	for(i = 0; i < referenceCount; i++)
+	{
+		if(refObjectsMap[i].kdf) vl_kdforest_delete(refObjectsMap[i].kdf);
+	}
 	memset(refObjectsMap, 0, max_objects_pool * sizeof(RefObject));
 	
 	referencePointsCount = 0;
@@ -386,8 +392,15 @@ AS3_Val clearReferenceObjects(void* self, AS3_Val args)
 }
 
 AS3_Val buildRefIndex(void* self, AS3_Val args)
-{	
-	buildRefIndexTree(descriptorsRef, referencePointsCount, DESCRIPTOR_SIZE);
+{		
+	int i;
+	for(i=0; i<referenceCount; i++)
+	{
+		RefObject *obj = &refObjectsMap[i];
+		obj->kdf = vl_kdforest_new ( DESCRIPTOR_SIZE, 5 );
+		vl_kdforest_build (obj->kdf, obj->pointsCount, obj->descriptors);
+		vl_kdforest_set_max_num_comparisons(obj->kdf, 81);
+	}
 	
 	result_b[max_points_pool+3] = referencePointsCount;
 	supressNeighbors = 0;
@@ -437,6 +450,8 @@ AS3_Val runTask(void* self, AS3_Val args)
 	
 	screenPointsCount = detectPointsFast(img_orig, img_width, img_height, screenPoints, screenPointsThresh, screenPointsShitomasi, maxPoints, 25, 1, &prevFramePointsCount);
 	
+	RefObject *obj = &refObjectsMap[objID];
+	
 	if(prevFramePointsCount < 15)
 	{
 	
@@ -460,7 +475,7 @@ AS3_Val runTask(void* self, AS3_Val args)
 			calculateDescriptors_SURF64(screenPoints, screenPointsCount, integral, descriptorsCurr);
 		}
 
-		count = getMatchesByTree(screenPoints, referencePoints, screenPointsCount, referencePointsCount, frameMatches, prevFramePointsCount, 0.7);
+		count = getMatchesByTree(obj, screenPoints, referencePoints, screenPointsCount, referencePointsCount, frameMatches, prevFramePointsCount, 0.7);
 
 		result_b[max_points_pool] = screenPointsCount;
 		result_b[max_points_pool+1] = count;
@@ -478,8 +493,6 @@ AS3_Val runTask(void* self, AS3_Val args)
 		count = prevFramePointsCount;
 		skiped = 1;
 	}
-	
-	RefObject *obj = &refObjectsMap[objID];
 	
 	locatePlanarObject16(frameMatches, &count, &*obj->homography);
 	
@@ -507,11 +520,7 @@ AS3_Val runTask(void* self, AS3_Val args)
 			
 			obj->poseError = estimatePoseFromMatches(arcamera, &*perpMatches, &*obj->pose, 8, obj->width, obj->height);
 		}*/
-	}
-	
-	result_b[0] = screenPointsThresh;
-	result_b[1] = screenPointsShitomasi;
-	
+	}	
 
 	memcpy(img_prev, img_blur, img_width * img_height);
 	
@@ -568,27 +577,34 @@ AS3_Val runTask2(void* self, AS3_Val args)
 			calculateDescriptors_SURF64(screenPoints, screenPointsCount, integral, descriptorsCurr);
 		}
 		
-		count = getMatchesByTree(screenPoints, referencePoints, screenPointsCount, referencePointsCount, frameMatches, prevFramePointsCount, 0.7);
+		//count = getMatchesByTree(screenPoints, referencePoints, screenPointsCount, referencePointsCount, frameMatches, prevFramePointsCount, 0.7);
+		count = getMatchesByMultiTree(screenPoints, referencePoints, screenPointsCount, referencePointsCount, frameMatches, prevFramePointsCount, 0.7);
 	
-	} else {
+	} 
+	else 
+	{
 		count = prevFramePointsCount;
 		skiped = 1;
+		sortMatchesByObjects(refObjectsMap, frameMatches, referenceCount, count);
 	}
 	
 	result_b[max_points_pool] = screenPointsCount;
 	result_b[max_points_pool+1] = count;
 	result_b[max_points_pool+2] = prevFramePointsCount;
 	
-	objNum = sortMatchesByObjects(refObjectsMap, frameMatches, referenceCount, count, currRefIndexes);
 	foundReferenceCount = 0;
 	
 	IPointMatch filtMatches[count];
 	int k = 0;
 	
-	for(i = 0; i < objNum; i++)
+	for(i = 0; i < referenceCount; i++)
 	{
 	
-		RefObject *obj = &refObjectsMap[ currRefIndexes[i] ];
+		RefObject *obj = &refObjectsMap[ i ];
+		
+		if(obj->matchedPointsCount < 5) continue;
+		
+		currRefIndexes[objNum++] = i;
 		
 		obj->matchedPointsCount = filterOutliersByAngle(obj->matches, obj->matchedPointsCount);
 		obj->matchedPointsCount = filterOutliersByLines(obj->matches, obj->matchedPointsCount);
