@@ -1,4 +1,4 @@
-package 
+package
 {
 	import ru.inspirit.surf.ASSURF;
 	import ru.inspirit.surf.ReferenceInfo;
@@ -17,20 +17,20 @@ package
 	import flash.media.Camera;
 	import flash.media.Video;
 	import flash.text.TextField;
+	import flash.utils.ByteArray;
+	import flash.utils.Endian;
 	import flash.utils.Timer;
 	import flash.utils.getTimer;
-	
+
 	/**
 	 * @author Eugene Zatepyakin
 	 */
-	
+	 
 	[SWF(width='640',height='590',frameRate='30',backgroundColor='0xFFFFFF')]
-
-	public final class SingleObject3DTransform extends Sprite
+	
+	public class ImportReferenceData extends Sprite
 	{
-		[Embed(source = '../assets/graffiti_800.jpg')] private static const ref_a:Class;		
-		
-		protected const iref : BitmapData = Bitmap(new ref_a()).bitmapData;
+		[Embed('../assets/points.ass', mimeType='application/octet-stream')] protected static const ref_data_ass:Class;
 		
 		protected var myview:Sprite;
 		protected var _txt:TextField;
@@ -50,9 +50,9 @@ package
 		public var world3d:World3D;
 		
 		public var refID_0:int;
-
-		public function SingleObject3DTransform()
-		{			
+		
+		public function ImportReferenceData()
+		{
 			if(stage) init();
 			else addEventListener(Event.ADDED_TO_STAGE, init);
 		}
@@ -80,13 +80,18 @@ package
 			
 			// ASSURF setup
 			// first method you should call
-			surf.init(ASSURF.DETECT_PRECISION_MEDIUM, 300, 10000, 1);
+			surf.init(ASSURF.DETECT_PRECISION_MEDIUM, 350, 10000, 1);
 			
 			// make ASSURF detect region of interest automatically
 			//surf.autoDetectROI = true;
 			
-			// add bitmapData object as reference
-			refID_0 = surf.addRefObject(iref, 5, 1800, true);
+			// add ByteArray object as reference
+			var ref_data:ByteArray = ByteArray(new ref_data_ass());
+			ref_data.endian = Endian.LITTLE_ENDIAN;
+			ref_data.uncompress();
+			ref_data.position = 0;
+			surf.importReferenceData(ref_data);
+			refID_0 = 0;
 			
 			// finalize setup by analyzing all references
 			// you cant add anything after it
