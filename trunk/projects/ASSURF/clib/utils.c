@@ -184,8 +184,8 @@ int solve_deg2(double a, double b, double c, double *x1, double *x2)
 int filterOutliersByAngle(IPointMatch *matches, const int matchedCount)
 {
 	int i, j, k;
-	const int nbins = 360 / 6;
-	int histogram[nbins];
+	const int nbins = 360 / 4;
+	double histogram[nbins];
 	int rotdiff[matchedCount];
 	const double div = 57.295827908797776;
 	int r0, r1, ar;
@@ -200,12 +200,12 @@ int filterOutliersByAngle(IPointMatch *matches, const int matchedCount)
 		r1 = mtch->second->orientation * div;
 		ar = r1 - r0;
 		if(ar < 0) ar += 360;
-		histogram[ (ar)/6 ] += 1;//mtch->confidence;
+		histogram[ (ar)/4 ] += (double)1.1-mtch->normConfidence;
 		rotdiff[i] = ar;
 	}
 	
 	int index = 0;
-	int maxBin = histogram[index];
+	double maxBin = histogram[index];
     for (i = 1; i < nbins; i++) 
 	{
 		if (maxBin < histogram[i]) 
@@ -215,7 +215,7 @@ int filterOutliersByAngle(IPointMatch *matches, const int matchedCount)
 		}
     }
 	
-	index *= 6;
+	index *= 4;
 	
 	k = 0;
 	j = 0;
@@ -692,9 +692,9 @@ double bilinear_interpolation(const unsigned char *arr, const int w, const doubl
 	            +((double)1.0-beta)*(alfa * arr[mxyw+mnx] + ((double)1.0-alfa)*arr[mxyw+mxx] ) );
 }
 
-int sortMatchesByObjects(RefObject *objMap, IPointMatch *matches, const int objNum, const int matchNum, int *indexes)
+void sortMatchesByObjects(RefObject *objMap, IPointMatch *matches, const int objNum, const int matchNum)
 {
-	int i, j;
+	int i;
 	RefObject *obj;
 	
 	for(i = 0; i < objNum; i++)
@@ -705,20 +705,9 @@ int sortMatchesByObjects(RefObject *objMap, IPointMatch *matches, const int objN
 	
 	for(i = 0; i < matchNum; i++)
 	{
-		const IPointMatch *m = &matches[i];
+		IPointMatch *m = &matches[i];
 		obj = &objMap[ m->second->refIndex ];
-		//obj->matches[ obj->matchedPointsCount++ ] = m;
 		memcpy(obj->matches + obj->matchedPointsCount, m, sizeof(IPointMatch));
 		obj->matchedPointsCount++;
 	}
-	
-	for(i = 0, j = 0; i < objNum; i++)
-	{
-		if(objMap[i].matchedPointsCount > 4)
-		{
-			indexes[j++] = i;
-		}
-	}
-	
-	return j;
 }

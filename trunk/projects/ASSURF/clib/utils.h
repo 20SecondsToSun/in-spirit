@@ -3,6 +3,8 @@
 
 #include <math.h>
 
+#include "kdtree/kdtree.h"
+
 static const int IMG_BORDER = 10;
 static const double NCC_THRESH = 0.80;
 
@@ -27,7 +29,7 @@ static const int indY[16] = {0,1,2,3,3,3,2,1,0,-1,-2,-3,-3,-3,-2,-1};
 // ----------------------------------------------
 
 typedef struct {
-	int index, refIndex, pos, sampled;
+	int index, localIndex, refIndex, pos, sampled;
 	double score;
 	double orientation;
 	double mapScale;
@@ -41,6 +43,7 @@ typedef struct {
 	IPoint *first;
 	IPoint *second;
 	double confidence;
+	double normConfidence;
 }IPointMatch;
 
 typedef struct {
@@ -49,8 +52,10 @@ typedef struct {
 	double poseError;
 	IPoint *points;
 	IPointMatch *matches;
+	double *descriptors;
 	double homography[9];
 	double pose[12];
+	VlKDForest *kdf;
 }RefObject;
 
 int compareIPoint(const void *vp1, const void *vp2);
@@ -59,7 +64,7 @@ void perpendicularRegression(IPointMatch *matches, const int count, IPointMatch 
 void perpendicularRegressionIdx(IPointMatch *matches, const int count, int *resultMatches);
 void getHomographyPoints(IPointMatch *matches, const int count, double *scrPts, double *refPts);
 void getHomographyPoints2(IPointMatch *matches, const int count, double *scrPts, double *refPts);
-int sortMatchesByObjects(RefObject *objMap, IPointMatch *matches, const int objNum, const int matchNum, int *indexes);
+void sortMatchesByObjects(RefObject *objMap, IPointMatch *matches, const int objNum, const int matchNum);
 double bilinear_interpolation(const unsigned char *arr, const int w, const double x, const double y);
 
 // ----------------------------------------------

@@ -21,10 +21,17 @@ int detectPointsFast(const unsigned char *image, const int width, const int heig
 	int cNum, i, j, k, m, cnt = 0;
 	
 	xy *corners;
-	corners = fast9_detect_nonmax(image, width, height, width, corn_thresh, &cNum);
-	//corners = fast10_detect_nonmax(image, width, height, width, corn_thresh, &cNum);
+	//corners = fast9_detect_nonmax(image, width, height, width, corn_thresh, &cNum);
+	corners = fast10_detect_nonmax(image, width, height, width, corn_thresh, &cNum);
 	
-	//cNum = cNum < max_screen_points ? cNum : max_screen_points;
+	if(checkSimilar == 0 && cNum > max_ref_points_pool - referencePointsCount)
+	{
+		cNum = max_ref_points_pool - referencePointsCount;
+	}
+	else if(checkSimilar == 1 && cNum > max_screen_points)
+	{
+		cNum = max_screen_points;
+	}
 	
 	for(i=0; i < cNum; i++)
 	{
