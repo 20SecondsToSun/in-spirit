@@ -72,6 +72,7 @@ package ru.inspirit.surf
 			
 			this.maxScreenPoints = maxScreenPoints;
 			
+			if(referenceMap) clearRefObjects();
 			referenceMap = new Vector.<ReferenceInfo>(maxRefObjects, true);
 			updateDataPointers();
 		}

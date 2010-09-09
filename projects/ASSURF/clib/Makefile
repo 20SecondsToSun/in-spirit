@@ -2,7 +2,7 @@ CC      = gcc
 CC2     = g++
 WINFLAGS  = -O3 -Wall
 MACFLAGS  = -DOSX -O3 -Wall
-LDFLAGS = -O3 -Wall -fprefetch-loop-arrays
+LDFLAGS = -O3 -Wall
 LDLIBS  = -Llibfast -lfast -Lkdtree -lkdtree -Lrpp -lrpp
 
 PROG  = assurf_clib.swc

@@ -20,6 +20,7 @@ void locatePlanarObject(IPointMatch *matches, int *matchesCount, double *homogra
 		double T1[9];
 		double T2inv[9];
 		double tmp[9];
+		double bestH[9];
 
 		for(i = 0, j = 0; i < np; i++)
 		{
@@ -34,7 +35,7 @@ void locatePlanarObject(IPointMatch *matches, int *matchesCount, double *homogra
 		
 		const double logProb = log( (double)1.0 - PROBABILITY_REQUIRED );
 		
-		int N = 1000;
+		int N = 1500;
 		int number_of_inliers = 0;
 		int sample_count = 0;
 		int prosac_correspondences = 5;
@@ -53,12 +54,12 @@ void locatePlanarObject(IPointMatch *matches, int *matchesCount, double *homogra
 			}
 
 			homography_from_4corresp(homography,
-							   normalized_u_v_up_vp[4 * n1], normalized_u_v_up_vp[4 * n1 + 1], normalized_u_v_up_vp[4 * n1 + 2], normalized_u_v_up_vp[4 * n1 + 3],
-							   normalized_u_v_up_vp[4 * n2], normalized_u_v_up_vp[4 * n2 + 1], normalized_u_v_up_vp[4 * n2 + 2], normalized_u_v_up_vp[4 * n2 + 3],
-							   normalized_u_v_up_vp[4 * n3], normalized_u_v_up_vp[4 * n3 + 1], normalized_u_v_up_vp[4 * n3 + 2], normalized_u_v_up_vp[4 * n3 + 3],
-							   normalized_u_v_up_vp[4 * n4], normalized_u_v_up_vp[4 * n4 + 1], normalized_u_v_up_vp[4 * n4 + 2], normalized_u_v_up_vp[4 * n4 + 3]);
+							   normalized_u_v_up_vp[n1], normalized_u_v_up_vp[n1 + 1], normalized_u_v_up_vp[n1 + 2], normalized_u_v_up_vp[n1 + 3],
+							   normalized_u_v_up_vp[n2], normalized_u_v_up_vp[n2 + 1], normalized_u_v_up_vp[n2 + 2], normalized_u_v_up_vp[n2 + 3],
+							   normalized_u_v_up_vp[n3], normalized_u_v_up_vp[n3 + 1], normalized_u_v_up_vp[n3 + 2], normalized_u_v_up_vp[n3 + 3],
+							   normalized_u_v_up_vp[n4], normalized_u_v_up_vp[n4 + 1], normalized_u_v_up_vp[n4 + 2], normalized_u_v_up_vp[n4 + 3]);
 
-			//denormalizeHomography(homography);
+			//denormalize Homography
 			MultiplyMat(T2inv, homography, &*tmp, 3, 3, 3, 3);
 			MultiplyMat(tmp, T1, homography, 3, 3, 3, 3);			
 			set_bottom_right_coefficient_to_one(homography);
@@ -77,37 +78,16 @@ void locatePlanarObject(IPointMatch *matches, int *matchesCount, double *homogra
 
 					number_of_inliers = current_number_of_inliers;
 					memcpy(&*inliers, &*current_inliers, number_of_inliers * sizeof(int));
+					memcpy(&*bestH, homography, 9 * sizeof(double));
 				}
 			}
 			
 			sample_count++;
 		}
 		
+		/*
 		double pts1[number_of_inliers*2];
 		double pts2[number_of_inliers*2];
-		/*
-		// refine loop - can be slow and result in no inliers
-		int old_number_of_inliers = number_of_inliers;
-		do {
-			
-			for(i = 0; i < number_of_inliers; i++)
-			{
-				j = inliers[i] * 4;
-				pts2[i*2] = normalized_u_v_up_vp[ j++ ];
-				pts2[i*2+1] = normalized_u_v_up_vp[ j++ ];
-				pts1[i*2] = normalized_u_v_up_vp[ j++ ];
-				pts1[i*2+1] = normalized_u_v_up_vp[ j++ ];
-			}
-			
-			findHomography(number_of_inliers, pts1, pts2, homography);
-			MultiplyMat(T2inv, homography, &*tmp, 3, 3, 3, 3);
-			MultiplyMat(tmp, T1, homography, 3, 3, 3, 3);			
-			set_bottom_right_coefficient_to_one(homography);
-
-			old_number_of_inliers = number_of_inliers;
-			number_of_inliers = compute_inliers(matches, np, homography, &*inliers, INLIER_THRESHOLD_SQ);
-		} while (number_of_inliers > old_number_of_inliers);
-		*/
 		
 		for(i = 0; i < number_of_inliers; i++)
 		{
@@ -118,20 +98,16 @@ void locatePlanarObject(IPointMatch *matches, int *matchesCount, double *homogra
 			pts1[i*2+1] = normalized_u_v_up_vp[ j++ ];
 		}
 		
-		if( findHomography(number_of_inliers, pts1, pts2, homography) == 1 )
-		{
-			*matchesCount = 0;
-			return;
-		}
+		findHomography(number_of_inliers, pts1, pts2, homography);
 		MultiplyMat(T2inv, homography, &*tmp, 3, 3, 3, 3);
 		MultiplyMat(tmp, T1, homography, 3, 3, 3, 3);		
 		set_bottom_right_coefficient_to_one(homography);
 		
 		number_of_inliers = compute_inliers(matches, np, homography, &*inliers, INLIER_THRESHOLD_SQ);
-		
+		*/
+		memcpy(homography, &*bestH, 9 * sizeof(double));
 		for(i = 0; i < number_of_inliers; i++)
 		{
-			//matches[i] = matches[ inliers[i] ];
 			memcpy(matches + i, matches + inliers[i], sizeof(IPointMatch));
 		}
 		
@@ -172,6 +148,7 @@ void locatePlanarObject16(IPointMatch *matches, int *matchesCount, double *homog
 		double T1[9];
 		double T2inv[9];
 		double tmp[9];
+		double bestH[9];
 		
 		int N;
 		int number_of_inliers = 0;
@@ -225,6 +202,7 @@ void locatePlanarObject16(IPointMatch *matches, int *matchesCount, double *homog
 					{
 						number_of_inliers = current_number_of_inliers;
 						memcpy(&*inliers, &*current_inliers, number_of_inliers * sizeof(int));
+						memcpy(&*bestH, homography, 9 * sizeof(double));
 					}
 				}
 				
@@ -270,13 +248,15 @@ void locatePlanarObject16(IPointMatch *matches, int *matchesCount, double *homog
 
 						number_of_inliers = current_number_of_inliers;
 						memcpy(&*inliers, &*current_inliers, number_of_inliers * sizeof(int));
+						memcpy(&*bestH, homography, 9 * sizeof(double));
 					}
 				}
 				
 				sample_count++;
 			}
 		}
-		
+		/*
+		// compute homography using best inlier set
 		double pts1[number_of_inliers*2];
 		double pts2[number_of_inliers*2];
 		
@@ -289,17 +269,15 @@ void locatePlanarObject16(IPointMatch *matches, int *matchesCount, double *homog
 			pts1[i*2+1] = normalized_u_v_up_vp[ j++ ];
 		}
 		
-		if( findHomography(number_of_inliers, pts1, pts2, homography) == 1 )
-		{
-			*matchesCount = 0;
-			return;
-		}
+		findHomography(number_of_inliers, pts1, pts2, homography);
+		
 		MultiplyMat(T2inv, homography, &*tmp, 3, 3, 3, 3);
 		MultiplyMat(tmp, T1, homography, 3, 3, 3, 3);		
 		set_bottom_right_coefficient_to_one(homography);
 		
 		number_of_inliers = compute_inliers(matches, np, homography, &*inliers, INLIER_THRESHOLD_SQ);
-		
+		*/
+		memcpy(homography, &*bestH, 9 * sizeof(double));
 		for(i = 0; i < number_of_inliers; i++)
 		{
 			memcpy(matches + i, matches + inliers[i], sizeof(IPointMatch));
@@ -307,6 +285,58 @@ void locatePlanarObject16(IPointMatch *matches, int *matchesCount, double *homog
 		
 		*matchesCount = number_of_inliers;
 	}
+}
+
+void directHomography(IPointMatch *matches, int *matchesCount, double *homography)
+{
+	int np = *matchesCount;
+	
+	int i, j;
+	double u_v_up_vp[np*4];
+	double normalized_u_v_up_vp[np*4];
+	double T1[9];
+	double T2inv[9];
+	double tmp[9];
+	
+	int number_of_inliers = np;
+	int inliers[np];
+	
+	for(i = 0, j = 0; i < np; i++)
+	{
+		const IPointMatch *mtch = &matches[i];
+		u_v_up_vp[j++] = (double)mtch->second->x;
+		u_v_up_vp[j++] = (double)mtch->second->y;
+		u_v_up_vp[j++] = (double)mtch->first->x;
+		u_v_up_vp[j++] = (double)mtch->first->y;
+	}
+	
+	normalizePoints(np, u_v_up_vp, &*normalized_u_v_up_vp, &*T1, &*T2inv);
+	
+	double pts1[number_of_inliers*2];
+	double pts2[number_of_inliers*2];
+	
+	for(i = 0, j = 0; i < number_of_inliers; i++)
+	{
+		pts2[i*2] = normalized_u_v_up_vp[ j++ ];
+		pts2[i*2+1] = normalized_u_v_up_vp[ j++ ];
+		pts1[i*2] = normalized_u_v_up_vp[ j++ ];
+		pts1[i*2+1] = normalized_u_v_up_vp[ j++ ];
+	}
+	
+	findHomography(number_of_inliers, pts1, pts2, homography);
+	
+	MultiplyMat(T2inv, homography, &*tmp, 3, 3, 3, 3);
+	MultiplyMat(tmp, T1, homography, 3, 3, 3, 3);		
+	set_bottom_right_coefficient_to_one(homography);
+	
+	number_of_inliers = compute_inliers(matches, np, homography, &*inliers, INLIER_THRESHOLD_SQ);
+	
+	for(i = 0; i < number_of_inliers; i++)
+	{
+		memcpy(matches + i, matches + inliers[i], sizeof(IPointMatch));
+	}
+	
+	*matchesCount = number_of_inliers;
 }
 
 int findHomography(const int np, register double *pts1, register double *pts2, register double *mat)
@@ -342,7 +372,7 @@ int findHomography(const int np, register double *pts1, register double *pts2, r
 	}
 
 	if(PseudoInverse(&*temp, a, np2, 8)){
-		return 1;
+		//return 1;
 	}
 	MultiplyMat(temp, b, &*mat, 8, np2, np2, 1);
 	//mat[8] = 1;

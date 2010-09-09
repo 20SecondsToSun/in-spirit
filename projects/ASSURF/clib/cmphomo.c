@@ -7,7 +7,7 @@ void homography_from_4corresp(double *R,
                                     const double u4, const double v4, const double up4, const double vp4);
 
 void set_bottom_right_coefficient_to_one(double *H);
-void normalizePoints(const int number_of_correspondences, const double *u_v_up_vp, const double *normalized_u_v_up_vp, double *T1, double *T2inv);
+void normalizePoints(const int number_of_correspondences, const double *u_v_up_vp, double *normalized_u_v_up_vp, double *T1, double *T2inv);
 
 
 void homography_from_4pt(const double x1, const double x2, const double y1, const double y2, 
@@ -111,7 +111,7 @@ void set_bottom_right_coefficient_to_one(double *H)
 	H[8] = (double)1.0;
 }
 
-void normalizePoints(const int number_of_correspondences, const double *u_v_up_vp, const double *normalized_u_v_up_vp, double *T1, double *T2inv)
+void normalizePoints(const int number_of_correspondences, const double *u_v_up_vp, double *normalized_u_v_up_vp, double *T1, double *T2inv)
 {
 	const double invN = (double)1.0 / (double)number_of_correspondences;
 	const double sqrt2N = SQRT2 * (double)number_of_correspondences;
