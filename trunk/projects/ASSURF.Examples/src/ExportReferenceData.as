@@ -1,5 +1,6 @@
 package
 {
+	import com.bit101.components.RadioButton;
 	import ru.inspirit.surf.ASSURF;
 	import ru.inspirit.surf.Utils;
 
@@ -29,7 +30,8 @@ package
 		protected var info:Text;
 		
 		public const surf:ASSURF = new ASSURF();
-		
+
+		public var detectPrecision:int = ASSURF.DETECT_PRECISION_MEDIUM;
 		public var scaleLevels:int = 4;
 		public var maxPointsPerLevel:int = 1500;
 		public var supressNeighb:Boolean = false;
@@ -52,17 +54,25 @@ package
 			var pb:PushButton;
 			var lb:Label = new Label( myview, 10, 10, 'SCALE LEVELS' );
 			var sc:HUISlider = new HUISlider( myview , 3, 25, '', onScaleLevelChange);
-			sc.width = 150;
+			sc.width = 140;
 			sc.setSliderParams(2, 5, scaleLevels);
 			sc.labelPrecision = 0;
 			
-			lb = new Label( myview, 127, 10, 'POINTS PER LEVEL' );
-			sc = new HUISlider( myview , 120, 25, '', onPointsPerLevelChange);
-			sc.width = 180;
+			lb = new Label( myview, 117, 10, 'POINTS PER LEVEL' );
+			sc = new HUISlider( myview , 110, 25, '', onPointsPerLevelChange);
+			sc.width = 170;
 			sc.setSliderParams(500, 2000, maxPointsPerLevel);
 			sc.labelPrecision = 0;
 
-			new CheckBox( myview , 290, 29, 'SUPRESS NEIGHBORS', onSupressNeighbChange);
+			lb = new Label( myview, 270, 10, 'DETECT PRECISION' );
+			var chk:RadioButton = new RadioButton( myview , 270, 29, 'HIGH', false, onPrecisionChange);
+			chk.groupName = 'precision';
+			chk = new RadioButton( myview , 310, 29, 'MEDIUM', true, onPrecisionChange);
+			chk.groupName = 'precision';
+			chk = new RadioButton( myview , 365, 29, 'LOW', false, onPrecisionChange);
+			chk.groupName = 'precision';
+			
+			new CheckBox( myview , 270, 49, 'SUPRESS NEIGHBORS', onSupressNeighbChange);
 
 			info = new Text( myview , 12, 45, ''); 
 			info.height = 50;
@@ -75,10 +85,6 @@ package
 			
 			pb = new PushButton( myview, 232, 105, 'EXPORT DATA', exportData);
 			pb.width = 100;
-			
-			// ASSURF setup
-			// first method you should call
-			surf.init(ASSURF.DETECT_PRECISION_MEDIUM, 300, 10000, 1);
 			
 			addChild(myview);
 		}
@@ -103,6 +109,23 @@ package
 			supressNeighb = CheckBox(e.currentTarget).selected;
 		}
 		
+		protected function onPrecisionChange(e:Event):void
+		{
+			var chk:RadioButton = RadioButton( e.currentTarget );
+			switch(chk.label)
+			{
+				case 'HIGH':
+					detectPrecision = 0;
+					break;
+				case 'MEDIUM':
+					detectPrecision = 1;
+					break;
+				case 'LOW':
+					detectPrecision = 2;
+					break;
+			}
+		}
+		
 		protected function onImageLoaded(e:Event):void
 		{
 			var ld:LoaderInfo = LoaderInfo(e.currentTarget);
@@ -117,7 +140,7 @@ package
 		
 		protected function processImage(e:Event):void
 		{
-			surf.clearRefObjects();
+			surf.init(detectPrecision, 300, 10000, 1);
 			surf.addRefObject( bmp, scaleLevels, maxPointsPerLevel, supressNeighb );
 			surf.buildRefIndex();
 			

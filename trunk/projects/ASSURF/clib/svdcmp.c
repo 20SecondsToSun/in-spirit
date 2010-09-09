@@ -216,7 +216,7 @@ int mossSVD(register double *U, register double *W, register double *V, const do
 	if (_mossNRsvdcmp(&*nrU, M, N, &*nrW, &*nrV)) 
 	{
 		//trouble in core SVD calculation
-		return 1;
+		//return 1;
 	}
 
 	/* copy results into caller's arrays */
@@ -273,7 +273,7 @@ int PseudoInverse(register double *inv, const double *matx, const int M, const i
 
 	if (mossSVD(&*U, &*W, &*V, matx, M, N)) return 1;
 
-	if (fabs(W[N-1]) < TINY_NEAR_ZERO) return 1;
+	//if (fabs(W[N-1]) < TINY_NEAR_ZERO) return 1;
 
 	for (i=0; i<=N-1; i++) {
 		for (j=0; j<=M-1; j++) {

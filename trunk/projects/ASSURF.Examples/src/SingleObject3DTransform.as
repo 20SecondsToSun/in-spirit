@@ -80,13 +80,13 @@ package
 			
 			// ASSURF setup
 			// first method you should call
-			surf.init(ASSURF.DETECT_PRECISION_MEDIUM, 300, 10000, 1);
+			surf.init(ASSURF.DETECT_PRECISION_MEDIUM, 400, 10000, 1);
 			
 			// make ASSURF detect region of interest automatically
 			//surf.autoDetectROI = true;
 			
 			// add bitmapData object as reference
-			refID_0 = surf.addRefObject(iref, 5, 1800, true);
+			refID_0 = surf.addRefObject(iref, 5, 2000, true);
 			
 			// finalize setup by analyzing all references
 			// you cant add anything after it

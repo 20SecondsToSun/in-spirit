@@ -483,7 +483,8 @@ AS3_Val runTask(void* self, AS3_Val args)
 	
 		count = filterOutliersByAngle(frameMatches, count);
 		count = filterOutliersByLines(frameMatches, count);
-	
+		
+		locatePlanarObject16(frameMatches, &count, &*obj->homography);
 	}
 	else
 	{
@@ -491,10 +492,11 @@ AS3_Val runTask(void* self, AS3_Val args)
 		result_b[max_points_pool+1] = prevFramePointsCount;
 		result_b[max_points_pool+2] = prevFramePointsCount;
 		count = prevFramePointsCount;
+		
+		locatePlanarObject(frameMatches, &count, &*obj->homography);
+		
 		skiped = 1;
 	}
-	
-	locatePlanarObject16(frameMatches, &count, &*obj->homography);
 	
 	if(skiped == 1 && count < 8)
 	{
@@ -508,7 +510,7 @@ AS3_Val runTask(void* self, AS3_Val args)
 	
 	if(options == 2 && count > 4)
 	{
-		//if(count <= 16)
+		//if(count < 16)
 		//{
 			obj->poseError = estimatePoseFromMatches(arcamera, frameMatches, &*obj->pose, count, obj->width, obj->height);
 		/*}
