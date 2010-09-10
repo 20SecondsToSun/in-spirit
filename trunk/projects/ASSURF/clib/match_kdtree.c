@@ -80,11 +80,15 @@ int getMatchesByTree(RefObject *obj, IPoint *currP, IPoint *refP, const int num1
 
 int getMatchesByMultiTree(IPoint *currP, IPoint *refP, const int num1, const int num2, IPointMatch *matches, int prevMatchedCount, const double point_match_factor)
 {
-	int i, matchedCount = prevMatchedCount;
+	int i, t, matchedCount = prevMatchedCount;
+	double screen_dist[num1];
+	int prev_match_ind[num1];
+	int prev_obj_ind[num1];
+	int real_match_idx;
 	
 	VlKDForestNeighbor neighbors[2];
 	
-	int t;
+	for(i = 0; i < num1; i++) screen_dist[i] = 100.0, prev_match_ind[i]=0, prev_obj_ind[i]=-1;
 	
 	for(t = 0; t < referenceCount; t++)
 	{
@@ -99,7 +103,7 @@ int getMatchesByMultiTree(IPoint *currP, IPoint *refP, const int num1, const int
 		
 		for(i=0; i<obj->pointsCount; i++)
 		{
-			pmap[i] = 1000000;
+			pmap[i] = 100.0;
 			imap[i] = -1;
 		}
 		for(i=0; i<prevMatchedCount; i++)
@@ -115,7 +119,9 @@ int getMatchesByMultiTree(IPoint *currP, IPoint *refP, const int num1, const int
 		}
 	
 		for(i = 0; i < num1; i++)
-		{			
+		{
+			if(screen_dist[i] < 5.0) continue;
+			
 			IPoint *curr = &currP[i];
 			
 			vl_kdforest_query (refTree, &*neighbors, 2, curr->descriptor);
@@ -126,27 +132,36 @@ int getMatchesByMultiTree(IPoint *currP, IPoint *refP, const int num1, const int
 			
 			if(ratio < point_match_factor && pmap[match_idx] > curr_dist)
 			{
+				if(t > 0 && screen_dist[i] > curr_dist)
+				{
+					RefObject *obj_prv = &refObjectsMap[ prev_obj_ind[i] ];
+					memcpy( obj_prv->matches+prev_match_ind[i], obj_prv->matches+prev_match_ind[i]+1, (max_points_pool-prev_match_ind[i]-1) * sizeof(IPointMatch) );
+					obj_prv->matchedPointsCount--;
+				}
 				
 				if(imap[match_idx] > -1)
 				{
-					IPointMatch *match = &obj->matches[ imap[match_idx] ];
-					
-					match->first = curr;
-					match->second = &obj->points[match_idx];
-					match->confidence = curr_dist;
+					real_match_idx = imap[match_idx];
 				}
 				else
 				{
-					IPointMatch *match = &obj->matches[obj->matchedPointsCount];
-					
-					match->first = curr;
-					match->second = &obj->points[match_idx];
-					match->confidence = curr_dist;
-					
-					imap[match_idx] = obj->matchedPointsCount;
+					real_match_idx = obj->matchedPointsCount;					
+					imap[match_idx] = real_match_idx;
 					
 					obj->matchedPointsCount++;
 					matchedCount++;
+				}
+				
+				IPointMatch *match = &obj->matches[ real_match_idx ];
+				match->first = curr;
+				match->second = &obj->points[match_idx];
+				match->confidence = curr_dist;
+				
+				if(screen_dist[i] > curr_dist) 
+				{
+					prev_match_ind[i] = real_match_idx;
+					screen_dist[i] = curr_dist;
+					prev_obj_ind[i] = t;
 				}
 				
 				pmap[match_idx] = curr_dist;

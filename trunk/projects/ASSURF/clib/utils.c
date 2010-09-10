@@ -149,6 +149,14 @@ inline double fast_sqrt(const double x)
   return x * u.x;
 }
 
+// Return the coterminal angle between [0;2*PI].
+inline double getCoterminalAngle(double angle)
+{
+	while (angle > two_pi) angle -= two_pi;
+	while (angle < 0.0) angle += two_pi;
+	return angle;
+}
+
 inline int testSideOfLine(const int Ax, const int Ay, const int Bx, const int By, const int Cx, const int Cy)
 {
 	// 0 - CxCy is on the line
