@@ -21,8 +21,8 @@ int detectPointsFast(const unsigned char *image, const int width, const int heig
 	int cNum, i, j, k, m, cnt = 0;
 	
 	xy *corners;
-	//corners = fast9_detect_nonmax(image, width, height, width, corn_thresh, &cNum);
-	corners = fast10_detect_nonmax(image, width, height, width, corn_thresh, &cNum);
+	corners = fast9_detect_nonmax(image, width, height, width, corn_thresh, &cNum);
+	//corners = fast10_detect_nonmax(image, width, height, width, corn_thresh, &cNum);
 	
 	if(checkSimilar == 0 && cNum > max_ref_points_pool - referencePointsCount)
 	{
@@ -267,7 +267,7 @@ void fastRotationEstimation(const unsigned char *image, IPoint *ip)
 		dy += diff * (*(ring_y++));
 	}
 
-	ip->orientation = fast_atan2(dy, dx);//ANGLE(dx, dy);
+	ip->orientation = getCoterminalAngle( fast_atan2(dy, dx) );//ANGLE(dx, dy);
 }
 
 double FindShiTomasiScoreAtPoint(const unsigned char *image, const int stride, const xy *irCenter)

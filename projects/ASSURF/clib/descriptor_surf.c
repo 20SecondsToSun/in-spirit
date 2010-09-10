@@ -203,22 +203,23 @@ void getPointDescriptor_SURF(const int x, const int y, const double scale, const
 // modified FAST SURF descriptor
 void fastSURFDescriptors( const unsigned char *image, const int width, const int height, IPoint *pointsData, const int N, double *descrData )
 {
-	const int PATCH_SZ = 19;
+	const int PATCH_SZ = 18;
 	int i, j, k;
 
 	IPoint *ipt;
 	int x, y;
-	int PATCH[PATCH_SZ+1][PATCH_SZ+1];
+	double PATCH[PATCH_SZ+1][PATCH_SZ+1];
 	double DX[PATCH_SZ][PATCH_SZ];
 	double DY[PATCH_SZ][PATCH_SZ];
-	double __dx, __dy, _mdx, _mdy, len, fmean;
+	double __dx, __dy, _mdx, _mdy, len, mean;
 	double pixel_x, pixel_y, start_x, start_y;
 	double sin_dir, cos_dir;
 	
 	register double *descr = descrData;
 	double *data_end;
 	
-	const double win_offset = -(double)(PATCH_SZ-1) * 0.5;
+	const double win_offset = -((double)(PATCH_SZ-1) * (double)0.5);
+	const double inv_len = (double)1.0 / (double)36.0;
 	
     for(k = 0; k < N; k++ )
     {		
@@ -230,7 +231,6 @@ void fastSURFDescriptors( const unsigned char *image, const int width, const int
 		const double orientation = ipt->orientation;
 		sin_cos(-orientation, &sin_dir, &cos_dir);
 
-        // Nearest neighbour version (faster)
         start_x = (double)ipt->x + win_offset*cos_dir + win_offset*sin_dir;
         start_y = (double)ipt->y - win_offset*sin_dir + win_offset*cos_dir;
         for( i=0; i<PATCH_SZ+1; i++, start_x+=sin_dir, start_y+=cos_dir )
@@ -239,7 +239,7 @@ void fastSURFDescriptors( const unsigned char *image, const int width, const int
             pixel_y = start_y;
             for( j=0; j<PATCH_SZ+1; j++, pixel_x+=cos_dir, pixel_y-=sin_dir )
             {
-				PATCH[i][j] = (int)image[dRound( pixel_y ) * width + dRound( pixel_x )];
+				PATCH[i][j] = bilinear_interpolation(image, width, pixel_x, pixel_y);//(int)image[dRound( pixel_y ) * width + dRound( pixel_x )];
             }
         }
 
@@ -257,16 +257,17 @@ void fastSURFDescriptors( const unsigned char *image, const int width, const int
 		// always 36-bin descriptor
 		
 		len = 0.0;
-		fmean = 0.0;
+		mean = 0.0;
+		const int d = 6;
 		
         for(i = 0; i < 3; i++)
 		{
             for(j = 0; j < 3; j++)
             {
 				__dx = __dy = _mdx = _mdy = 0.0;
-                for(y = i*6; y < i*6+6; y++)
+                for(y = i*d; y < i*d+d; y++)
                 {
-                    for(x = j*6; x < j*6+6; x++)
+                    for(x = j*d; x < j*d+d; x++)
                     {
 						__dx += DX[y][x];
 						__dy += DY[y][x];
@@ -279,23 +280,28 @@ void fastSURFDescriptors( const unsigned char *image, const int width, const int
 				*(descr++) = _mdx;
 				*(descr++) = _mdy;
 				
-				//fmean += __dx + __dy + _mdx + _mdy;				
+				mean += __dx + __dy + _mdx + _mdy;
 				len += (__dx*__dx + __dy*__dy + _mdx*_mdx + _mdy*_mdy);
 			}
 		}
 		
-		/*fmean /= (double)36.0;
-		len = (double)1.0 / ( fast_sqrt((len - (fmean * fmean) ) / (double)35.0) + (double)1.0E-12 );
+		// this works better cause of the smoother result
+		
+		mean *= inv_len;
+		// found 2 different versions of estimation (which one is right?)
+		//len = (double)1.0 / ( fast_sqrt((len - (mean * mean) ) / (double)35.0) + (double)1.0E-12 );
+		len = (double)1.0 / ( fast_sqrt( len * inv_len - (mean * mean) ) + (double)1.0E-12 );
 		for(descr -= 36; descr < data_end; descr++)
 		{
-			*(descr) = (*(descr) - fmean) * len;
-		}*/
+			*(descr) = (*(descr) - mean) * len;
+		}
+		/*		
 		//Convert to Unit Vector
 		len = (double)1.0 / fast_sqrt(len);
 		for(descr -= 36; descr < data_end;)
 		{
 			*(descr++) *= len;
-		}
+		}*/
     }
 }
 

@@ -30,7 +30,7 @@ package
 	
 	public class ImportReferenceData extends Sprite
 	{
-		[Embed('../assets/points.ass', mimeType='application/octet-stream')] protected static const ref_data_ass:Class;
+		[Embed('../assets/points_low.ass', mimeType='application/octet-stream')] protected static const ref_data_ass:Class;
 		
 		protected var myview:Sprite;
 		protected var _txt:TextField;
@@ -80,7 +80,9 @@ package
 			
 			// ASSURF setup
 			// first method you should call
-			surf.init(ASSURF.DETECT_PRECISION_MEDIUM, 350, 10000, 1);
+			// i recommend to use LOW Precision instead of MEDIUM (MEDIUM will be replaced in future)
+			//surf.init(ASSURF.DETECT_PRECISION_MEDIUM, 350, 10000, 1);
+			surf.init(ASSURF.DETECT_PRECISION_LOW, 350, 10000, 1);
 			
 			// make ASSURF detect region of interest automatically
 			//surf.autoDetectROI = true;

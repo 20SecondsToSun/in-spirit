@@ -82,7 +82,9 @@ package
 			
 			// ASSURF setup
 			// first method you should call
-			surf.init(ASSURF.DETECT_PRECISION_MEDIUM, 300, 10000, 1);
+			// i recommend to use LOW Precision instead of MEDIUM (MEDIUM will be replaced in future)
+			//surf.init(ASSURF.DETECT_PRECISION_MEDIUM, 300, 10000, 1);
+			surf.init(ASSURF.DETECT_PRECISION_LOW, 300, 10000, 1);
 			
 			// make ASSURF detect region of interest automatically
 			surf.autoDetectROI = true;

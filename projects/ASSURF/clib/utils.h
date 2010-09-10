@@ -88,5 +88,6 @@ inline double fast_sqrt(const double x);
 inline int iabs(register int value);
 inline int iSquare(register int dbl);
 inline int testSideOfLine(const int Ax, const int Ay, const int Bx, const int By, const int Cx, const int Cy);
+inline double getCoterminalAngle(double angle);
 
 #endif
