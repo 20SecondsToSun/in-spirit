@@ -24,7 +24,9 @@ void locatePlanarObject(IPointMatch *matches, int *matchesCount, double *homogra
 
 		for(i = 0, j = 0; i < np; i++)
 		{
-			const IPointMatch *mtch = &matches[i];
+			IPointMatch *mtch = &matches[i];
+			mtch->first->matched = 0;
+			mtch->wasGood = 0;
 			u_v_up_vp[j++] = (double)mtch->second->x;
 			u_v_up_vp[j++] = (double)mtch->second->y;
 			u_v_up_vp[j++] = (double)mtch->first->x;
@@ -35,10 +37,10 @@ void locatePlanarObject(IPointMatch *matches, int *matchesCount, double *homogra
 		
 		const double logProb = log( (double)1.0 - PROBABILITY_REQUIRED );
 		
-		int N = 1500;
+		int N = np > 10 ? 100 : 1000;
 		int number_of_inliers = 0;
 		int sample_count = 0;
-		int prosac_correspondences = 5;
+		int prosac_correspondences = np >= 10 ? 10 : 5;
 		int current_inliers[np];
 		int inliers[np];
 
@@ -106,9 +108,12 @@ void locatePlanarObject(IPointMatch *matches, int *matchesCount, double *homogra
 		number_of_inliers = compute_inliers(matches, np, homography, &*inliers, INLIER_THRESHOLD_SQ);
 		*/
 		memcpy(homography, &*bestH, 9 * sizeof(double));
+		
 		for(i = 0; i < number_of_inliers; i++)
 		{
 			memcpy(matches + i, matches + inliers[i], sizeof(IPointMatch));
+			matches[i].first->matched = 1;
+			matches[i].wasGood = 1;
 		}
 		
 		*matchesCount = number_of_inliers;
@@ -160,7 +165,8 @@ void locatePlanarObject16(IPointMatch *matches, int *matchesCount, double *homog
 		
 		for(i = 0, j = 0; i < np; i++)
 		{
-			const IPointMatch *mtch = &matches[i];
+			IPointMatch *mtch = &matches[i];
+			mtch->first->matched = 0;
 			u_v_up_vp[j++] = (double)mtch->second->x;
 			u_v_up_vp[j++] = (double)mtch->second->y;
 			u_v_up_vp[j++] = (double)mtch->first->x;
@@ -281,6 +287,7 @@ void locatePlanarObject16(IPointMatch *matches, int *matchesCount, double *homog
 		for(i = 0; i < number_of_inliers; i++)
 		{
 			memcpy(matches + i, matches + inliers[i], sizeof(IPointMatch));
+			matches[i].first->matched = 1;
 		}
 		
 		*matchesCount = number_of_inliers;

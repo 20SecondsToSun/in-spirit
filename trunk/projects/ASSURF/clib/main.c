@@ -4,30 +4,37 @@
 #include <math.h>
 #include "AS3.h"
 
-#include "libfast/fast.h"
 #include "utils.h"
 #include "homography.c"
 
-unsigned char *img_orig;
-unsigned char *img_prev;
-unsigned char *img_blur;
+unsigned char *pyr_img1;
+unsigned char *pyr_img2;
+unsigned char *pyr_img3;
+unsigned char *pyr_img_blur1;
+unsigned char *pyr_img_blur2;
+unsigned char *pyr_img_blur3;
+unsigned char *pyr_img_prev1;
+unsigned char *pyr_img_prev2;
+unsigned char *pyr_img_prev3;
 unsigned char *img_mask;
 
-double *integral;
+int pyr_img1_width = 320;
+int pyr_img1_height = 240;
+int pyr_img2_width = 320;
+int pyr_img2_height = 240;
+int pyr_img3_width = 320;
+int pyr_img3_height = 240;
+
+unsigned char *pyr_img_prev[3];
+unsigned char *pyr_img[3];
+unsigned char *pyr_img_blur[3];
+
 double *descriptorsRef;
 double *descriptorsCurr;
-double *samplesCurr;
-double *samplesPrev;
 double *arcamera;
 
 int *result_b;
 int *currRefIndexes;
-
-int iborder = 50;
-int iwidth = 0;
-
-int img_width = 320;
-int img_height = 240;
 
 int max_ref_points_pool = 5000;
 int max_screen_points = 2000;
@@ -46,7 +53,6 @@ int referenceCount = 0;
 int screenPointsCount = 0;
 int prevFramePointsCount = 0;
 int matchedPointsCount = 0;
-int goodMatchedPointsCount = 0;
 int foundReferenceCount = 0;
 
 int screenPointsThresh = 10;
@@ -57,7 +63,7 @@ double supressDist = 15.0;
 
 int DESCRIPTOR_SIZE = 36;
 int PATCH_SIZE = 64;
-int DETECT_PRECISION = 1;
+int DETECT_PRECISION = 2;
 
 
 // --------------------------------------------
@@ -70,6 +76,7 @@ int DETECT_PRECISION = 1;
 
 #include "detector_fast.c"
 #include "descriptor_surf.c"
+#include "tracker.c"
 
 // --------------------------------------------
 // 3D POSE ESTIMATION
@@ -81,9 +88,9 @@ double estimatePoseFromPoints(double *camera_info, double *scr_pts, double *ref_
 // --------------------------------------------
 
 // --------------------------------------------
-// IMPORT / EXPORT OPERATIONS
+// EXPORT POINTS DATA
 
-#include "import_export.c"
+#include "export.c"
 
 // --------------------------------------------
 
@@ -121,14 +128,15 @@ AS3_Val setupGlobalBuffers(void* self, AS3_Val args)
 {	
 	AS3_ArrayValue(args, "IntType, IntType, IntType, IntType", &max_ref_points_pool, &max_objects_pool, &max_points_pool, &DETECT_PRECISION );
 	
-	DESCRIPTOR_SIZE = DETECT_PRECISION == 0 ? 64 : 36;
+	if(DETECT_PRECISION == 0) DESCRIPTOR_SIZE = 128;
+	if(DETECT_PRECISION == 1) DESCRIPTOR_SIZE = 64;
+	if(DETECT_PRECISION == 2) DESCRIPTOR_SIZE = 36;
 	
 	if(referencePoints) free(referencePoints);
 	if(frameMatches) free(frameMatches);
 	if(refMatches) free(refMatches);
 	if(refObjectsMap) free(refObjectsMap);
 	if(descriptorsRef) free(descriptorsRef);
-	if(samplesCurr) free(samplesCurr);
 	if(arcamera) free(arcamera);
 	if(result_b) free(result_b);
 	if(currRefIndexes) free(currRefIndexes);
@@ -144,85 +152,107 @@ AS3_Val setupGlobalBuffers(void* self, AS3_Val args)
 	descriptorsRef = (double*)malloc( ((DESCRIPTOR_SIZE * (max_ref_points_pool+max_points_pool)) ) * sizeof(double) );
 	descriptorsCurr = descriptorsRef + (DESCRIPTOR_SIZE * max_ref_points_pool);
 	
-	samplesCurr = (double *)malloc( (PATCH_SIZE * max_screen_points * 2) * sizeof(double) );
-	samplesPrev = samplesCurr + (PATCH_SIZE * max_screen_points);
-	
 	arcamera = (double*)malloc(4 * sizeof(double));
 	
 	memset(refObjectsMap, 0, max_objects_pool * sizeof(refObjectsMap));
 	
 	result_b = (int *)malloc((max_points_pool + 10) * sizeof(int));
 	currRefIndexes = (int *)malloc(max_objects_pool * sizeof(int));
+	
+	calcGaussWeights( (DETECT_PRECISION == 2) ? 15 : 20 );
 
 	return AS3_Ptr(result_b);
 }
 
 AS3_Val setupImageHolders(void* self, AS3_Val args)
 {	
-	AS3_ArrayValue(args, "IntType, IntType", &img_width, &img_height );
+	AS3_ArrayValue(args, "IntType, IntType", &pyr_img1_width, &pyr_img1_height );
 	
-	if(img_orig) free(img_orig);
+	if(pyr_img1) free(pyr_img1);
 	
-	int off = (img_width * img_height);
+	int off = pyr_img1_width * pyr_img1_height;
 	
-	img_orig = (unsigned char*)malloc( off * 4 );
-	img_prev = img_orig+off;//(unsigned char*)malloc( img_width * img_height );
-	img_blur = img_prev+off;//(unsigned char*)malloc( img_width * img_height );
-	img_mask = img_blur+off;//(unsigned char*)malloc( img_width * img_height );	
+	pyr_img1 = (unsigned char*)malloc( off * 2 * sizeof(unsigned char));
+	pyr_img_blur1 = pyr_img1+off;
 	
-	calcSampleWin(img_width);
-	calcShiTomasiWin(img_width, 3);
+	pyr_img[0] = pyr_img1;	
+	pyr_img_blur[0] = pyr_img_blur1;
 	
-	return AS3_Ptr(img_orig);
+	AS3_Val pointers = AS3_Array("AS3ValType", NULL);
+	
+	AS3_Set(pointers, AS3_Int(0), AS3_Ptr(pyr_img1) );
+	AS3_Set(pointers, AS3_Int(1), AS3_Ptr(pyr_img_blur1) );
+	
+	return pointers;
 }
 
-AS3_Val setupIntegral(void* self, AS3_Val args)
+AS3_Val setupImagePyramid(void* self, AS3_Val args)
 {	
-	int iw = 320;
-	int ih = 240;
+	AS3_ArrayValue(args, "IntType, IntType", &pyr_img1_width, &pyr_img1_height );
 	
-	AS3_ArrayValue(args, "IntType, IntType", &iw, &ih );
+	if(pyr_img1) free(pyr_img1);
 	
-	if(integral) free(integral);
+	int off = pyr_img1_width * pyr_img1_height;
 	
-	integral = (double*)malloc( ((iw+iborder*2) * (ih+iborder*2)) * sizeof(double) );
+	pyr_img1 = (unsigned char*)malloc( off * 4 * sizeof(unsigned char));
+	pyr_img_blur1 = pyr_img1+off;
+	pyr_img_prev1 = pyr_img_blur1+off;
+	img_mask = pyr_img_prev1+off;
 	
-	iwidth = iw + iborder * 2;
+	//
 	
-	return AS3_Ptr(integral);
-}
-
-void calcIntegralData(register const unsigned char *image, int iw, int ih)
-{
-	const int iborder2 = 100;
-	int i, j;
-	double sum = 0.0;
-	const double inv255 = (double)1.0 / (double)255.0;
+	if(pyr_img2) free(pyr_img2);
 	
-	register double *ptr0 = integral+(iborder + iborder * iwidth);
-	//register const unsigned char *ptr_b = image;
-	for( j = 0; j < iw; j++ )
-	{
-		sum += (double)(*image++) * inv255;
-		*(ptr0++) = sum;
-	}
-
-	//ptr_b = image+iw;
-	ptr0 += iborder2;
+	pyr_img2_width = pyr_img1_width >> 1;
+	pyr_img2_height = pyr_img1_height >> 1;
+	off = pyr_img2_width * pyr_img2_height;
 	
-	register double const *ptr1 = ptr0 - iwidth;
-
-	for( i = 1; i < ih; i++ )
-	{
-		sum = 0.0;
-		for( j = 0; j < iw; j++, image++, ptr0++, ptr1++ )
-		{
-			sum += (double)(*image) * inv255;
-			*ptr0 = *ptr1 + sum;
-		}
-		ptr0 += iborder2;
-		ptr1 += iborder2;
-	}
+	pyr_img2 = (unsigned char*)malloc( off * 3 * sizeof(unsigned char));
+	pyr_img_blur2 = pyr_img2 + off;
+	pyr_img_prev2 = pyr_img_blur2 + off;
+	
+	//
+	
+	if(pyr_img3) free(pyr_img3);
+	
+	pyr_img3_width = pyr_img1_width >> 2;
+	pyr_img3_height = pyr_img1_height >> 2;
+	
+	off = pyr_img3_width * pyr_img3_height;
+	
+	pyr_img3 = (unsigned char*)malloc( off * 3 * sizeof(unsigned char));
+	pyr_img_blur3 = pyr_img3 + off;
+	pyr_img_prev3 = pyr_img_blur3 + off;
+	
+	//
+	
+	pyr_img_prev[0] = pyr_img_prev1;
+	pyr_img_prev[1] = pyr_img_prev2;
+	pyr_img_prev[2] = pyr_img_prev3;
+	
+	pyr_img[0] = pyr_img1;
+	pyr_img[1] = pyr_img2;
+	pyr_img[2] = pyr_img3;
+	
+	pyr_img_blur[0] = pyr_img_blur1;
+	pyr_img_blur[1] = pyr_img_blur2;
+	pyr_img_blur[2] = pyr_img_blur3;
+	
+	int sizeW[3] = {pyr_img1_width, pyr_img2_width, pyr_img3_width};
+	int sizeH[3] = {pyr_img1_height, pyr_img2_height, pyr_img3_height};
+	initOpticalFlow( pyr_img_prev, pyr_img, sizeW, sizeH, 16, CV_LKFLOW_INITIAL_GUESSES );
+	
+	AS3_Val pointers = AS3_Array("AS3ValType", NULL);
+	
+	AS3_Set(pointers, AS3_Int(0), AS3_Ptr(pyr_img1) );
+	AS3_Set(pointers, AS3_Int(1), AS3_Ptr(pyr_img2) );
+	AS3_Set(pointers, AS3_Int(2), AS3_Ptr(pyr_img3) );
+	AS3_Set(pointers, AS3_Int(3), AS3_Ptr(pyr_img_blur1) );
+	AS3_Set(pointers, AS3_Int(4), AS3_Ptr(pyr_img_blur2) );
+	AS3_Set(pointers, AS3_Int(5), AS3_Ptr(pyr_img_blur3) );
+	AS3_Set(pointers, AS3_Int(6), AS3_Ptr(img_mask) );
+	
+	return pointers;
 }
 
 AS3_Val createRefObject(void* self, AS3_Val args)
@@ -293,7 +323,7 @@ AS3_Val pushDataToRefObject(void* self, AS3_Val args)
 		ipt->pos = *iptr++;
 		ipt->x = *iptr++;
 		ipt->y = *iptr++;
-		ipt->scale = *iptr++;
+		/*ipt->scale = */*iptr++;
 		ipt->localIndex = i;
 		
 		dptr = (double*)(out+24);
@@ -334,33 +364,33 @@ AS3_Val pushImageToRefObject(void* self, AS3_Val args)
 	
 	AS3_ArrayValue(args, "IntType, IntType, IntType, IntType, DoubleType", &refID, &iw, &ih, &maxPoints, &scale );
 	
-	int dupl = 0;
 	int ip_thresh = ((supressNeighbors == 0) ? 45 : 15);
-	supressDist = (double)15.0 / scale;
 	
-	count = detectPointsFast(img_orig, iw, ih, referencePoints+referencePointsCount, ip_thresh, 70.0, maxPoints, 15, 0, &dupl);
+	count = detectPointsLevel(0, iw, ih, referencePoints+referencePointsCount, ip_thresh, 70.0, maxPoints, 25, max_ref_points_pool - referencePointsCount);
+	
+	if(supressNeighbors) 
+	{
+		supressDist = (double)12.0 / scale;
+		count = supressNeighborPoints(referencePoints+referencePointsCount, count, supressDist * supressDist);
+	}
 	
 	if(DESCRIPTOR_SIZE == 36)
 	{
-		if(DETECT_PRECISION == 1)
-		{
-			calcIntegralData(img_blur, iw, ih);
-			calculateDescriptors_SURF36(referencePoints+referencePointsCount, count, integral, descriptorsRef+(referencePointsCount*DESCRIPTOR_SIZE));
-		} else {
-			fastSURFDescriptors( img_blur, iw, ih, referencePoints+referencePointsCount, count, descriptorsRef+(referencePointsCount*DESCRIPTOR_SIZE) );
-		}
+		fastSURFDescriptors( referencePoints+referencePointsCount, count, descriptorsRef+(referencePointsCount*DESCRIPTOR_SIZE) );
 	}
-	else
+	else if(DESCRIPTOR_SIZE == 64)
 	{
-		calcIntegralData(img_blur, iw, ih);
-		calculateDescriptors_SURF64(referencePoints+referencePointsCount, count, integral, descriptorsRef+(referencePointsCount*DESCRIPTOR_SIZE));
+		SURFDescriptors( referencePoints+referencePointsCount, count, descriptorsRef+(referencePointsCount*DESCRIPTOR_SIZE), 0 );
+	}
+	else if(DESCRIPTOR_SIZE == 128)
+	{
+		SURFDescriptors( referencePoints+referencePointsCount, count, descriptorsRef+(referencePointsCount*DESCRIPTOR_SIZE), 1 );
 	}
 	
 	pts = referencePoints+referencePointsCount;
 	
 	for(i = 0, j = referencePointsCount; i < count; i++, j++)
 	{
-		pts[i].mapScale = scale;
 		pts[i].x *= scale;
 		pts[i].y *= scale;
 		pts[i].refIndex = refID;
@@ -410,20 +440,15 @@ AS3_Val buildRefIndex(void* self, AS3_Val args)
 
 void relocateFeatures(IPointMatch *matches, const int count)
 {	
-	int i;
-	
-	const int num = count;
-	
-	for(i = 0; i < num; i++)
+	int i;	
+	for(i = 0; i < count; i++)
 	{		
 		memcpy(screenPointsPrev + i, matches[i].first, sizeof(IPoint));
-		//memcpy(samplesCurr + i*PATCH_SIZE, matches[i].first->sample, PATCH_SIZE * sizeof(double));
-		memcpy(samplesPrev + i*PATCH_SIZE, matches[i].first->sample, PATCH_SIZE * sizeof(unsigned char));		
 		matches[i].first = &screenPointsPrev[i];
-		matches[i].first->sample = samplesPrev + i*PATCH_SIZE;
+		matches[i].first->matched = 0;
 	}
 	
-	prevFramePointsCount = num;
+	prevFramePointsCount = count;
 }
 
 AS3_Val runTask(void* self, AS3_Val args)
@@ -436,55 +461,72 @@ AS3_Val runTask(void* self, AS3_Val args)
 	
 	AS3_ArrayValue(args, "IntType, IntType, IntType, IntType", &maxPoints, &useMask, &objID, &options );
 	
-	if(screenPointsCount > maxPoints - 50 /*&& screenPointsThresh < 150*/)
+	if(screenPointsCount > maxPoints - 50)
 	{
 		if(screenPointsThresh < 150) screenPointsThresh += 1;
 		if(screenPointsThresh >= 150 && screenPointsShitomasi < 150) screenPointsShitomasi += 1;
 	}
-	else if(screenPointsCount < 100 /*&& screenPointsThresh > 10*/)
+	else if(screenPointsCount < 100)
 	{
-		//screenPointsThresh -= 5;
 		if(screenPointsShitomasi <= 50 && screenPointsThresh > 10) screenPointsThresh -= 1;
 		if(screenPointsShitomasi > 50) screenPointsShitomasi -= 1;
 	}
 	
-	screenPointsCount = detectPointsFast(img_orig, img_width, img_height, screenPoints, screenPointsThresh, screenPointsShitomasi, maxPoints, 25, 1, &prevFramePointsCount);
+	screenPointsCount = detectPointsLevel2(3, screenPoints, screenPointsThresh, screenPointsShitomasi, maxPoints, 15, max_screen_points);
+	
+	//prevFramePointsCount = findPrevFrameMatches(screenPoints, screenPointsCount, frameMatches, prevFramePointsCount);
+	prevFramePointsCount = NCCLKTrack(screenPoints, screenPointsCount, frameMatches, prevFramePointsCount);
+	
+	int goodMatches = 0;
+	int i;
+	for(i = 0; i < prevFramePointsCount; i++)
+	{
+		if(frameMatches[i].wasGood == 1) goodMatches++;
+	}
 	
 	RefObject *obj = &refObjectsMap[objID];
 	
-	if(prevFramePointsCount < 15)
+	IPointMatch origMatches[maxPoints + prevFramePointsCount];
+	int origMatCount = 0;
+	
+	if(goodMatches < 15)
 	{
 	
 		calculateDescriptors:
 	
 		if(DESCRIPTOR_SIZE == 36)
 		{
-			if(DETECT_PRECISION == 1)
-			{
-				calcIntegralData(img_blur, img_width, img_height);
-				calculateDescriptors_SURF36(screenPoints, screenPointsCount, integral, descriptorsCurr);
-			} 
-			else 
-			{
-				fastSURFDescriptors( img_blur, img_width, img_height, screenPoints, screenPointsCount, descriptorsCurr );
-			}
+			fastSURFDescriptors( screenPoints, screenPointsCount, descriptorsCurr );
 		}
-		else
+		else if(DESCRIPTOR_SIZE == 64)
 		{
-			calcIntegralData(img_blur, img_width, img_height);
-			calculateDescriptors_SURF64(screenPoints, screenPointsCount, integral, descriptorsCurr);
+			SURFDescriptors( screenPoints, screenPointsCount, descriptorsCurr, 0 );
+		}
+		else if(DESCRIPTOR_SIZE == 128)
+		{
+			SURFDescriptors( screenPoints, screenPointsCount, descriptorsCurr, 1 );
 		}
 
 		count = getMatchesByTree(obj, screenPoints, referencePoints, screenPointsCount, referencePointsCount, frameMatches, prevFramePointsCount, 0.7);
+		/*count = getMatchesByTree(obj, screenPoints, referencePoints, screenPointsCount, referencePointsCount, frameMatches+prevFramePointsCount, 0, 0.7);
+		memcpy(&*origMatches, frameMatches+prevFramePointsCount, count * sizeof(IPointMatch));
+		
+		prevFramePointsCount = NCCLKTrack(screenPoints, screenPointsCount, frameMatches, prevFramePointsCount);
+		memcpy(&*(origMatches+count), frameMatches, prevFramePointsCount * sizeof(IPointMatch));
+		memcpy(&*(frameMatches+prevFramePointsCount), &*origMatches, count * sizeof(IPointMatch));
+		count += prevFramePointsCount;*/
+		
+		origMatCount = count;
+		memcpy(&*origMatches, frameMatches, count * sizeof(IPointMatch));
 
 		result_b[max_points_pool] = screenPointsCount;
 		result_b[max_points_pool+1] = count;
 		result_b[max_points_pool+2] = prevFramePointsCount;
 	
 		count = filterOutliersByAngle(frameMatches, count);
-		count = filterOutliersByLines(frameMatches, count);
+		//count = filterOutliersByLines(frameMatches, count);
 		
-		locatePlanarObject16(frameMatches, &count, &*obj->homography);
+		locatePlanarObject(frameMatches, &count, &*obj->homography);
 	}
 	else
 	{
@@ -492,6 +534,9 @@ AS3_Val runTask(void* self, AS3_Val args)
 		result_b[max_points_pool+1] = prevFramePointsCount;
 		result_b[max_points_pool+2] = prevFramePointsCount;
 		count = prevFramePointsCount;
+		
+		origMatCount = count;
+		memcpy(&*origMatches, frameMatches, count * sizeof(IPointMatch));
 		
 		locatePlanarObject(frameMatches, &count, &*obj->homography);
 		
@@ -501,34 +546,54 @@ AS3_Val runTask(void* self, AS3_Val args)
 	if(skiped == 1 && count < 8)
 	{
 		skiped = 0;
-		prevFramePointsCount = count;
+		//prevFramePointsCount = count;
+		memcpy(frameMatches, &*origMatches, origMatCount * sizeof(IPointMatch));
 		goto calculateDescriptors;
 	}
 	
 	obj->matchedPointsCount = count;
-	goodMatchedPointsCount = count;
 	
 	if(options == 2 && count > 4)
 	{
-		//if(count < 16)
-		//{
-			obj->poseError = estimatePoseFromMatches(arcamera, frameMatches, &*obj->pose, count, obj->width, obj->height);
-		/*}
-		else
+		obj->poseError = estimatePoseFromMatches(arcamera, frameMatches, &*obj->pose, count, obj->width, obj->height);
+		
+		if(skiped == 1 && obj->poseError > 4)
 		{
-			// this is optinal speed up
-			IPointMatch perpMatches[8];
-			perpendicularRegression(frameMatches, count, &*perpMatches);
-			
-			obj->poseError = estimatePoseFromMatches(arcamera, &*perpMatches, &*obj->pose, 8, obj->width, obj->height);
-		}*/
+			skiped = 0;
+			//prevFramePointsCount = count;
+			memcpy(frameMatches, &*origMatches, origMatCount * sizeof(IPointMatch));
+			goto calculateDescriptors;
+		}
 	}	
 
-	memcpy(img_prev, img_blur, img_width * img_height);
+	memcpy(pyr_img_prev1, pyr_img_blur1, pyr_img1_width * pyr_img1_height);
+	memcpy(pyr_img_prev2, pyr_img_blur2, pyr_img2_width * pyr_img2_height);
+	memcpy(pyr_img_prev3, pyr_img_blur3, pyr_img3_width * pyr_img3_height);
+	//memcpy(pyr_img_prev1, pyr_img1, pyr_img1_width * pyr_img1_height);
+	//memcpy(pyr_img_prev2, pyr_img2, pyr_img2_width * pyr_img2_height);
+	//memcpy(pyr_img_prev3, pyr_img3, pyr_img3_width * pyr_img3_height);
 	
 	result_b[max_points_pool+4] = count;
+	result_b[max_points_pool+5] = skiped;
 	
-	relocateFeatures(frameMatches, count);
+	if(origMatCount)
+	{
+		int j;
+		for(i = 0; i < origMatCount; i++)
+		{
+			for(j = 0; j < count; j++)
+			{
+				if(origMatches[i].second->localIndex == frameMatches[j].second->localIndex){
+					origMatches[i].wasGood = frameMatches[j].wasGood;
+					break;
+				}
+			}
+		}
+		memcpy(frameMatches, &*origMatches, origMatCount * sizeof(IPointMatch));
+		relocateFeatures(frameMatches, origMatCount);
+	} else {
+		relocateFeatures(frameMatches, count);
+	}
 	
 	return AS3_Int(count);
 }
@@ -538,7 +603,8 @@ AS3_Val runTask2(void* self, AS3_Val args)
 	int maxPoints = 300;
 	int objNum = 0;
 	int options = 0;
-	int i, count, skiped = 0;
+	int i, k, count, skiped = 0;
+	RefObject *obj;
 	
 	AS3_ArrayValue(args, "IntType, IntType, IntType", &maxPoints, &useMask, &options );
 	
@@ -549,39 +615,47 @@ AS3_Val runTask2(void* self, AS3_Val args)
 	}
 	else if(screenPointsCount < 100 /*&& screenPointsThresh > 10*/)
 	{
-		//screenPointsThresh -= 5;
 		if(screenPointsShitomasi <= 50 && screenPointsThresh > 10) screenPointsThresh -= 1;
 		if(screenPointsShitomasi > 50) screenPointsShitomasi -= 1;
 	}
 	
-	screenPointsCount = detectPointsFast(img_orig, img_width, img_height, screenPoints, screenPointsThresh, screenPointsShitomasi, maxPoints, 25, 1, &prevFramePointsCount);
+	screenPointsCount = detectPointsLevel2(3, screenPoints, screenPointsThresh, screenPointsShitomasi, maxPoints, 15, max_screen_points);
+	//prevFramePointsCount = findPrevFrameMatches(screenPoints, screenPointsCount, frameMatches, prevFramePointsCount);
+	prevFramePointsCount = NCCLKTrack(screenPoints, screenPointsCount, frameMatches, prevFramePointsCount);
 	
-	if(prevFramePointsCount < 15*foundReferenceCount)
+	int goodMatches = 0;
+	for(i = 0; i < prevFramePointsCount; i++)
+	{
+		if(frameMatches[i].wasGood == 1) goodMatches++;
+	}
+	
+	if(goodMatches < 15*foundReferenceCount)
 	{
 	
 		calculateDescriptors:
 	
 		if(DESCRIPTOR_SIZE == 36)
 		{
-			if(DETECT_PRECISION == 1)
-			{
-				calcIntegralData(img_blur, img_width, img_height);
-				calculateDescriptors_SURF36(screenPoints, screenPointsCount, integral, descriptorsCurr);
-			}
-			else
-			{
-				fastSURFDescriptors( img_blur, img_width, img_height, screenPoints, screenPointsCount, descriptorsCurr );
-			}
+			fastSURFDescriptors( screenPoints, screenPointsCount, descriptorsCurr );
 		}
-		else
+		else if(DESCRIPTOR_SIZE == 64)
 		{
-			calcIntegralData(img_blur, img_width, img_height);
-			calculateDescriptors_SURF64(screenPoints, screenPointsCount, integral, descriptorsCurr);
+			SURFDescriptors( screenPoints, screenPointsCount, descriptorsCurr, 0 );
+		}
+		else if(DESCRIPTOR_SIZE == 128)
+		{
+			SURFDescriptors( screenPoints, screenPointsCount, descriptorsCurr, 1 );
 		}
 		
-		//count = getMatchesByTree(screenPoints, referencePoints, screenPointsCount, referencePointsCount, frameMatches, prevFramePointsCount, 0.7);
 		count = getMatchesByMultiTree(screenPoints, referencePoints, screenPointsCount, referencePointsCount, frameMatches, prevFramePointsCount, 0.7);
-	
+		
+		k = 0;
+		for(i = 0; i < referenceCount; i++)
+		{
+			obj = &refObjectsMap[ i ];
+			memcpy(frameMatches + k, obj->matches, obj->matchedPointsCount * sizeof(IPointMatch));
+			k += obj->matchedPointsCount;
+		}
 	} 
 	else 
 	{
@@ -596,22 +670,21 @@ AS3_Val runTask2(void* self, AS3_Val args)
 	
 	foundReferenceCount = 0;
 	
-	IPointMatch filtMatches[count];
-	int k = 0;
-	
+	k = 0;
+	IPointMatch objMatches[maxPoints];
 	for(i = 0; i < referenceCount; i++)
 	{
 	
-		RefObject *obj = &refObjectsMap[ i ];
+		obj = &refObjectsMap[ i ];
 		
 		if(obj->matchedPointsCount < 5) continue;
 		
 		currRefIndexes[objNum++] = i;
 		
 		obj->matchedPointsCount = filterOutliersByAngle(obj->matches, obj->matchedPointsCount);
-		obj->matchedPointsCount = filterOutliersByLines(obj->matches, obj->matchedPointsCount);
+		//obj->matchedPointsCount = filterOutliersByLines(obj->matches, obj->matchedPointsCount);
 		
-		locatePlanarObject16(obj->matches, &obj->matchedPointsCount, &*obj->homography);
+		locatePlanarObject(obj->matches, &obj->matchedPointsCount, &*obj->homography);
 		
 		if(skiped == 1 && obj->prevMatchedPointsCount >= 15 && obj->matchedPointsCount < 8)
 		{
@@ -634,7 +707,7 @@ AS3_Val runTask2(void* self, AS3_Val args)
 			}
 		}
 		
-		memcpy(&*(filtMatches + k), obj->matches, obj->matchedPointsCount * sizeof(IPointMatch));
+		memcpy(&*(objMatches + k), obj->matches, obj->matchedPointsCount * sizeof(IPointMatch));
 		k += obj->matchedPointsCount;
 		
 		if(obj->matchedPointsCount >= 4) foundReferenceCount++;
@@ -643,9 +716,24 @@ AS3_Val runTask2(void* self, AS3_Val args)
 	if(foundReferenceCount == 0) foundReferenceCount = referenceCount;
 	
 	result_b[max_points_pool+4] = k;
+	result_b[max_points_pool+5] = skiped;
 
-	memcpy(img_prev, img_blur, img_width * img_height);
-	relocateFeatures(filtMatches, k);
+	memcpy(pyr_img_prev1, pyr_img_blur1, pyr_img1_width * pyr_img1_height);
+	memcpy(pyr_img_prev2, pyr_img_blur2, pyr_img2_width * pyr_img2_height);
+	memcpy(pyr_img_prev3, pyr_img_blur3, pyr_img3_width * pyr_img3_height);
+	
+	int j;
+	for(i = 0; i < k; i++)
+	{
+		for(j = 0; j < count; j++)
+		{
+			if(objMatches[i].first->index == frameMatches[j].first->index){
+				frameMatches[j].wasGood = objMatches[i].wasGood;
+				break;
+			}
+		}
+	}
+	relocateFeatures(frameMatches, count);
 	
 	return AS3_Int(objNum);
 }
@@ -655,24 +743,26 @@ AS3_Val getDataPointers(void* self, AS3_Val args)
 	AS3_Val pointers = AS3_Array("AS3ValType", NULL);
 	
 	AS3_Set(pointers, AS3_Int(0), AS3_Ptr(result_b));
-	AS3_Set(pointers, AS3_Int(1), AS3_Ptr(img_blur));
+	AS3_Set(pointers, AS3_Int(1), AS3_Ptr(pyr_img_blur1));
 	AS3_Set(pointers, AS3_Int(2), AS3_Ptr(img_mask));
-	AS3_Set(pointers, AS3_Int(3), AS3_Ptr(img_orig));
+	AS3_Set(pointers, AS3_Int(3), AS3_Ptr(pyr_img1));
 	AS3_Set(pointers, AS3_Int(4), AS3_Ptr(arcamera));
 	AS3_Set(pointers, AS3_Int(5), AS3_Ptr(currRefIndexes));
 	AS3_Set(pointers, AS3_Int(6), AS3_Ptr(&supressNeighbors));
+	
+	AS3_Set(pointers, AS3_Int(7), AS3_Ptr(pyr_img2));
+	AS3_Set(pointers, AS3_Int(8), AS3_Ptr(pyr_img_blur2));
+	AS3_Set(pointers, AS3_Int(9), AS3_Ptr(pyr_img3));
+	AS3_Set(pointers, AS3_Int(10), AS3_Ptr(pyr_img_blur3));
 	
 	return pointers;
 }
 
 AS3_Val clearBuffers(void* self, AS3_Val args)
 {
-	if(img_orig) free(img_orig);
-	if(img_prev) free(img_prev);
-	if(img_blur) free(img_blur);
-	if(img_mask) free(img_mask);
+	if(pyr_img1) free(pyr_img1);
+	if(pyr_img2) free(pyr_img2);
 	
-	if(integral) free(integral);
 	if(descriptorsRef) free(descriptorsRef);
 	if(descriptorsCurr) free(descriptorsCurr);
 	if(arcamera) free(arcamera);
@@ -694,7 +784,6 @@ int main()
 {
 	AS3_Val setupGlobalBuffers_ = AS3_Function( NULL, setupGlobalBuffers );
 	AS3_Val setupImageHolders_ = AS3_Function( NULL, setupImageHolders );
-	AS3_Val setupIntegral_ = AS3_Function( NULL, setupIntegral );
 	AS3_Val createRefObject_ = AS3_Function( NULL, createRefObject );
 	AS3_Val pushImageToRefObject_ = AS3_Function( NULL, pushImageToRefObject );
 	AS3_Val clearReferenceObjects_ = AS3_Function( NULL, clearReferenceObjects );
@@ -705,14 +794,14 @@ int main()
 	AS3_Val clearBuffers_ = AS3_Function( NULL, clearBuffers );
 	AS3_Val exportReferencesData_ = AS3_Function( NULL, exportReferencesData );
 	AS3_Val pushDataToRefObject_ = AS3_Function( NULL, pushDataToRefObject );
+	AS3_Val setupImagePyramid_ = AS3_Function( NULL, setupImagePyramid );
 
 
-	AS3_Val result = AS3_Object("setupGlobalBuffers: AS3ValType, setupImageHolders: AS3ValType, setupIntegral: AS3ValType, createRefObject: AS3ValType, pushImageToRefObject: AS3ValType, clearReferenceObjects: AS3ValType, buildRefIndex: AS3ValType, runTask: AS3ValType, runTask2: AS3ValType, getDataPointers: AS3ValType, clearBuffers: AS3ValType, exportReferencesData: AS3ValType, pushDataToRefObject: AS3ValType",
-	setupGlobalBuffers_, setupImageHolders_, setupIntegral_, createRefObject_, pushImageToRefObject_, clearReferenceObjects_, buildRefIndex_, runTask_, runTask2_, getDataPointers_, clearBuffers_, exportReferencesData_, pushDataToRefObject_);
+	AS3_Val result = AS3_Object("setupGlobalBuffers: AS3ValType, setupImageHolders: AS3ValType, createRefObject: AS3ValType, pushImageToRefObject: AS3ValType, clearReferenceObjects: AS3ValType, buildRefIndex: AS3ValType, runTask: AS3ValType, runTask2: AS3ValType, getDataPointers: AS3ValType, clearBuffers: AS3ValType, exportReferencesData: AS3ValType, pushDataToRefObject: AS3ValType, setupImagePyramid: AS3ValType",
+	setupGlobalBuffers_, setupImageHolders_, createRefObject_, pushImageToRefObject_, clearReferenceObjects_, buildRefIndex_, runTask_, runTask2_, getDataPointers_, clearBuffers_, exportReferencesData_, pushDataToRefObject_, setupImagePyramid_);
 
 	AS3_Release( setupGlobalBuffers_ );
 	AS3_Release( setupImageHolders_ );
-	AS3_Release( setupIntegral_ );
 	AS3_Release( createRefObject_ );
 	AS3_Release( pushImageToRefObject_ );
 	AS3_Release( clearReferenceObjects_ );
@@ -723,6 +812,7 @@ int main()
 	AS3_Release( clearBuffers_ );
 	AS3_Release( exportReferencesData_ );
 	AS3_Release( pushDataToRefObject_ );
+	AS3_Release( setupImagePyramid_ );
 
 	AS3_LibInit( result );
 	

@@ -227,13 +227,13 @@ int filterOutliersByAngle(IPointMatch *matches, const int matchedCount)
 	
 	k = 0;
 	j = 0;
-	const int thresh = 11*11;
+	const int thresh = 10*10;
 	for(i = 0; i < matchedCount; i++)
 	{
 		if( iSquare(rotdiff[i] - index) <= thresh )
 		{
 			matches[k++] = matches[ i ];
-		} 
+		}
 	}
 	return k;
 }

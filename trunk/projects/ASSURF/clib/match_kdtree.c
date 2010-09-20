@@ -11,7 +11,7 @@ int getMatchesByTree(RefObject *obj, IPoint *currP, IPoint *refP, const int num1
 	
 	for(i=0; i<obj->pointsCount; i++)
 	{
-		pmap[i] = 1000000;
+		pmap[i] = 100.0;
 		imap[i] = -1;
 	}
 	for(i=0; i<prevMatchedCount; i++)
@@ -23,10 +23,13 @@ int getMatchesByTree(RefObject *obj, IPoint *currP, IPoint *refP, const int num1
 	VlKDForestNeighbor neighbors[2];
 	
 	refTree = obj->kdf;
+	IPointMatch *match;
 	
 	for(i = 0; i < num1; i++)
 	{
 		IPoint *curr = &currP[i];
+		
+		if(curr->matched) continue;
 		
 		vl_kdforest_query (refTree, &*neighbors, 2, curr->descriptor);
 		
@@ -39,19 +42,27 @@ int getMatchesByTree(RefObject *obj, IPoint *currP, IPoint *refP, const int num1
 			
 			if(imap[match_idx] > -1)
 			{
-				IPointMatch *match = &matches[ imap[match_idx] ];
+				match = &matches[ imap[match_idx] ];
 				
 				match->first = curr;
 				match->second = &obj->points[match_idx];
 				match->confidence = curr_dist;
+				match->lk_tracked = 0;
+				match->tracked = 0;
+				match->prev = 0;
+				match->wasGood = 0;
 			}
 			else
 			{
-				IPointMatch *match = &matches[matchedCount];
+				match = &matches[matchedCount];
 				
 				match->first = curr;
 				match->second = &obj->points[match_idx];
 				match->confidence = curr_dist;
+				match->lk_tracked = 0;
+				match->tracked = 0;
+				match->prev = 0;
+				match->wasGood = 0;
 				
 				imap[match_idx] = matchedCount;
 				
@@ -65,14 +76,16 @@ int getMatchesByTree(RefObject *obj, IPoint *currP, IPoint *refP, const int num1
 	double max_dist = 0.0;
 	for(i = 0; i < matchedCount; i++) 
 	{
-		if(max_dist < matches[i].confidence) 
+		match = &matches[i];
+		if(max_dist < match->confidence) 
 		{
-			max_dist = matches[i].confidence;
+			max_dist = match->confidence;
 		}
 	}
 	for(i = 0; i < matchedCount; i++)
 	{
-		matches[i].normConfidence = matches[i].confidence / max_dist;
+		match = &matches[i];
+		match->normConfidence = match->confidence / max_dist;
 	}
 	
 	return matchedCount;
@@ -120,9 +133,11 @@ int getMatchesByMultiTree(IPoint *currP, IPoint *refP, const int num1, const int
 	
 		for(i = 0; i < num1; i++)
 		{
-			if(screen_dist[i] < 5.0) continue;
+			if(screen_dist[i] < 3.0) continue;
 			
 			IPoint *curr = &currP[i];
+			
+			if(curr->matched) continue;
 			
 			vl_kdforest_query (refTree, &*neighbors, 2, curr->descriptor);
 			
@@ -132,10 +147,13 @@ int getMatchesByMultiTree(IPoint *currP, IPoint *refP, const int num1, const int
 			
 			if(ratio < point_match_factor && pmap[match_idx] > curr_dist)
 			{
-				if(t > 0 && screen_dist[i] > curr_dist)
+				if(t > 0 && screen_dist[i] > curr_dist && prev_obj_ind[i] > -1)
 				{
 					RefObject *obj_prv = &refObjectsMap[ prev_obj_ind[i] ];
-					memcpy( obj_prv->matches+prev_match_ind[i], obj_prv->matches+prev_match_ind[i]+1, (max_points_pool-prev_match_ind[i]-1) * sizeof(IPointMatch) );
+					if(obj_prv->matchedPointsCount - 1 > prev_match_ind[i])
+					{
+						memcpy( obj_prv->matches+prev_match_ind[i], obj_prv->matches+prev_match_ind[i]+1, (obj_prv->matchedPointsCount-prev_match_ind[i]) * sizeof(IPointMatch) );
+					}
 					obj_prv->matchedPointsCount--;
 				}
 				
@@ -156,6 +174,10 @@ int getMatchesByMultiTree(IPoint *currP, IPoint *refP, const int num1, const int
 				match->first = curr;
 				match->second = &obj->points[match_idx];
 				match->confidence = curr_dist;
+				match->lk_tracked = 0;
+				match->tracked = 0;
+				match->prev = 0;
+				match->wasGood = 0;
 				
 				if(screen_dist[i] > curr_dist) 
 				{

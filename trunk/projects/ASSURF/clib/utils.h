@@ -12,7 +12,7 @@ static const double pi = 3.14159;
 static const double two_pi = 6.28318;
 static const double pi_on_three = 1.04719667;
 
-static const double INLIER_THRESHOLD_SQ = 81.0;
+static const double INLIER_THRESHOLD_SQ = 100.0;
 static const double PROBABILITY_REQUIRED = 0.99;
 static const double SQRT2 = 1.4142135623730951;
 
@@ -28,25 +28,29 @@ static const int indY[16] = {0,1,2,3,3,3,2,1,0,-1,-2,-3,-3,-3,-2,-1};
 
 // ----------------------------------------------
 
-typedef struct {
-	int index, localIndex, refIndex, pos, sampled;
+typedef struct _IPoint{
+	int index, localIndex, refIndex, pos;
+	int x, y, dx, dy, pyrLevel, matched;
 	double score;
 	double orientation;
-	double mapScale;
-	int x, y, scale, lapsign, dx, dy;
+	int sum, sqsum, mean;
+	double stdev;
 	double *descriptor;
-	double *sample;
-	double mean, stdev;
+	int sampled;
+	unsigned char sample[256];
 }IPoint;
 
-typedef struct {
+typedef struct _IPointMatch{
 	IPoint *first;
 	IPoint *second;
+	IPoint *prev;
 	double confidence;
 	double normConfidence;
+	int lk_tracked, tracked;
+	int wasGood;
 }IPointMatch;
 
-typedef struct {
+typedef struct _RefObject{
 	int index, pointsCount, matchedPointsCount, prevMatchedPointsCount;
 	int width, height;
 	double poseError;

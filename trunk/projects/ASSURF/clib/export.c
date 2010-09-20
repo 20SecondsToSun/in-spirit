@@ -64,7 +64,7 @@ AS3_Val exportReferencesData(void *data, AS3_Val args)
 			*iptr++ = ipt->pos;
 			*iptr++ = ipt->x;
 			*iptr++ = ipt->y;
-			*iptr++ = ipt->scale;
+			*iptr++ = 2;/* = ipt->scale*/;
 			
 			out_size += 24;
 			
@@ -84,7 +84,7 @@ AS3_Val exportReferencesData(void *data, AS3_Val args)
 			
 			out_size += DESCRIPTOR_SIZE * 8;
 			
-			if(out_size >= n - 572)
+			if(out_size >= n - 572 - 64)
 			{
 				fwrite(out, 1, out_size, input);
 				out_size = 0;
