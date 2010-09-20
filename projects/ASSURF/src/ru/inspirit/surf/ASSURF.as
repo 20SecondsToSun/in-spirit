@@ -47,6 +47,17 @@ package ru.inspirit.surf
 		protected var buffer:BitmapData;
 		protected var rect:Rectangle;
 		
+		protected var rect2:Rectangle;
+		protected var rect3:Rectangle;
+		
+		protected var buffer2:BitmapData;
+		protected var scale2_mtx:Matrix = new Matrix(0.5, 0, 0, 0.5);
+		protected var scale4_mtx:Matrix = new Matrix(0.25, 0, 0, 0.25);
+		protected var img2Ptr:int;
+		protected var blur2Ptr:int;
+		protected var img3Ptr:int;
+		protected var blur3Ptr:int;
+		
 		protected var useMask:int = 0;
 		protected var mask_bmp:BitmapData;
 		protected var mask_mtx:Matrix;
@@ -54,7 +65,6 @@ package ru.inspirit.surf
 		protected const mask_gfx:Graphics = mask_sh.graphics;
 
 		protected var testPtr:int;
-		protected var integralPtr:int;
 		protected var imgPtr:int;
 		protected var blurPtr:int;
 		protected var maskPtr:int;
@@ -85,11 +95,21 @@ package ru.inspirit.surf
 			imgProcessor.imageRect = rect;
 			DEF_IMAGE_PROCESSOR.imageRect = rect;
 			
+			buffer2 = new BitmapData( width, height, false, 0x00 );
+			rect2 = new Rectangle( 0, 0, width >> 1, height >> 1);
+			rect3 = new Rectangle( 0, 0, width >> 2, height >> 2);
+			
 			mask_mtx = new Matrix(1.2, 0, 0, 1.2, -(width*0.5)*0.2, -(height*0.5)*0.2);
 			
-			imgPtr = ASSURF_LIB.setupImageHolders(width, height);
-			integralPtr = ASSURF_LIB.setupIntegral(width, height);
-			updateDataPointers();
+			var ptrs : Array = ASSURF_LIB.setupImagePyramid(width, height);
+			
+			imgPtr = ptrs[0];
+			img2Ptr = ptrs[1];
+			img3Ptr = ptrs[2];
+			blurPtr = ptrs[3];
+			blur2Ptr = ptrs[4];
+			blur3Ptr = ptrs[5];
+			maskPtr = ptrs[6];
 		}
 		
 		public function detectSingleObject(bmp:BitmapData, objID:int = 0, options:int = GET_MATCHES):ReferenceInfo
@@ -97,29 +117,71 @@ package ru.inspirit.surf
 			imgProcessor.preProcess(bmp, buffer);
 			
 			var i:int;
-			var data:Vector.<uint> = buffer.getVector(rect);
 			
-			// blured
+			var data1:Vector.<uint> = buffer.getVector(rect);
+			
+
+			buffer2.draw( buffer, scale2_mtx, null, null, rect, true );
+			var data2:Vector.<uint> = buffer2.getVector(rect2);
+			
+			buffer2.applyFilter(buffer2, rect2, ORIGIN, GAUSSIAN_3x3);
+			var data2_b:Vector.<uint> = buffer2.getVector(rect2);
+			
+			
+			buffer2.draw( buffer, scale4_mtx, null, null, rect, true );
+			var data3:Vector.<uint> = buffer2.getVector(rect3);
+			
+			buffer2.applyFilter(buffer2, rect3, ORIGIN, GAUSSIAN_3x3);
+			var data3_b:Vector.<uint> = buffer2.getVector(rect3);
+			
+			
 			buffer.applyFilter(buffer, rect, ORIGIN, GAUSSIAN_3x3);
-			var data_b:Vector.<uint> = buffer.getVector(rect);
+			var data1_b:Vector.<uint> = buffer.getVector(rect);
 			
-			var len:int = data.length;
-			var addr:int = imgPtr;
-			var addr_b:int = blurPtr;
 			
-			for(i = 0; i < len; ++i, ++addr, ++addr_b) 
+			var len1:int = data1.length;
+			var len2:int = len1 >> 2;
+			var len3:int = len2 >> 2;
+			var addr_o1:int = imgPtr;
+			var addr_b1:int = blurPtr;
+			var addr_o2:int = img2Ptr;
+			var addr_b2:int = blur2Ptr;
+			var addr_o3:int = img3Ptr;
+			var addr_b3:int = blur3Ptr;
+			
+			for(i = 0; i < len3; ++i, ++addr_o1, ++addr_o2, ++addr_o3, ++addr_b1, ++addr_b2, ++addr_b3)
 			{
-				Memory.writeByte(data[i] & 0xFF, addr);
-				Memory.writeByte(data_b[i] & 0xFF, addr_b);
+				Memory.writeByte(data1[i] & 0xFF, addr_o1);
+				Memory.writeByte(data1_b[i] & 0xFF, addr_b1);
+				//
+				Memory.writeByte(data2[i] & 0xFF, addr_o2);
+				Memory.writeByte(data2_b[i] & 0xFF, addr_b2);
+				//
+				Memory.writeByte(data3[i] & 0xFF, addr_o3);
+				Memory.writeByte(data3_b[i] & 0xFF, addr_b3);
+			}
+			for(; i < len2; ++i, ++addr_o1, ++addr_o2, ++addr_b1, ++addr_b2)
+			{
+				Memory.writeByte(data1[i] & 0xFF, addr_o1);
+				Memory.writeByte(data1_b[i] & 0xFF, addr_b1);
+				//
+				Memory.writeByte(data2[i] & 0xFF, addr_o2);
+				Memory.writeByte(data2_b[i] & 0xFF, addr_b2);
+			}
+			for(; i < len1; ++i, ++addr_o1, ++addr_b1)
+			{
+				Memory.writeByte(data1[i] & 0xFF, addr_o1);
+				Memory.writeByte(data1_b[i] & 0xFF, addr_b1);
 			}
 			
 			if(useMask == 1)
 			{
-				data = mask_bmp.getVector(rect);
-				addr = maskPtr;
-				for(i = 0; i < len; ++i, ++addr) 
+				data1 = mask_bmp.getVector( rect );
+				len1 = data1.length;
+				addr_o1 = maskPtr;
+				for(i = 0; i < len1; ++i, ++addr_o1) 
 				{
-					Memory.writeByte(data[i] & 0xFF, addr);
+					Memory.writeByte(data1[i] & 0xFF, addr_o1);
 				}
 			}
 			
@@ -151,29 +213,70 @@ package ru.inspirit.surf
 			imgProcessor.preProcess(bmp, buffer);
 			
 			var i:int;
-			var data:Vector.<uint> = buffer.getVector(rect);
+			var data1:Vector.<uint> = buffer.getVector(rect);
 			
-			// blured
+
+			buffer2.draw( buffer, scale2_mtx, null, null, rect, true );
+			var data2:Vector.<uint> = buffer2.getVector(rect2);
+			
+			buffer2.applyFilter(buffer2, rect2, ORIGIN, GAUSSIAN_3x3);
+			var data2_b:Vector.<uint> = buffer2.getVector(rect2);
+			
+			
+			buffer2.draw( buffer, scale4_mtx, null, null, rect, true );
+			var data3:Vector.<uint> = buffer2.getVector(rect3);
+			
+			buffer2.applyFilter(buffer2, rect3, ORIGIN, GAUSSIAN_3x3);
+			var data3_b:Vector.<uint> = buffer2.getVector(rect3);
+			
+			
 			buffer.applyFilter(buffer, rect, ORIGIN, GAUSSIAN_3x3);
-			var data_b:Vector.<uint> = buffer.getVector(rect);
+			var data1_b:Vector.<uint> = buffer.getVector(rect);
 			
-			var len:int = data.length;
-			var addr:int = imgPtr;
-			var addr_b:int = blurPtr;
 			
-			for(i = 0; i < len; ++i, ++addr, ++addr_b) 
+			var len1:int = data1.length;
+			var len2:int = len1 >> 2;
+			var len3:int = len2 >> 2;
+			var addr_o1:int = imgPtr;
+			var addr_b1:int = blurPtr;
+			var addr_o2:int = img2Ptr;
+			var addr_b2:int = blur2Ptr;
+			var addr_o3:int = img3Ptr;
+			var addr_b3:int = blur3Ptr;
+			
+			for(i = 0; i < len3; ++i, ++addr_o1, ++addr_o2, ++addr_o3, ++addr_b1, ++addr_b2, ++addr_b3)
 			{
-				Memory.writeByte(data[i] & 0xFF, addr);
-				Memory.writeByte(data_b[i] & 0xFF, addr_b);
+				Memory.writeByte(data1[i] & 0xFF, addr_o1);
+				Memory.writeByte(data1_b[i] & 0xFF, addr_b1);
+				//
+				Memory.writeByte(data2[i] & 0xFF, addr_o2);
+				Memory.writeByte(data2_b[i] & 0xFF, addr_b2);
+				//
+				Memory.writeByte(data3[i] & 0xFF, addr_o3);
+				Memory.writeByte(data3_b[i] & 0xFF, addr_b3);
+			}
+			for(; i < len2; ++i, ++addr_o1, ++addr_o2, ++addr_b1, ++addr_b2)
+			{
+				Memory.writeByte(data1[i] & 0xFF, addr_o1);
+				Memory.writeByte(data1_b[i] & 0xFF, addr_b1);
+				//
+				Memory.writeByte(data2[i] & 0xFF, addr_o2);
+				Memory.writeByte(data2_b[i] & 0xFF, addr_b2);
+			}
+			for(; i < len1; ++i, ++addr_o1, ++addr_b1)
+			{
+				Memory.writeByte(data1[i] & 0xFF, addr_o1);
+				Memory.writeByte(data1_b[i] & 0xFF, addr_b1);
 			}
 			
 			if(useMask == 1)
 			{
-				data = mask_bmp.getVector(rect);
-				addr = maskPtr;
-				for(i = 0; i < len; ++i, ++addr) 
+				data1 = mask_bmp.getVector( rect );
+				len1 = data1.length;
+				addr_o1 = maskPtr;
+				for(i = 0; i < len1; ++i, ++addr_o1) 
 				{
-					Memory.writeByte(data[i] & 0xFF, addr);
+					Memory.writeByte(data1[i] & 0xFF, addr_o1);
 				}
 			}
 			
@@ -223,7 +326,7 @@ package ru.inspirit.surf
 			var ds:Number = 1.0;
 			var ds_inc:Number = Math.SQRT2;
 
-			Memory.writeInt(supressNeighbors ? 1 : 0, supressNeighbPtr);
+			Memory.writeInt(supressNeighbors ? 1 : 0, supressNeighbPtr);			
 			
 			for(var j:int = 0; j < scaleLevels; ++j)
 			{
@@ -238,10 +341,9 @@ package ru.inspirit.surf
 				img_lev1.applyFilter(img_lev1, img_lev1.rect, ORIGIN, GAUSSIAN_3x3);
 				var data_b:Vector.<uint> = img_lev1.getVector(img_lev1.rect);
 				
-				imgPtr = ASSURF_LIB.setupImageHolders(img_lev1.width, img_lev1.height);
-				// for descriptors
-				integralPtr = ASSURF_LIB.setupIntegral(img_lev1.width, img_lev1.height);
-				updateDataPointers();
+				var ptrs : Array = ASSURF_LIB.setupImageHolders(img_lev1.width, img_lev1.height);
+				imgPtr = ptrs[0];
+				blurPtr = ptrs[1];
 				
 				var len:int = data.length;
 				var addr:int = imgPtr;
@@ -376,6 +478,11 @@ package ru.inspirit.surf
 			arCameraPtr = pps[4];
 			refIndexesPtr = pps[5];
 			supressNeighbPtr = pps[6];
+
+			img2Ptr = pps[7];
+			blur2Ptr = pps[8];
+			img3Ptr = pps[9];
+			blur3Ptr = pps[10];
 		}
 		
 		public function debug():String
@@ -384,22 +491,22 @@ package ru.inspirit.surf
 			str += '\nreference points: ' + Memory.readInt(testPtr + ((maxScreenPoints+3) << 2));
 			str += '\nscreen points: ' + Memory.readInt(testPtr + ((maxScreenPoints)<<2));
 			str += '\ncurr/prev frame matches: ' + Memory.readInt(testPtr + ((maxScreenPoints+1)<<2)) + '/' + Memory.readInt(testPtr + ((maxScreenPoints+2)<<2));
-			str += '\nfiltered matches: ' + Memory.readInt(testPtr + ((maxScreenPoints+4)<<2));
+			str += '\nfiltered matches: ' + Memory.readInt(testPtr + ((maxScreenPoints+4)<<2)) + ' skip describe: ' + Boolean(Memory.readInt(testPtr + ((maxScreenPoints+5)<<2)));
 			/*
 			var pn:int = Memory.readInt(testPtr + ((maxScreenPoints)<<2));
 			var ncc_arr:Array = [];
 			for(var i:int = 0; i < pn; ++i)
 			{
 				var res:int = Memory.readInt(testPtr + (i<<2)); 
-				if(res > 1) ncc_arr.push(res / 100);
+				ncc_arr.push(res / 1000);
 			}
-			ncc_arr.sort();
-			trace(ncc_arr);
+			ncc_arr.sort( Array.NUMERIC );
+			trace('from-to', ncc_arr[0], ncc_arr[pn-1], '|', ncc_arr);
 			*/
 			
-			//str += ' -- ' + Memory.readInt(testPtr + (0<<2));
-			//str += ' -- ' + Memory.readInt(testPtr + (1<<2));
-			//str += ' -- ' + Memory.readInt(testPtr + (2<<2));
+			str += '\ntracker: ' + Memory.readInt(testPtr + (0<<2)) + ' NCC calls, ';
+			str += Memory.readInt(testPtr + (1<<2)) + ' ncc matches; ';
+			str += 'tracked ' + Memory.readInt(testPtr + (2<<2)) + ' features with LK. Saved ' + Memory.readInt(testPtr + (3<<2)) + ' tracks.';
 			
 			return str;
 		}

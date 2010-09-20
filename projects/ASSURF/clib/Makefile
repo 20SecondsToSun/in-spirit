@@ -11,7 +11,7 @@ PROG  = assurf_clib.swc
 SUFFIXES = .cpp .c .o 
 .SUFFIXES: $(SUFFIXES) .
 
-OBJS  = main.o utils.o rpp.o
+OBJS  = main.o utils.o rpp.o lkpyramid.o
  
 all: $(PROG)
 
