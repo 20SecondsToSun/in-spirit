@@ -25,7 +25,7 @@ package
 	 * @author Eugene Zatepyakin
 	 */
 
-	[SWF(width='640',height='590',frameRate='30',backgroundColor='0xFFFFFF')]
+	[SWF(width='640',height='590',frameRate='25',backgroundColor='0xFFFFFF')]
 
 	public final class Homography extends Sprite
 	{
@@ -73,7 +73,7 @@ package
 			myview.addChild(_txt);
 			
 			// web camera initiation
-			initCamera(640, 480, 30);
+			initCamera(640, 480, 25);
 			camBmp = new Bitmap(_cambuff);			
 			myview.addChild(camBmp);
 			
@@ -82,15 +82,13 @@ package
 			
 			// ASSURF setup
 			// first method you should call
-			// i recommend to use LOW Precision instead of MEDIUM (MEDIUM will be replaced in future)
-			//surf.init(ASSURF.DETECT_PRECISION_MEDIUM, 300, 10000, 1);
 			surf.init(ASSURF.DETECT_PRECISION_LOW, 300, 10000, 1);
 			
 			// make ASSURF detect region of interest automatically
 			surf.autoDetectROI = true;
 			
 			// add bitmapData object as reference
-			refID_0 = surf.addRefObject(iref, 5, 1800, true);
+			refID_0 = surf.addRefObject(iref, 5, 1800, false);
 			
 			// finalize setup by analyzing all references
 			// you cant add anything after it
@@ -98,8 +96,8 @@ package
 			
 			// here is 2 different image pre-processors you can use to refine camera image
 			imgAProc.imageRect = imgQProc.imageRect = _cambuff.rect;
-			//surf.imageProcessor = imgAProc;
-			surf.imageProcessor = imgQProc;
+			surf.imageProcessor = imgAProc;
+			//surf.imageProcessor = imgQProc;
 			
 			// setup input image dimensions
 			surf.setup(640, 480);
