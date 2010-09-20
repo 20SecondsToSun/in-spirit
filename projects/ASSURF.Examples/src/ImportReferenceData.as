@@ -26,7 +26,7 @@ package
 	 * @author Eugene Zatepyakin
 	 */
 	 
-	[SWF(width='640',height='590',frameRate='30',backgroundColor='0xFFFFFF')]
+	[SWF(width='640',height='590',frameRate='25',backgroundColor='0xFFFFFF')]
 	
 	public class ImportReferenceData extends Sprite
 	{
@@ -74,14 +74,12 @@ package
 			myview.addChild(_txt);
 			
 			// web camera initiation
-			initCamera(640, 480, 30);
+			initCamera(640, 480, 25);
 			camBmp = new Bitmap(_cambuff);			
 			myview.addChild(camBmp);
 			
 			// ASSURF setup
 			// first method you should call
-			// i recommend to use LOW Precision instead of MEDIUM (MEDIUM will be replaced in future)
-			//surf.init(ASSURF.DETECT_PRECISION_MEDIUM, 350, 10000, 1);
 			surf.init(ASSURF.DETECT_PRECISION_LOW, 350, 10000, 1);
 			
 			// make ASSURF detect region of interest automatically
@@ -101,8 +99,8 @@ package
 			
 			// here is 2 different image pre-processors you can use to refine camera image
 			imgAProc.imageRect = imgQProc.imageRect = _cambuff.rect;
-			//surf.imageProcessor = imgAProc; // smoother
-			surf.imageProcessor = imgQProc; // harder
+			surf.imageProcessor = imgAProc; // smoother
+			//surf.imageProcessor = imgQProc; // harder
 			
 			// setup input image dimensions
 			surf.setup(640, 480);
