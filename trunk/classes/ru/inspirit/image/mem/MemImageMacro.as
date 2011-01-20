@@ -176,6 +176,42 @@ package ru.inspirit.image.mem
 			);
 		}
 		
+		public static function computeImageGradient(imgp:int, gradp:int, w:int, h:int):void
+		{
+			var x:int, y:int, a:int, b:int, c:int, d:int;
+			var img_xendp:int, img_endp:int;
+
+			img_endp = __cint(imgp + w*(h-1));
+			
+			for (; imgp < img_endp; ) 
+			{
+		        a = Memory.readUnsignedByte(imgp);
+		        c = Memory.readUnsignedByte(__cint(imgp+w));
+		        
+		        __asm(__cint(imgp + w - 1), SetLocal(img_xendp));
+		        for (; imgp < img_xendp; ) 
+		        {
+		            __asm(IncLocalInt(imgp));
+		
+		            b = Memory.readUnsignedByte(imgp);
+		            d = Memory.readUnsignedByte(__cint(imgp+w));
+		
+		            a = d - a;
+		            c = b - c;
+		            x = a + c;
+		            y = a - c;
+		
+		            a = b;
+		            c = d;
+
+					Memory.writeInt(__cint(x * x + y * y), gradp);
+					__asm(GetLocal(gradp),PushByte(4),AddInt,SetLocal(gradp));
+		        }		
+		        __asm(IncLocalInt(imgp));
+		        __asm(GetLocal(gradp),PushByte(4),AddInt,SetLocal(gradp));
+		    }
+		}
+		
 		public static function computeIntegralImage(srcPtr:int, dstPtr:int, w:int, h:int):void
 		{
 			var rowI:int = srcPtr;
