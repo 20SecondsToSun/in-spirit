@@ -196,10 +196,10 @@ package ru.inspirit.image.mem
 		            b = Memory.readUnsignedByte(imgp);
 		            d = Memory.readUnsignedByte(__cint(imgp+w));
 		
-		            a = d - a;
-		            c = b - c;
-		            x = a + c;
-		            y = a - c;
+		            a = __cint(d - a);
+		            c = __cint(b - c);
+		            x = __cint(a + c);
+		            y = __cint(a - c);
 		
 		            a = b;
 		            c = d;
