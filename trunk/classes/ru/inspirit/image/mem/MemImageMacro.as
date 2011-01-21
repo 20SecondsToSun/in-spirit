@@ -176,25 +176,79 @@ package ru.inspirit.image.mem
 			);
 		}
 		
-		public static function computeImageGradient(imgp:int, gradp:int, w:int, h:int):void
+		/**
+		 * image gradient magnitude computation using Sobel filter
+		 * thanx to Patrick Le Clec'h for optimizing
+		 * @param imgPtr	memory offset to input UCHAR image
+		 * @param gradPtr	memory offset to output INT image 
+		 */
+		public static function computeSobelGradientMagnitude(imgPtr:int, gradPtr:int, w:int, h:int):void
+		{
+			var row:int = __cint(imgPtr + w + 1);
+			var row_top:int;
+			var row_bot:int;
+			var eh:int = __cint(h - 1);
+			var ew:int = __cint(w - 1);
+			var cr:int, a:int, b:int, c:int, outp:int;
+			var i:int, j:int, d:int, e:int, dx:int, dy:int; 
+			var stride4:int = w << 2;
+			var out_row:int = __cint(gradPtr + stride4 + 4);
+			
+			for(i = 1; i < eh; ++i)
+			{
+				cr = row;
+				row_top = __cint(cr - w);
+				row_bot = __cint(cr + w);
+				outp = out_row;
+				
+				a = Memory.readUnsignedByte(row_bot - 1);
+				b = Memory.readUnsignedByte(row_top - 1);
+				c = Memory.readUnsignedByte(row_top + 1);
+				d = Memory.readUnsignedByte(row_bot);
+				e = Memory.readUnsignedByte(row_top);
+			
+				for(j = 1; j < ew; ++j)
+				{
+					dx = __cint( (a + (d << 1) + a - b - (e << 1) - c) >> 3 );
+					dy = __cint( (b + (Memory.readUnsignedByte(cr-1) << 1) + a - c - (Memory.readUnsignedByte(cr+1) << 1) - a) >> 3 );
+					Memory.writeInt(__cint(dx*dx + dy*dy), outp);
+					__asm(IncLocalInt(cr),IncLocalInt(row_top),IncLocalInt(row_bot));
+					outp = __cint(outp + 4);
+					a=d;
+					b=e;
+					e=c;
+					d = Memory.readUnsignedByte(row_bot);
+					c = Memory.readUnsignedByte(row_top + 1);
+				}
+				row = __cint(row + w);
+				out_row = __cint(out_row + stride4);
+			}
+		}
+		
+		/**
+		 * image gradient magnitude computation
+		 * @param imgPtr	memory offset to input UCHAR image
+		 * @param gradPtr	memory offset to output INT image 
+		 */
+		public static function computeImageGradientMagnitude(imgPtr:int, gradPtr:int, w:int, h:int):void
 		{
 			var x:int, y:int, a:int, b:int, c:int, d:int;
 			var img_xendp:int, img_endp:int;
 
-			img_endp = __cint(imgp + w*(h-1));
+			img_endp = __cint(imgPtr + w*(h-1));
 			
-			for (; imgp < img_endp; ) 
+			for (; imgPtr < img_endp; ) 
 			{
-		        a = Memory.readUnsignedByte(imgp);
-		        c = Memory.readUnsignedByte(__cint(imgp+w));
+		        a = Memory.readUnsignedByte(imgPtr);
+		        c = Memory.readUnsignedByte(__cint(imgPtr+w));
 		        
-		        __asm(__cint(imgp + w - 1), SetLocal(img_xendp));
-		        for (; imgp < img_xendp; ) 
+		        __asm(__cint(imgPtr + w - 1), SetLocal(img_xendp));
+		        for (; imgPtr < img_xendp; ) 
 		        {
-		            __asm(IncLocalInt(imgp));
+		            __asm(IncLocalInt(imgPtr));
 		
-		            b = Memory.readUnsignedByte(imgp);
-		            d = Memory.readUnsignedByte(__cint(imgp+w));
+		            b = Memory.readUnsignedByte(imgPtr);
+		            d = Memory.readUnsignedByte(__cint(imgPtr+w));
 		
 		            a = __cint(d - a);
 		            c = __cint(b - c);
@@ -204,11 +258,11 @@ package ru.inspirit.image.mem
 		            a = b;
 		            c = d;
 
-					Memory.writeInt(__cint(x * x + y * y), gradp);
-					__asm(GetLocal(gradp),PushByte(4),AddInt,SetLocal(gradp));
+					Memory.writeInt(__cint(x * x + y * y), gradPtr);
+					__asm(GetLocal(gradPtr),PushByte(4),AddInt,SetLocal(gradPtr));
 		        }		
-		        __asm(IncLocalInt(imgp));
-		        __asm(GetLocal(gradp),PushByte(4),AddInt,SetLocal(gradp));
+		        __asm(IncLocalInt(imgPtr));
+		        __asm(GetLocal(gradPtr),PushByte(4),AddInt,SetLocal(gradPtr));
 		    }
 		}
 		
