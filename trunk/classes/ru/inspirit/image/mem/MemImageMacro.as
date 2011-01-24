@@ -4,7 +4,6 @@ package ru.inspirit.image.mem
 	import apparat.inline.Macro;
 	import apparat.math.FastMath;
 	import apparat.memory.Memory;
-
 	/**
 	 * @author Eugene Zatepyakin
 	 */
@@ -225,6 +224,50 @@ package ru.inspirit.image.mem
 			}
 		}
 		
+		public static function computeSobelDxDyGradient(imgPtr:int, gradXPtr:int, gradYPtr:int, w:int, h:int):void
+		{
+			var row:int = __cint(imgPtr + w + 1);
+			var row_top:int;
+			var row_bot:int;
+			var eh:int = __cint(h - 1);
+			var ew:int = __cint(w - 1);
+			var cr:int, a:int, b:int, c:int, outxp:int, outyp:int;
+			var i:int, j:int, d:int, e:int, dx:int, dy:int; 
+			var stride4:int = w << 2;
+			var out_rowx:int = __cint(gradXPtr + stride4 + 4);
+			var out_rowy:int = __cint(gradYPtr + stride4 + 4);
+			
+			for(i = 1; i < eh; ++i)
+			{
+				cr = row;
+				row_top = __cint(cr - w);
+				row_bot = __cint(cr + w);
+				outxp = out_rowx;				outyp = out_rowy;
+				
+				a = Memory.readUnsignedByte(row_bot - 1);
+				b = Memory.readUnsignedByte(row_top - 1);
+				c = Memory.readUnsignedByte(row_top + 1);
+				d = Memory.readUnsignedByte(row_bot);
+				e = Memory.readUnsignedByte(row_top);
+			
+				for(j = 1; j < ew; ++j)
+				{
+					dx = __cint( (a + (d << 1) + a - b - (e << 1) - c) >> 3 );
+					dy = __cint( (b + (Memory.readUnsignedByte(cr-1) << 1) + a - c - (Memory.readUnsignedByte(cr+1) << 1) - a) >> 3 );
+					Memory.writeInt(dx, outxp);					Memory.writeInt(dy, outyp);
+					__asm(IncLocalInt(cr),IncLocalInt(row_top),IncLocalInt(row_bot));
+					outxp = __cint(outxp + 4);					outyp = __cint(outyp + 4);
+					a=d;
+					b=e;
+					e=c;
+					d = Memory.readUnsignedByte(row_bot);
+					c = Memory.readUnsignedByte(row_top + 1);
+				}
+				row = __cint(row + w);
+				out_rowx = __cint(out_rowx + stride4);				out_rowy = __cint(out_rowy + stride4);
+			}
+		}
+		
 		/**
 		 * image gradient magnitude computation
 		 * @param imgPtr	memory offset to input UCHAR image
@@ -288,21 +331,21 @@ package ru.inspirit.image.mem
 				Jump('loop'),
 				'endLoop:'
 				);
-			// 
-
+			//
 			var prowII:int = dstPtr;
-			for( i = 1; i < h; )
+			var endI:int = __cint(srcPtr + (w*h));
+			sum = i = 0;
+			while( rowI < endI )
 			{
-				sum = 0;
-				for(j = 0; j < w; )
-				{
-					__asm( GetLocal(sum),GetLocal(rowI),GetByte,AddInt,SetLocal(sum),
-							GetLocal(prowII),GetInt,GetLocal(sum),AddInt,GetLocal(rowII),SetInt );
-					__asm( IncLocalInt(j),IncLocalInt(rowI) );
-					__asm( GetLocal( rowII ), PushByte( 4 ), AddInt, SetLocal(rowII) );
-					__asm( GetLocal( prowII ), PushByte( 4 ), AddInt, SetLocal(prowII) );
-				}
-				__asm( IncLocalInt(i) );
+				j   = int(i!=w);
+				i   = __cint(j*(i+1));
+				sum = __cint(j*sum);
+				
+				__asm( GetLocal(sum),GetLocal(rowI),GetByte,AddInt,SetLocal(sum),
+					   GetLocal(prowII),GetInt,GetLocal(sum),AddInt,GetLocal(rowII),SetInt );
+				__asm( IncLocalInt(rowI) );
+				__asm( GetLocal( rowII ), PushByte( 4 ), AddInt, SetLocal(rowII) );
+				__asm( GetLocal( prowII ), PushByte( 4 ), AddInt, SetLocal(prowII) );
 			}
 		}
 		
@@ -396,33 +439,21 @@ package ru.inspirit.image.mem
 			var alfa:Number = mxx - x;
 			var beta:Number = mxy - y;
 			
-			if( alfa < 0.001 ) alfa = 0;
-			if( beta < 0.001 ) beta = 0;
+			alfa=Number(alfa>=0.001)*alfa;
+			var tmp:Number=Number(alfa<=0.999);
+			alfa=tmp*alfa+(1.0-tmp);
+			
+			alfa=Number(beta>=0.001)*alfa; 
+			tmp=Number(beta<=0.999);
+			beta=tmp*beta+(1.0-tmp);
 			
 			var mnyw:int = mny * stride;
-			var mxyw:int = mxy * stride;	
+			//var mxyw:int = mxy * stride;    
+			 
+			var iywx:Number=Memory.readUnsignedByte(imgPtr + mnyw+mnx);
+			var iywxx:Number=Memory.readUnsignedByte(imgPtr + mnyw+mxx);
 			
-			if( alfa < 0.001 ) 
-			{
-				val = (beta * Memory.readUnsignedByte(imgPtr + mnyw+mxx) + (1.0-beta) * Memory.readUnsignedByte(imgPtr + mxyw+mxx));						
-			}
-			else if( alfa > 0.999 )
-			{
-				val = (beta * Memory.readUnsignedByte(imgPtr + mnyw+mnx) + (1.0-beta) * Memory.readUnsignedByte(imgPtr + mxyw+mnx));
-			}
-			else if( beta < 0.001 )
-			{
-				val = (alfa * Memory.readUnsignedByte(imgPtr + mxyw+mnx) + (1.0-alfa) * Memory.readUnsignedByte(imgPtr + mxyw+mxx));
-			}
-			else if( beta > 0.999 )
-			{
-				val = (alfa * Memory.readUnsignedByte(imgPtr + mnyw+mnx) + (1.0-alfa) * Memory.readUnsignedByte(imgPtr + mnyw+mxx));
-			}
-			else
-			{
-				val = (beta * (alfa * Memory.readUnsignedByte(imgPtr + mnyw+mnx) + (1.0-alfa) *  Memory.readUnsignedByte(imgPtr + mnyw+mxx))
-					+ (1.0-beta) * (alfa * Memory.readUnsignedByte(imgPtr + mxyw+mnx) + (1.0-alfa) * Memory.readUnsignedByte(imgPtr + mxyw+mxx)));
-			}
+			val = (beta * (alfa * iywx + (1.0-alfa) *  iywxx) + (1.0-beta) * (alfa * iywx + (1.0-alfa) * iywxx));
 		}
 		
 		internal static function fillUCharPass(ptr:int, i:int, img:Vector.<uint>):void
