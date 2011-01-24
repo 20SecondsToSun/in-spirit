@@ -318,35 +318,33 @@ package ru.inspirit.image.mem
 			var j:int;
 			
 			__asm(
-				'loop:',
-				DecLocalInt(i),
-				GetLocal(i),
-				PushByte(0),
-				IfEqual('endLoop') );
-			//	
+					'loop:',
+					DecLocalInt(i),
+					GetLocal(i),
+					PushByte(0),
+					IfEqual('endLoop') );
+			//      
 			__asm( GetLocal(sum),GetLocal(rowI),GetByte,AddInt,SetLocal(sum),GetLocal(sum),GetLocal(rowII),SetInt );
 			__asm( IncLocalInt( rowI ), GetLocal( rowII ), PushByte( 4 ), AddInt, SetLocal(rowII));
 			//
 			__asm(
-				Jump('loop'),
-				'endLoop:'
-				);
-			//
-			var prowII:int = dstPtr;
+					Jump('loop'),
+					'endLoop:'
+					);
+			// 
+	
+			var prowII:int = __cint(dstPtr - rowII);
 			var endI:int = __cint(srcPtr + (w*h));
 			sum = i = 0;
 			while( rowI < endI )
 			{
-				j   = int(i!=w);
-				i   = __cint(j*(i+1));
-				sum = __cint(j*sum);
-				
-				__asm( GetLocal(sum),GetLocal(rowI),GetByte,AddInt,SetLocal(sum),
-					   GetLocal(prowII),GetInt,GetLocal(sum),AddInt,GetLocal(rowII),SetInt );
+				j = int(i<w);
+				i=__cint(j*i+1);
+				sum = __cint(j*sum+Memory.readUnsignedByte(rowI));
+				Memory.writeInt(__cint(sum+Memory.readInt(prowII+rowII)), rowII);
 				__asm( IncLocalInt(rowI) );
-				__asm( GetLocal( rowII ), PushByte( 4 ), AddInt, SetLocal(rowII) );
-				__asm( GetLocal( prowII ), PushByte( 4 ), AddInt, SetLocal(prowII) );
-			}
+				rowII = __cint(rowII+4);
+			}	
 		}
 		
 		public static function pyrDown(fromPtr:int, toPtr:int, newW:int, newH:int):void
