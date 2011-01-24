@@ -6,8 +6,15 @@ package ru.inspirit.image.edges
 	import apparat.math.IntMath;
 	import apparat.memory.Memory;
 	import apparat.memory.memset;
+	
 	/**
+	 * Edges detector using Sobel Filter
+	 * 
 	 * @author Eugene Zatepyakin
+	 * @see http://blog.inspirit.ru
+	 * 
+	 * @author Patrick Le Clec'h
+	 * lots of speed up tips and tricks ;-) 
 	 */
 	public class SobelEdgeDetector
 	{
@@ -43,6 +50,10 @@ package ru.inspirit.image.edges
 			orientPtr = magPtr + (area << 2);
 		}
 		
+		/**
+		 * @param imgPtr	mem offset to image data (uchar)
+		 * @param edgPtr	mem offset to edges data (int)
+		 */
 		public function detect(imgPtr:int, edgPtr:int, w:int, h:int):void
 		{
 			var row:int = __cint(imgPtr + w + 1);
@@ -74,10 +85,13 @@ package ru.inspirit.image.edges
 			
 				for(j = 1; j < ew; ++j)
 				{
-					dx = __cint( (a + (d << 1) + a - b - (e << 1) - c) >> 3 );
-					dy = __cint( (b + (Memory.readUnsignedByte(cr-1) << 1) + a - c - (Memory.readUnsignedByte(cr+1) << 1) - a) >> 3 );
-					//dx = __cint( (a + (d << 1) + a - b - (e << 1) - c)>>2 );
-					//dy = __cint( (b + (Memory.readUnsignedByte(cr-1) << 1) + a - c - (Memory.readUnsignedByte(cr+1) << 1) - a)>>2 );
+					// this one returns lower values
+					//dx = __cint( (a + (d << 1) + a - b - (e << 1) - c) >> 3 );
+					//dy = __cint( (b + (Memory.readUnsignedByte(cr-1) << 1) + a - c - (Memory.readUnsignedByte(cr+1) << 1) - a) >> 3 );
+					
+					// this is for stronger gradient values
+					dx = __cint( (a + (d << 1) + a - b - (e << 1) - c) >> 1 );
+					dy = __cint( (b + (Memory.readUnsignedByte(cr-1) << 1) + a - c - (Memory.readUnsignedByte(cr+1) << 1) - a) >> 1 );
 					
 					// write abs values for NonMaxSuppress
 					var abs_dx:int= __cint((1-(int(dx<0)<<1))*dx);
