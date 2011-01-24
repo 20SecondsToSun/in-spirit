@@ -16,28 +16,28 @@
 {{{
 // init Canny Detector instance
 // i would recommend pre-init instance outside loops for better performance
-// you can change source Image at anytime using "source" property
 
-var canny:CannyEdgeDetector = new CannyEdgeDetector(sourceImage);
+var canny:CannyEdgeDetector = new CannyEdgeDetector();
 
 // run Edges detection
 // please note that source image should be GrayScaled before you run
 // detection process. (only BLUE channel data is used)
-// Edges would be outputted into provided edgesImage BitmapData object
 
 // you also can control different detection options (via properties):
-// blurSize - if you want source to be blurred before detection
 // lowThreshold - min edges threshold value to be processed
 // highThreshold - max edges threshold value to be processed
 
-canny.detectEdges(edgesImage);
+/**
+* @param imgPtr        mem offset to image data (uchar)
+* @param edgPtr        mem offset to edges data (int)
+*/
+canny.detect(imgPtr, edgPtr, width, height);
 
-// always clear instance memory usage if you don't plan to use it any more
-
-canny.dispose();
 }}}
 
 === Download ===
-*[http://in-spirit.googlecode.com/files/CannyEdgeDetector.zip Compiled SWC Lib]*
+*[http://code.google.com/p/in-spirit/source/browse/trunk/classes/demo/DemoEdges.as Usage Demo Example]*
 
-*[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/CannyEdgeDetector Complete source code available in my repository]*
+*[http://code.google.com/p/in-spirit/source/browse/#svn%2Ftrunk%2Fclasses%2Fru%2Finspirit%2Fimage%2Fedges Pure AS3 Apparat version]*
+
+*[http://code.google.com/p/in-spirit/source/browse/#svn/trunk/projects/CannyEdgeDetector Complete Alchemy source code]*
