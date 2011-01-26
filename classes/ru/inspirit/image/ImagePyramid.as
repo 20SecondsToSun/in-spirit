@@ -82,7 +82,6 @@ package ru.inspirit.image
 			origHeight = height;
 			var offset:int = (width * height) << 2;
 			intImage.setup( memPtr, width, height );
-			imgRefine.imageRect = new Rectangle( 0, 0, width, height );
 			
 			for(var i:int = 0; i < pyrLevels; ++i)
 			{
