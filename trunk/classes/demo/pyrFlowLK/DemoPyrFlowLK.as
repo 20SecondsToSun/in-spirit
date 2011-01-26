@@ -105,7 +105,7 @@ package demo.pyrFlowLK
 			
 			_cambuff.draw(_video, _cam_mtx);
 			
-			imgPyr.updateMem( true, 3, 3, false );
+			imgPyr.updateMem( true, 3, 3 );
 			//imgPyr.mem[0].render( _cambuff );
 			//imgPyr.mem[1].render( _cambuff );
 			//imgPyr.mem[2].render( _cambuff );
