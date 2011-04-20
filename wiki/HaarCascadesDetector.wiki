@@ -13,8 +13,11 @@ Simplified for the best performance implementation of [http://en.wikipedia.org/w
   * Built in Region of interest support
   * Optional start detection size, scale up speed and region analyzation step factor
   * Optional Edges Map to speed up process by skipping low-edged areas
+  * Option to distribute computations between frames (u can divide each detection cycle to any amount of frames)
 
 
-=== Download ===
+=== Info ===
 
 [http://in-spirit.googlecode.com/files/HaarCascadesDetector.zip HaarCascadesDetector.swc download]
+
+[http://code.google.com/p/in-spirit/source/browse/#svn%2Ftrunk%2Fprojects%2FHaarCascadesDetector Source code and Demo App]
