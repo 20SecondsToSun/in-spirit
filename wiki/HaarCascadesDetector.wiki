@@ -7,6 +7,8 @@
 
 Simplified for the best performance implementation of [http://en.wikipedia.org/wiki/Viola-Jones_object_detection_framework Viola-Jones object detection] using Adobe Flash.
 
+Build using [http://code.google.com/p/apparat/ Apparat project]
+
 === Features ===
 
   * Stump and Tree based cascades XML files
