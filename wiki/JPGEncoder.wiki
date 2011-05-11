@@ -2,7 +2,7 @@
 #labels Featured,AS3,JPG,encoder,apparat
 
 
-= Usage =
+== Usage ==
 
 {{{
 var bmp1:BitmapData = new BitmapData(2800, 2800, false, 0xFF0000);
@@ -15,6 +15,9 @@ var bmp6:BitmapData = new BitmapData(2800, 2800, false, 0x00FFFF);
 //
 // Simple one call encoding
 //
+
+// I recommend to pre-init instance for example at class initiation
+// and then just use "encode" method. It would be way faster
 var je:JPGEncoder = new JPGEncoder(90);
 var jpgFileBA:ByteArray = je.encode(bmp1);
 
@@ -54,3 +57,6 @@ function onEncodeProgress(e:ProgressEvent):void
 	trace('Encoding JPG: ' + String( Math.round(e.bytesLoaded / e.bytesTotal * 100) ) + '%');
 }
 }}}
+
+== Download ==
+[http://in-spirit.googlecode.com/files/jpgencoder.zip Download SWC lib]
