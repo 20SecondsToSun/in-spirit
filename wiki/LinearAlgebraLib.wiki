@@ -28,7 +28,7 @@ pseudoInverse(inv:Vector.<Number>, mtx:Vector.<Number>, m:int, n:int):void;
 * x - result vector
 * B - input matrix
 **/
-function solve(A:Vector.<Number>, m:int, n:int, x:Vector.<Number>, B:Vector.<Number>):void;
+solve(A:Vector.<Number>, m:int, n:int, x:Vector.<Number>, B:Vector.<Number>):void;
 
 // Decomposed data can be accessed
 svdInstance.W // singular values vector
