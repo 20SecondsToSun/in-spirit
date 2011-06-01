@@ -40,7 +40,7 @@ svdInstance.V // n x n orthogonal matrix
 
 {{{
 /**
-* Solves quartics of the form x^4 + a x^3 + b x^2 + c x + d ==0
+* Solves quartics of the form x^4 + Ax^3 + Bx^2 + Cx + D ==0
 * return number of found roots
 **/
 solveQuartic(a:Number, b:Number, c:Number, d:Number, result:Vector.<Number>):int;
@@ -49,7 +49,7 @@ solveQuarticDescartes(a:Number, b:Number, c:Number, d:Number, result:Vector.<Num
 solveQuarticFerrari(a:Number, b:Number, c:Number, d:Number, result:Vector.<Number>):int;
 
 /**
-* Solving cubics like x^3 + a * x^2 + b * x + c == 0
+* Solving cubics like x^3 + Ax^2 + Bx + C == 0
 **/
 solveCubic(a:Number, b:Number, c:Number, result:Vector.<Number>):int;
 
@@ -67,7 +67,7 @@ quarticError(a:Number, b:Number, c:Number, d:Number, roots:Vector.<Number>, root
 solveCubic2(p:Number, q:Number, r:Number, result:Vector.<Number>):int;
 
 /**
-* Solve a quadratic of the form x^2 + B x + C == 0
+* Solve a quadratic of the form Ax^2 + Bx + C == 0
 **/
 solveQuadratic(a:Number, b:Number, c:Number, result:Vector.<Number>):int;
 }}}
