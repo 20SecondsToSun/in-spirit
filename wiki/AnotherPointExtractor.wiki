@@ -1,5 +1,5 @@
+#summary APE is another point/corner detector/extractor
 #labels Featured,AS3,Features,Corners
-#APE is another point/corner detector/extractor
 
 = Introduction =
 
