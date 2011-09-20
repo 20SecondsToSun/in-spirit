@@ -1,20 +1,10 @@
 package
 {
 	import apparat.memory.Memory;
-
-	import nochump.util.zip.ZipEntry;
-	import nochump.util.zip.ZipFile;
-
-	import ru.inspirit.haar.HaarCascadesDetector;
-	import ru.inspirit.image.edges.CannyEdgeDetector;
-	import ru.inspirit.image.mem.MemImageInt;
-	import ru.inspirit.image.mem.MemImageUChar;
-
 	import com.bit101.components.HUISlider;
 	import com.bit101.components.Label;
 	import com.bit101.components.Panel;
 	import com.bit101.components.Style;
-
 	import flash.display.Bitmap;
 	import flash.display.BitmapData;
 	import flash.display.Graphics;
@@ -35,6 +25,12 @@ package
 	import flash.utils.ByteArray;
 	import flash.utils.Endian;
 	import flash.utils.getTimer;
+	import nochump.util.zip.ZipEntry;
+	import nochump.util.zip.ZipFile;
+	import ru.inspirit.haar.HaarCascadesDetector;
+	import ru.inspirit.image.edges.SobelEdgeDetector;
+	import ru.inspirit.image.mem.MemImageInt;
+	import ru.inspirit.image.mem.MemImageUChar;
 
 	/**
 	 * @author Eugene Zatepyakin
@@ -65,7 +61,7 @@ package
 		public var baseScale:Number = 2.0;
 		public var scaleIncrement:Number = 1.15;
 		public var stepIncrement:Number = 0.05;
-		public var edgeDensity:Number = 0.09;
+		public var edgeDensity:Number = 0.01;//0.09;
         
         private var view :Sprite;
 		private var faceRectContainer :Sprite;
@@ -76,6 +72,7 @@ package
         protected var _cambuff_rect:Rectangle;
         protected var _cam_mtx:Matrix;
 		private var detectionMap:BitmapData;
+		private var detectionMapOrig:BitmapData;
 		private var drawMatrix:Matrix;
 		private var scaleFactor:Number = 2;
 		private var w:int = 640;
@@ -83,10 +80,11 @@ package
         
         public const detector:HaarCascadesDetector = new HaarCascadesDetector();
         public const detectorLE:HaarCascadesDetector = new HaarCascadesDetector();
-        public const detectorRE:HaarCascadesDetector = new HaarCascadesDetector();        public const detectorM:HaarCascadesDetector = new HaarCascadesDetector();
+        public const detectorRE:HaarCascadesDetector = new HaarCascadesDetector();
+        public const detectorM:HaarCascadesDetector = new HaarCascadesDetector();
         public const ram:ByteArray = new ByteArray();
         
-        public const canny:CannyEdgeDetector = new CannyEdgeDetector();
+        public const sobel:SobelEdgeDetector = new SobelEdgeDetector();
         public var edgesPtr:int;
         public var imgPtr:int;
         public var detectorPtr:int;
@@ -126,11 +124,13 @@ package
             initCamera(640, 480, 30);
             camBmp = new Bitmap(_cambuff); 
 			view.addChild( camBmp );
-			
+
+			detectionMapOrig = _cambuff.clone();
 			detectionMap = new BitmapData( w / scaleFactor, h / scaleFactor, false, 0 );
 			drawMatrix = new Matrix( 1 / scaleFactor, 0, 0, 1 / scaleFactor );
 			
 			detectionMap.lock();
+			detectionMapOrig.lock();
 			
 			faceRectContainer = new Sprite();
 			
@@ -149,7 +149,7 @@ package
 			var sz:int = iw*ih;
 			
 			var detectorChunk:int = detector.calcRequiredChunkSize(iw, ih);
-			var cannyChunk:int = canny.calcRequiredChunkSize(iw, ih);
+			var cannyChunk:int = sobel.calcRequiredChunkSize(iw, ih);
             
             ram.endian = Endian.LITTLE_ENDIAN;
 			ram.length = 1024 + detectorChunk * 4 + cannyChunk + sz + (sz<<2);
@@ -161,7 +161,7 @@ package
 			off += sz;
 			edgesPtr = off;
 			off += sz << 2;
-			canny.setup(off, iw, ih);
+			sobel.setup(off, iw, ih);
 			off += cannyChunk;
 
 			detectorPtr = off;
@@ -178,10 +178,10 @@ package
 			detector.numSteps = 2;
 			detector.onImageDataUpdate = updateImageAndEdges;
 			
+			detectorLE.edgesDensity = detectorRE.edgesDensity = detectorM.edgesDensity = detector.edgesDensity;
+			
 			imgU.setup(imgPtr, iw, ih);
 			imgI.setup(edgesPtr, iw, ih);
-			canny.lowThreshold = 0.2;
-			canny.highThreshold = 0.85;
 			
 			var myLoader:URLLoader = new URLLoader();
 			myLoader.dataFormat = URLLoaderDataFormat.BINARY;
@@ -199,8 +199,11 @@ package
 			var iw:int = detectionMap.width;
 			var ih:int = detectionMap.height;
 			var data:Vector.<uint> = detectionMap.getVector(imageRect);
+			// pass data to memory
 			imgU.fill(data);
-			canny.detect(uptr, iptr, iw, ih);
+			
+			// use edges to speed up detection
+			sobel.detect(uptr, iptr, iw, ih);
 		}
 		
 		private function onRender(e:Event):void
@@ -211,20 +214,26 @@ package
 			
 			var t:int = getTimer();
 			
+			// simple one step way
 			//faceRects = detector.detect(null, baseScale, scaleIncrement, stepIncrement, null);
 			//faceRects = detector.groupRectangles(faceRects);
 			//drawRects(faceRects, scaleFactor);
 			
+			// multi-step way
 			detector.nextFrame();
+			// if we at last step - check the result
 			if(detector.state == detector.numSteps - 1)
 			{
 				faceRects = detector.result;
 				faceRects = detector.groupRectangles(faceRects);
 				drawRects( faceRects, scaleFactor );
+				// here u can try to localize eyes and mouth
+				/*
 				if (faceRects.length)
 				{
-					//detectEyesAndMouth( faceRects[0] );
+					detectEyesAndMouth( faceRects[0] );
 				}
+				*/
 			}
 			
 			_rt += getTimer()-t;
@@ -245,7 +254,8 @@ package
 			eyes_r.y += eyes_r.height * 0.55;
 			
 			// LEFT EYE
-				
+			
+			// debug search region
 			//drawRects(Vector.<Rectangle>([eyes_r]), scaleFactor, false);
 			
 			t = getTimer();
@@ -259,6 +269,7 @@ package
 			
 			eyes_r.x += eyes_r.width;
 			
+			// debug search region
 			//drawRects(Vector.<Rectangle>([eyes_r]), scaleFactor, false);
 			
 			t = getTimer();
@@ -273,12 +284,13 @@ package
 			mouth_r.y = mouth_r.bottom - mouth_r.height * 0.35;
 			mouth_r.x += mouth_r.width * 0.2;
 			mouth_r.width *= 0.6;
-			mouth_r.height *= 0.3;
+			//mouth_r.height *= 0.3;
+			mouth_r.height = r.bottom - mouth_r.y;
 			
-			//drawRects(Vector.<Rectangle>([mouth_r]), scaleFactor, false);
+			drawRects(Vector.<Rectangle>([mouth_r]), scaleFactor, false);
 			
 			t = getTimer();
-			eyeRects = detectorM.detect(mouth_r, 1, 1.2, 0.05, -1, detector);
+			eyeRects = detectorM.detect( mouth_r, 1, 1.05, 0.05, -1, detector );
 			_rt += getTimer()-t;
 			
 			eyeRects = detectorM.groupRectangles(eyeRects);
@@ -395,9 +407,9 @@ package
 			
 			new Label(p, 512, 5, 'EDGES DENSITY');
 			edgeSlider = new HUISlider(p, 505, 17, '', onSliderChange);
-			edgeSlider.setSliderParams(0.01, 0.15, edgeDensity);
+			edgeSlider.setSliderParams(0.001, 0.15, edgeDensity);
 			edgeSlider.labelPrecision = 3;
-			edgeSlider.tick = 0.01;
+			edgeSlider.tick = 0.005;
 			edgeSlider.width = 140;
 		}
 
@@ -423,6 +435,7 @@ package
 			{
 				edgeDensity = sl.value;
 				detector.edgesDensity = 255 * edgeDensity;
+				detectorLE.edgesDensity = detectorRE.edgesDensity = detectorM.edgesDensity = detector.edgesDensity;
 			}
 		}
 		
@@ -446,10 +459,6 @@ package
 
 			var myContextMenu:ContextMenu = new ContextMenu();
 			myContextMenu.hideBuiltInItems();
-			
-			this.graphics.beginFill(0xDDDDDD);
-			this.graphics.drawRect(-500, -500, 2000, 2000);
-			this.graphics.endFill();
 
 			var copyr:ContextMenuItem = new ContextMenuItem("© inspirit.ru", true, false);
 			myContextMenu.customItems.push(copyr);
