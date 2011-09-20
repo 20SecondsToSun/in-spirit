@@ -20,6 +20,8 @@ Build using [http://code.google.com/p/apparat/ Apparat project]
 
 === Info ===
 
-[http://in-spirit.googlecode.com/files/HaarCascadesDetector.zip HaarCascadesDetector.swc download]
+Please note: 
+  * you will need to use Apparat SWC libraries to compile the code
+  * you will need to post-process your compiled SWF file with Apparat TDSI tool
 
 [http://code.google.com/p/in-spirit/source/browse/#svn%2Ftrunk%2Fprojects%2FHaarCascadesDetector Source code and Demo App]
