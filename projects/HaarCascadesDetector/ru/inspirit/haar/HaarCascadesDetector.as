@@ -118,17 +118,19 @@ package ru.inspirit.haar
 				var data:Vector.<uint> = bmp.getVector(rect);
 				
 				if(useEdges)
-				{					
+				{	
+					var i4:int = 0;
 					for(i = 0; i < width; ++i)
 					{
 						c = (data[i] & 0xFF);
 						s1 = __cint(s1 + c);
 						s2 = __cint(s2 + c * c);
-						s3 = __cint(s3 + (Memory.readInt(edgesPtr + (i<<2)) & 0xFF));
+						s3 = __cint(s3 + (Memory.readInt(edgesPtr + i4) & 0xFF));
 						
-						Memory.writeInt(s1, __cint(intOff + (i << 2)));
-						Memory.writeInt(s2, __cint(sqOff + (i << 2)));
-						Memory.writeInt(s3, __cint(edgeOff + (i << 2)));
+						Memory.writeInt(s1, __cint(intOff + i4));
+						Memory.writeInt(s2, __cint(sqOff + i4));
+						Memory.writeInt(s3, __cint(edgeOff + i4));
+						i4 = __cint(i4 + 4);
 					}
 					
 					ind = width;
@@ -139,30 +141,35 @@ package ru.inspirit.haar
 						s1 = 0;
 						s2 = 0;
 						s3 = 0;
-						for(i = 0; i < width; ++i, ++ind, ++ind0)
+						for(i = 0; i < width; )
 						{
 							c = (data[ind] & 0xFF);
-							s1 = s1 + c;
-							s2 = s2 + c * c;
-							s3 = s3 + (Memory.readInt(edgesPtr + (ind<<2)) & 0xFF);
+							s1 = __cint(s1 + c);
+							s2 = __cint(s2 + c * c);
+							s3 = __cint(s3 + (Memory.readInt(edgesPtr + i4) & 0xFF));
 							
-							Memory.writeInt(Memory.readInt(intOff + (ind0 << 2)) + s1, intOff+ (ind << 2));
-							Memory.writeInt(Memory.readInt(sqOff + (ind0 << 2)) + s2, sqOff + (ind << 2));
-							Memory.writeInt(Memory.readInt(edgeOff + (ind0 << 2)) + s3, edgeOff + (ind << 2));
+							Memory.writeInt(__cint(Memory.readInt(intOff + ind0) + s1), __cint(intOff+ i4));
+							Memory.writeInt(__cint(Memory.readInt(sqOff + ind0) + s2), __cint(sqOff + i4));
+							Memory.writeInt(__cint(Memory.readInt(edgeOff + ind0) + s3), __cint(edgeOff + i4));
+							//
+							__asm(IncLocalInt(i), IncLocalInt(ind));
+							i4 = __cint(i4 + 4);
+							ind0 = __cint(ind0 + 4);
 						}
 					}
 				}
 				else
 				{
-				
+					i4 = 0;
 					for(i = 0; i < width; ++i)
 					{
 						c = (data[i] & 0xFF);
 						s1 = __cint(s1 + c);
 						s2 = __cint(s2 + c * c);
 						
-						Memory.writeInt(s1, __cint(intOff + (i << 2)));
-						Memory.writeInt(s2, __cint(sqOff + (i << 2)));
+						Memory.writeInt(s1, __cint(intOff + i4));
+						Memory.writeInt(s2, __cint(sqOff + i4));
+						i4 = __cint(i4 + 4);
 					}
 					
 					ind = width;
@@ -172,14 +179,18 @@ package ru.inspirit.haar
 					{
 						s1 = 0;
 						s2 = 0;
-						for(i = 0; i < width; ++i, ++ind, ++ind0)
+						for(i = 0; i < width; )
 						{
 							c = (data[ind] & 0xFF);
 							s1 = __cint(s1 + c);
 							s2 = __cint(s2 + c * c);
 							
-							Memory.writeInt(__cint(Memory.readInt(intOff + (ind0 << 2)) + s1), __cint(intOff+ (ind << 2)));
-							Memory.writeInt(__cint(Memory.readInt(sqOff + (ind0 << 2)) + s2), __cint(sqOff + (ind << 2)));
+							Memory.writeInt(__cint(Memory.readInt(intOff + ind0) + s1), __cint(intOff+ i4));
+							Memory.writeInt(__cint(Memory.readInt(sqOff + ind0) + s2), __cint(sqOff + i4));
+							//
+							__asm(IncLocalInt(i), IncLocalInt(ind));
+							i4 = __cint(i4 + 4);
+							ind0 = __cint(ind0 + 4);
 						}
 					}
 				}
@@ -273,6 +284,9 @@ package ru.inspirit.haar
             
             var iter:int = 0;
 			
+			var math:*;
+			__asm(__as3(Math), SetLocal(math));
+			
 			if(!treeBasedCascades)
 			{
 			
@@ -349,7 +363,15 @@ package ru.inspirit.haar
 						if(vnorm < 0) vnorm = -vnorm;						
 						vnorm = FastMath.sqrt2(vnorm, 0);*/
 						vnorm = vnorm - (mean * mean);
-						vnorm = vnorm > 0 ? FastMath.sqrt2(vnorm, 0) : 1.0;
+						//vnorm = vnorm > 0 ? FastMath.sqrt2(vnorm, 0) : 1.0;
+						if (vnorm > 0)
+						{
+							__asm(__as3(math), __as3(vnorm), CallProperty(__as3(Math.sqrt), 1), SetLocal(vnorm));
+						}
+						else
+						{
+							vnorm = 1.0;
+						}
                         
                         pass = true;
                         st = stages;
@@ -491,7 +513,15 @@ package ru.inspirit.haar
 							if(vnorm < 0) vnorm = -vnorm;
 							vnorm = FastMath.sqrt2(vnorm, 0);*/
 							vnorm = vnorm - (mean * mean);
-							vnorm = vnorm > 0 ? FastMath.sqrt2(vnorm, 0) : 1.0;
+							//vnorm = vnorm > 0 ? FastMath.sqrt2(vnorm, 0) : 1.0;
+							if (vnorm > 0)
+							{
+								__asm(__as3(math), __as3(vnorm), CallProperty(__as3(Math.sqrt), 1), SetLocal(vnorm));
+							}
+							else
+							{
+								vnorm = 1.0;
+							}
 	                        
 	                        pass = true;	                        
 							st = stages;
@@ -592,16 +622,18 @@ package ru.inspirit.haar
 				
 				if(locUseEdges)
 				{					
+					var i4:int = 0;
 					for(i = 0; i < width; ++i)
 					{
 						c = (data[i] & 0xFF);
 						s1 = __cint(s1 + c);
 						s2 = __cint(s2 + c * c);
-						s3 = __cint(s3 + (Memory.readInt(edgesPtr + (i<<2)) & 0xFF));
+						s3 = __cint(s3 + (Memory.readInt(edgesPtr + i4) & 0xFF));
 						
-						Memory.writeInt(s1, __cint(intOff + (i << 2)));
-						Memory.writeInt(s2, __cint(sqOff + (i << 2)));
-						Memory.writeInt(s3, __cint(edgeOff + (i << 2)));
+						Memory.writeInt(s1, __cint(intOff + i4));
+						Memory.writeInt(s2, __cint(sqOff + i4));
+						Memory.writeInt(s3, __cint(edgeOff + i4));
+						i4 = __cint(i4 + 4);
 					}
 					
 					ind = width;
@@ -612,30 +644,35 @@ package ru.inspirit.haar
 						s1 = 0;
 						s2 = 0;
 						s3 = 0;
-						for(i = 0; i < width; ++i, ++ind, ++ind0)
+						for(i = 0; i < width; )
 						{
 							c = (data[ind] & 0xFF);
 							s1 = __cint(s1 + c);
 							s2 = __cint(s2 + c * c);
-							s3 = __cint(s3 + (Memory.readInt(edgesPtr + (ind<<2)) & 0xFF));
+							s3 = __cint(s3 + (Memory.readInt(edgesPtr + i4) & 0xFF));
 							
-							Memory.writeInt(__cint(Memory.readInt(intOff + (ind0 << 2)) + s1), __cint(intOff+ (ind << 2)));
-							Memory.writeInt(__cint(Memory.readInt(sqOff + (ind0 << 2)) + s2), __cint(sqOff + (ind << 2)));
-							Memory.writeInt(__cint(Memory.readInt(edgeOff + (ind0 << 2)) + s3), __cint(edgeOff + (ind << 2)));
+							Memory.writeInt(__cint(Memory.readInt(intOff + ind0) + s1), __cint(intOff+ i4));
+							Memory.writeInt(__cint(Memory.readInt(sqOff + ind0) + s2), __cint(sqOff + i4));
+							Memory.writeInt(__cint(Memory.readInt(edgeOff + ind0) + s3), __cint(edgeOff + i4));
+							//
+							__asm(IncLocalInt(i), IncLocalInt(ind));
+							i4 = __cint(i4 + 4);
+							ind0 = __cint(ind0 + 4);
 						}
 					}
 				}
 				else
 				{
-				
+					i4 = 0;
 					for(i = 0; i < width; ++i)
 					{
 						c = (data[i] & 0xFF);
 						s1 = __cint(s1 + c);
 						s2 = __cint(s2 + c * c);
 						
-						Memory.writeInt(s1, __cint(intOff + (i << 2)));
-						Memory.writeInt(s2, __cint(sqOff + (i << 2)));
+						Memory.writeInt(s1, __cint(intOff + i4));
+						Memory.writeInt(s2, __cint(sqOff + i4));
+						i4 = __cint(i4 + 4);
 					}
 					
 					ind = width;
@@ -645,14 +682,18 @@ package ru.inspirit.haar
 					{
 						s1 = 0;
 						s2 = 0;
-						for(i = 0; i < width; ++i, ++ind, ++ind0)
+						for(i = 0; i < width; )
 						{
 							c = (data[ind] & 0xFF);
 							s1 = __cint(s1 + c);
 							s2 = __cint(s2 + c * c);
 							
-							Memory.writeInt(__cint(Memory.readInt(intOff + (ind0 << 2)) + s1), __cint(intOff+ (ind << 2)));
-							Memory.writeInt(__cint(Memory.readInt(sqOff + (ind0 << 2)) + s2), __cint(sqOff + (ind << 2)));
+							Memory.writeInt(__cint(Memory.readInt(intOff + ind0) + s1), __cint(intOff+ i4));
+							Memory.writeInt(__cint(Memory.readInt(sqOff + ind0) + s2), __cint(sqOff + i4));
+							//
+							__asm(IncLocalInt(i), IncLocalInt(ind));
+							i4 = __cint(i4 + 4);
+							ind0 = __cint(ind0 + 4);
 						}
 					}
 				}
@@ -708,6 +749,9 @@ package ru.inspirit.haar
 			var sum:Number;
 			var rect_sum:Number;
 			var edgeThreshold:Number;
+			
+			var math:*;
+			__asm(__as3(Math), SetLocal(math));
 			
 			if(!treeBasedCascades)
 			{
@@ -785,7 +829,15 @@ package ru.inspirit.haar
 						if(vnorm < 0) vnorm = -vnorm;						
 						vnorm = FastMath.sqrt2(vnorm, 0);*/
 						vnorm = vnorm - (mean * mean);
-						vnorm = vnorm > 0 ? FastMath.sqrt2(vnorm, 0) : 1.0;
+						//vnorm = vnorm > 0 ? FastMath.sqrt2(vnorm, 0) : 1.0;
+						if (vnorm > 0)
+						{
+							__asm(__as3(math), __as3(vnorm), CallProperty(__as3(Math.sqrt), 1), SetLocal(vnorm));
+						}
+						else
+						{
+							vnorm = 1.0;
+						}
                         
                         pass = true;						
 						st = stages;
@@ -927,7 +979,15 @@ package ru.inspirit.haar
 							if(vnorm < 0) vnorm = -vnorm;
 							vnorm = FastMath.sqrt2(vnorm, 0);*/
 							vnorm = vnorm - (mean * mean);
-							vnorm = vnorm > 0 ? FastMath.sqrt2(vnorm, 0) : 1.0;
+							//vnorm = vnorm > 0 ? FastMath.sqrt2(vnorm, 0) : 1.0;
+							if (vnorm > 0)
+							{
+								__asm(__as3(math), __as3(vnorm), CallProperty(__as3(Math.sqrt), 1), SetLocal(vnorm));
+							}
+							else
+							{
+								vnorm = 1.0;
+							}
 	                        
 	                        pass = true;
 	                        
@@ -1065,10 +1125,8 @@ package ru.inspirit.haar
         	// The first O(N) pass: create N single-vertex trees
         	for(i = 0, j = 0; i < N; ++i)
         	{
-				nodes[j] = -1;
-				__asm(IncLocalInt(j));
-				nodes[j] = 0;
-				__asm(IncLocalInt(j));
+				nodes[j] = -1; __asm(IncLocalInt(j));
+				nodes[j] = 0; __asm(IncLocalInt(j));
         	}
         	
         	// The main O(N^2) pass: merge connected components
@@ -1077,23 +1135,23 @@ package ru.inspirit.haar
 		        var root:int = i << 1;
 		        
 		        // find root
-		        while( nodes[root] >= 0 )
+		        while( int(nodes[root]) >= 0 )
 		        {
-		            root = nodes[root] << 1;
+		            root = int(nodes[root]) << 1;
 		        }
 		        
 		        for( j = 0; j < N; ++j )
 		        {
-		            if( i == j || !HaarInline.similarRects(rects[i], rects[j]))
+		            if( i == j || !HaarInline.similarRects(Rectangle(rects[i]), Rectangle(rects[j])))
 		            {
 		                continue;
 		            }
 		            
 		            var root2:int = j << 1;
 		
-		            while( nodes[root2] >= 0 )
+		            while( int(nodes[root2]) >= 0 )
 		            {
-		                root2 = nodes[root2] << 1;
+		                root2 = int(nodes[root2]) << 1;
 		            }
 		            
 		            if( root2 != root )
@@ -1108,7 +1166,7 @@ package ru.inspirit.haar
 		                else
 		                {
 		                    nodes[root] = root2 >> 1;
-		                    nodes[(__cint(root2+1))] += int(rank == rank2);
+		                    nodes[__cint(root2+1)] += int(rank == rank2);
 		                    root = root2;
 		                }
 		
@@ -1340,7 +1398,8 @@ package ru.inspirit.haar
             var ft:HaarFeature;
             var ft2:HaarFeature;
             var tr:HaarTree;
-            var rc:HaarFeatureRect;            var rc2:HaarFeatureRect;
+            var rc:HaarFeatureRect;
+            var rc2:HaarFeatureRect;
             
             for each (var s:XML in stagesList)
             {
