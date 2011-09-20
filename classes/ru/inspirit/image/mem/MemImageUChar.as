@@ -3,6 +3,9 @@ package ru.inspirit.image.mem
 	import ru.inspirit.image.filter.GaussianFilter;
 	import apparat.math.IntMath;
 	import apparat.memory.Memory;
+	import apparat.asm.__asm;
+	import apparat.asm.__cint;
+	import apparat.asm.IncLocalInt;
 
 	import flash.display.BitmapData;
 	import flash.geom.Rectangle;
@@ -82,6 +85,52 @@ package ru.inspirit.image.mem
 			
 			_ptr = ptr;
 			GaussianFilter.gaussSmooth7x7Standard(_ptr, _ptr, w, h, intBuffer);
+		}
+		
+		public function equalizeHist(histPtr:int):void
+		{
+			var _ptr:int;
+			var end:int;
+			
+			// clear hist
+			_ptr = histPtr;
+			end = __cint(_ptr + (256<<2));
+			while (_ptr < end)
+			{
+				Memory.writeInt(0, _ptr);
+				_ptr = __cint(_ptr + 4);
+			}
+			
+			_ptr = ptr;
+			end = __cint(_ptr + size);			
+			while(_ptr < end)
+			{
+				var hp:int = __cint( histPtr + (Memory.readUnsignedByte(_ptr) << 2));
+				Memory.writeInt(__cint(Memory.readInt(hp) + 1), hp);
+				__asm(IncLocalInt(_ptr));
+			}
+			
+			var scale:Number = 255.0 / Number(size);
+			var sum:int = 0;
+			var lutPtr:int = histPtr; // reuse histogram block
+			_ptr = histPtr;
+			end = __cint(_ptr + (256 << 2));
+			while (_ptr < end)
+			{
+				sum = __cint( sum + Memory.readInt(_ptr) );
+				Memory.writeByte((sum * scale + 0.5), lutPtr);
+				__asm(IncLocalInt(lutPtr));
+				_ptr = __cint(_ptr + 4);
+			}
+			Memory.writeByte(0, histPtr);
+			
+			_ptr = ptr;
+			end = __cint(_ptr + size);			
+			while(_ptr < end)
+			{
+				Memory.writeByte( Memory.readUnsignedByte(__cint( histPtr+Memory.readUnsignedByte(_ptr) )), _ptr);
+				__asm(IncLocalInt(_ptr));
+			}
 		}
 	}
 }
