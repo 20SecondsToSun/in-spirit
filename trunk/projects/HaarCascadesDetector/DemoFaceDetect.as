@@ -1,5 +1,6 @@
 package
 {
+	import apparat.math.IntMath;
 	import apparat.memory.Memory;
 	import com.bit101.components.HUISlider;
 	import com.bit101.components.Label;
@@ -59,7 +60,7 @@ package
 		public var imageRect:Rectangle;
 		
 		public var baseScale:Number = 2.0;
-		public var scaleIncrement:Number = 1.15;
+		public var scaleIncrement:Number = 1.25;
 		public var stepIncrement:Number = 0.05;
 		public var edgeDensity:Number = 0.01;//0.09;
         
@@ -121,7 +122,7 @@ package
 			addChild(view);
 
 			// web camera initiation
-            initCamera(640, 480, 30);
+            initCamera(640, 480, 15);
             camBmp = new Bitmap(_cambuff); 
 			view.addChild( camBmp );
 
@@ -149,10 +150,12 @@ package
 			var sz:int = iw*ih;
 			
 			var detectorChunk:int = detector.calcRequiredChunkSize(iw, ih);
-			var cannyChunk:int = sobel.calcRequiredChunkSize(iw, ih);
+			var sobelChunk:int = sobel.calcRequiredChunkSize(iw, ih);
+			var cannyChunk:int = 0;
+			var maxEdgeChunk:int = IntMath.max(sobelChunk, cannyChunk);
             
             ram.endian = Endian.LITTLE_ENDIAN;
-			ram.length = 1024 + detectorChunk * 4 + cannyChunk + sz + (sz<<2);
+			ram.length = 1024 + detectorChunk * 4 + maxEdgeChunk + sz + (sz<<2);
 			ram.position = 0;
 			Memory.select(ram);
 			
@@ -162,7 +165,8 @@ package
 			edgesPtr = off;
 			off += sz << 2;
 			sobel.setup(off, iw, ih);
-			off += cannyChunk;
+			//canny.setup(off, iw, ih);
+			off += maxEdgeChunk;
 
 			detectorPtr = off;
 
@@ -183,6 +187,10 @@ package
 			imgU.setup(imgPtr, iw, ih);
 			imgI.setup(edgesPtr, iw, ih);
 			
+			//var maxGrad:int = 32;
+			//canny.lowThreshold = 0.42 * maxGrad;
+			//canny.highThreshold = 0.44 * maxGrad;
+			
 			var myLoader:URLLoader = new URLLoader();
 			myLoader.dataFormat = URLLoaderDataFormat.BINARY;
 			myLoader.addEventListener(Event.COMPLETE, onUnZipComplete);
@@ -202,8 +210,12 @@ package
 			// pass data to memory
 			imgU.fill(data);
 			
+			// stretch histogram to get better edges and contrast
+			imgU.equalizeHist(iptr);
+			
 			// use edges to speed up detection
 			sobel.detect(uptr, iptr, iw, ih);
+			//canny.detect2(uptr, iptr, iw, ih);
 		}
 		
 		private function onRender(e:Event):void
@@ -225,8 +237,9 @@ package
 			if(detector.state == detector.numSteps - 1)
 			{
 				faceRects = detector.result;
-				faceRects = detector.groupRectangles(faceRects);
+				faceRects = detector.groupRectangles(faceRects, 4);
 				drawRects( faceRects, scaleFactor );
+				
 				// here u can try to localize eyes and mouth
 				/*
 				if (faceRects.length)
@@ -262,7 +275,7 @@ package
 			eyeRects = detectorLE.detect(eyes_r, 1, 1.1, 0.05, -1, detector);
 			_rt += getTimer()-t;
 			
-			eyeRects = detectorLE.groupRectangles(eyeRects);
+			eyeRects = detectorLE.groupRectangles(eyeRects, 3);
 			drawCircles(eyeRects, scaleFactor, false);
 			
 			// RIGHT EYE
@@ -276,7 +289,7 @@ package
 			eyeRects = detectorRE.detect(eyes_r, 1, 1.1, 0.05, -1, detector);
 			_rt += getTimer()-t;
 			
-			eyeRects = detectorRE.groupRectangles(eyeRects);
+			eyeRects = detectorRE.groupRectangles(eyeRects, 3);
 			drawCircles(eyeRects, scaleFactor, false);
 			
 			// MOUTH
@@ -287,13 +300,14 @@ package
 			//mouth_r.height *= 0.3;
 			mouth_r.height = r.bottom - mouth_r.y;
 			
-			drawRects(Vector.<Rectangle>([mouth_r]), scaleFactor, false);
+			// debug search region
+			//drawRects(Vector.<Rectangle>([mouth_r]), scaleFactor, false);
 			
 			t = getTimer();
-			eyeRects = detectorM.detect( mouth_r, 1, 1.05, 0.05, -1, detector );
+			eyeRects = detectorM.detect( mouth_r, 1, 1.1, 0.05, -1, detector );
 			_rt += getTimer()-t;
 			
-			eyeRects = detectorM.groupRectangles(eyeRects);
+			eyeRects = detectorM.groupRectangles(eyeRects, 3);
 			drawRects(eyeRects, scaleFactor, false);
 		}
 		
@@ -409,7 +423,7 @@ package
 			edgeSlider = new HUISlider(p, 505, 17, '', onSliderChange);
 			edgeSlider.setSliderParams(0.001, 0.15, edgeDensity);
 			edgeSlider.labelPrecision = 3;
-			edgeSlider.tick = 0.005;
+			edgeSlider.tick = 0.0005;
 			edgeSlider.width = 140;
 		}
 
