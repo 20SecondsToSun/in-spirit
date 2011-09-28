@@ -3,6 +3,8 @@ package
 	import apparat.asm.__cint;
 	import apparat.math.FastMath;
 	import apparat.memory.Memory;
+	import flash.display.StageAlign;
+	import flash.filters.GlowFilter;
 
 	import com.bit101.components.RadioButton;
 
@@ -29,10 +31,10 @@ package
 	 * ...
 	 * @author Eugene Zatepyakin
 	 */
-	[SWF(width='640',height='520',frameRate='25',backgroundColor='0xFFFFFF')]
+	[SWF(width='1000',height='560',frameRate='25',backgroundColor='0xFFFFFF')]
 	public final class TestTemplateMatch extends Sprite 
 	{
-		[Embed(source = '../assets/lena.jpg')] private static const img_ass:Class;
+		[Embed(source = '../assets/lena_512.jpg')] private static const img_ass:Class;
 		
 		public const GRAYSCALE_MATRIX:ColorMatrixFilter = new ColorMatrixFilter([
                         																0, 0, 0, 0, 0,
@@ -55,6 +57,8 @@ package
 		
 		public var resultPtr:int;
 		
+		public const scl:Number = 2;
+		
 		public var _txt:TextField;
 		
 		public function TestTemplateMatch() 
@@ -74,8 +78,8 @@ package
 			var ih:int = imgBmp.height;
 			//var tw:int = 9;
 			//var th:int = 11;
-			var tw:int = 20;//20 + Math.random() * (iw * 0.125);
-			var th:int = 20;//20 + Math.random() * (ih * 0.125);
+			var tw:int = 20*scl;//20 + Math.random() * (iw * 0.125);
+			var th:int = 20*scl;//20 + Math.random() * (ih * 0.125);
 			
 			var tmplBmp:BitmapData = new BitmapData(tw, th, false, 0x0);
 			
@@ -103,10 +107,11 @@ package
 			resultPtr = offset;
 			
 			tB = new Bitmap(tmplBmp);
-			tB.x = imgB.width;
+			tB.filters = [new GlowFilter(0x000000, 0.5, 8, 8, 2, 2)];
+			//tB.x = imgB.width;
 			
 			rB = new Bitmap(new BitmapData(iw - tw + 1, ih - th + 1, false, 0x0) );
-			rB.y = imgB.height;
+			rB.x = imgB.width;
 			
 			addChild(imgB);
 			addChild(tB);
@@ -121,17 +126,20 @@ package
 			_txt.width = 200;
 			_txt.multiline = true;
 			_txt.autoSize = 'left';
-			_txt.x = tB.x + 5;
-			_txt.y = tB.y + tB.height + 5;
+			_txt.x = 400;
+			_txt.y = imgB.height + 5;
 			
 			addChild(_txt);
 
-            new RadioButton(this, 280, 100, 'CCORR', false, onMethodChanged);
-            new RadioButton(this, 280, 120, 'CCORR_NORMED', true, onMethodChanged);
-            new RadioButton(this, 280, 140, 'CCOEFF', false, onMethodChanged);
-            new RadioButton(this, 280, 160, 'CCOEFF_NORMED', false, onMethodChanged);
-            new RadioButton(this, 280, 180, 'SQDIFF', false, onMethodChanged);
-            new RadioButton(this, 280, 200, 'SQDIFF_NORMED', false, onMethodChanged);
+			var cntx:int = 20;
+			var cnty:int = imgB.height + 10;
+			var stp:int = 120;
+            new RadioButton(this, cntx, cnty, 'CCORR', false, onMethodChanged);
+            new RadioButton(this, cntx, cnty+20, 'CCORR_NORMED', true, onMethodChanged);
+            new RadioButton(this, cntx+stp, cnty, 'CCOEFF', false, onMethodChanged);
+            new RadioButton(this, cntx+stp, cnty+20, 'CCOEFF_NORMED', false, onMethodChanged);
+            new RadioButton(this, cntx+stp*2, cnty, 'SQDIFF', false, onMethodChanged);
+            new RadioButton(this, cntx+stp*2, cnty+20, 'SQDIFF_NORMED', false, onMethodChanged);
 
             drawSh = new Shape();
             addChild(drawSh);
@@ -164,8 +172,8 @@ package
 			
 			//var tx:int = 138;//124;
 			//var ty:int = 25;//124;
-			var tx:int = 124;
-			var ty:int = 124;
+			var tx:int = 124*scl;
+			var ty:int = 124*scl;
 			tB.bitmapData.copyPixels(imgB.bitmapData, new Rectangle(tx, ty, tw, th), ORIGIN);
 			
 			tB.bitmapData.applyFilter(tB.bitmapData, tB.bitmapData.rect, ORIGIN, GRAYSCALE_MATRIX);
@@ -255,6 +263,7 @@ package
 		protected function initStage():void
 		{
 			stage.scaleMode = StageScaleMode.NO_SCALE;
+			stage.align = StageAlign.TOP_LEFT;
 
 			var myContextMenu:ContextMenu = new ContextMenu();
 			myContextMenu.hideBuiltInItems();

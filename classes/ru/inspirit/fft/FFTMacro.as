@@ -82,25 +82,33 @@ package ru.inspirit.fft
 						out3_re = re3 * tmp3_re - im3 * tmp3_im;
 						out3_im = re3 * tmp3_im + im3 * tmp3_re;
 						
-						FFTMacro.doDFT4(
-										re0, im0, out1_re, out1_im,
-										out2_re, out2_im, out3_re, out3_im,
-										// temp vars
-										tmp00_re, tmp00_im, tmp01_re, tmp01_im,
-										tmp02_re, tmp02_im, tmp03_re, tmp03_im
-										);
+						tmp00_re = re0 + out1_re;
+						tmp00_im = im0 + out1_im;
+						
+						tmp01_re = re0 - out1_re;
+						tmp01_im = im0 - out1_im;
+						
+						tmp02_re = out2_re + out3_re;
+						tmp02_im = out2_im + out3_im;
+						
+						tmp03_re = out2_im - out3_im;
+						tmp03_im = out3_re - out2_re;
+						
+						
 						// write result back
-						Memory.writeDouble(re0, off0);
-						Memory.writeDouble(im0, __cint(off0 - d0));
+						// avoid unneeded get/set local vars
+						Memory.writeDouble(tmp00_re + tmp02_re, off0);
+						Memory.writeDouble(tmp00_im + tmp02_im, __cint(off0 - d0));
 						off0 = __cint(off0 + iB8);
-						Memory.writeDouble(out1_re, off0);
-						Memory.writeDouble(out1_im, __cint(off0 - d0));
+						Memory.writeDouble(tmp01_re + tmp03_re, off0);
+						Memory.writeDouble(tmp01_im + tmp03_im, __cint(off0 - d0));
 						off0 = __cint(off0 + iB8);
-						Memory.writeDouble(out2_re, off0);
-						Memory.writeDouble(out2_im, __cint(off0 - d0));
+						Memory.writeDouble(tmp00_re - tmp02_re, off0);
+						Memory.writeDouble(tmp00_im - tmp02_im, __cint(off0 - d0));
 						off0 = __cint(off0 + iB8);
-						Memory.writeDouble(out3_re, off0);
-						Memory.writeDouble(out3_im, __cint(off0 - d0));
+						Memory.writeDouble(tmp01_re - tmp03_re, off0);
+						Memory.writeDouble(tmp01_im - tmp03_im, __cint(off0 - d0));
+						
 						//
 						i = __cint(i + le);
 					}
@@ -125,12 +133,13 @@ package ru.inspirit.fft
 			var tmp0_re:Number, tmp0_im:Number;
 			var out1_re:Number, out1_im:Number;
 			var re0:Number, im0:Number, re1:Number, im1:Number;
-			var off:int, off0:int;
+			var off:int;
 			var iB:int = n >> 1;
 			var iB8:int = iB << 3;
 			
 			var lp:int = lut_ptr;
 			var d0:int = __cint(in_re - in_im);
+			var re_ptr:int = in_re;
 			
 			for (var i:int = 0; i < iB; )
 			{
@@ -139,10 +148,10 @@ package ru.inspirit.fft
 				lp = __cint(lp + 16);
 				//
 				// read input
-				off0 = off = __cint((i << 3) + in_re);
-				re0 = Memory.readDouble(off);
-				im0 = Memory.readDouble(__cint(off - d0));
-				off = __cint(off + iB8);
+				off = __cint(iB8 + re_ptr);
+				re0 = Memory.readDouble(re_ptr);
+				im0 = Memory.readDouble(__cint(re_ptr - d0));
+				
 				re1 = Memory.readDouble(off);
 				im1 = Memory.readDouble(__cint(off - d0));
 				
@@ -151,16 +160,15 @@ package ru.inspirit.fft
 				out1_re = re1 * tmp0_re - im1 * tmp0_im;
 				out1_im = re1 * tmp0_im + im1 * tmp0_re;
 				
-				FFTMacro.doDFT2(re0, im0, out1_re, out1_im, tmp0_re, tmp0_im);
+				// avoid unneeded get/set local vars
+				Memory.writeDouble(re0 + out1_re, re_ptr);
+				Memory.writeDouble(im0 + out1_im, __cint(re_ptr - d0));
 				
-				// write result back
-				Memory.writeDouble(re0, off0);
-				Memory.writeDouble(im0, __cint(off0 - d0));
-				off0 = __cint(off0 + iB8);
-				Memory.writeDouble(out1_re, off0);
-				Memory.writeDouble(out1_im, __cint(off0 - d0));
+				Memory.writeDouble(re0 - out1_re, off);
+				Memory.writeDouble(im0 - out1_im, __cint(off - d0));
 				//
 				__asm(IncLocalInt(i));
+				re_ptr = __cint(re_ptr + 8);
 			}
 		}
 		
@@ -188,61 +196,6 @@ package ru.inspirit.fft
 		{
 			Memory.writeDouble(n, mem);
 			log2n = __cint((Memory.readInt(mem+4) >> 20) - 1023);
-		}
-		
-		// Discrete fourier transformation of 2 points
-		// need 1 temp var for re/im struct
-		public static function doDFT2(
-										rX0_re:Number, rX0_im:Number, 
-										rX1_re:Number, rX1_im:Number,
-										tmp_re:Number, tmp_im:Number):void
-		{
-			tmp_re = rX0_re; tmp_im = rX0_im;
-			
-			rX0_re = rX0_re + rX1_re;
-			rX0_im = rX0_im + rX1_im;
-			
-			rX1_re = tmp_re - rX1_re;
-			rX1_im = tmp_im - rX1_im;
-		}
-		
-		// Discrete fourier transformation of 4 points
-		// need 4 temp vars for re/im struct
-		// TODO: possible arithmetic optimization?
-		public static function doDFT4(
-										rX0_re:Number, rX0_im:Number, 
-										rX1_re:Number, rX1_im:Number,
-										rX2_re:Number, rX2_im:Number,
-										rX3_re:Number, rX3_im:Number,
-										tmp0_re:Number, tmp0_im:Number,
-										tmp1_re:Number, tmp1_im:Number,
-										tmp2_re:Number, tmp2_im:Number,
-										tmp3_re:Number, tmp3_im:Number):void
-		{
-			tmp0_re = rX0_re + rX1_re;
-			tmp0_im = rX0_im + rX1_im;
-			
-			tmp1_re = rX0_re - rX1_re;
-			tmp1_im = rX0_im - rX1_im;
-			
-			tmp2_re = rX2_re + rX3_re;
-			tmp2_im = rX2_im + rX3_im;
-			
-			tmp3_re = rX2_im - rX3_im;
-			tmp3_im = rX3_re - rX2_re;
-			
-			// the last stage
-			rX0_re = tmp0_re + tmp2_re;
-			rX0_im = tmp0_im + tmp2_im;
-			
-			rX1_re = tmp1_re + tmp3_re;
-			rX1_im = tmp1_im + tmp3_im;
-			
-			rX2_re = tmp0_re - tmp2_re;
-			rX2_im = tmp0_im - tmp2_im;
-			
-			rX3_re = tmp1_re - tmp3_re;
-			rX3_im = tmp1_im - tmp3_im;
 		}
 		
 		// bit reverse data before transforming
