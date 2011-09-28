@@ -2,6 +2,7 @@ package ru.inspirit.fft
 {
 	import apparat.asm.__asm;
 	import apparat.asm.__cint;
+	import apparat.asm.DecLocalInt;
 	import apparat.asm.IncLocalInt;
 	import apparat.inline.Macro;
 	import apparat.memory.Memory;
@@ -36,6 +37,7 @@ package ru.inspirit.fft
 			var iB8:int;
 			
 			var lp:int = lut_ptr;
+			var d0:int = __cint(in_re - in_im);
 			
 			for (iL = 1; iL <= l2n; )
 			{
@@ -55,19 +57,19 @@ package ru.inspirit.fft
 					
 					for (i = j; i < n; )
 					{
-						off0 = off = __cint(i << 3);
+						off0 = off = __cint((i << 3) + in_re);
 						
-						var re0:Number = Memory.readDouble(__cint(in_re + off));
-						var im0:Number = Memory.readDouble(__cint(in_im + off));
+						var re0:Number = Memory.readDouble(off);
+						var im0:Number = Memory.readDouble(__cint(off - d0));
 						off = __cint(off + iB8);
-						var re1:Number = Memory.readDouble(__cint(in_re + off));
-						var im1:Number = Memory.readDouble(__cint(in_im + off));
+						var re1:Number = Memory.readDouble(off);
+						var im1:Number = Memory.readDouble(__cint(off - d0));
 						off = __cint(off + iB8);
-						var re2:Number = Memory.readDouble(__cint(in_re + off));
-						var im2:Number = Memory.readDouble(__cint(in_im + off));
+						var re2:Number = Memory.readDouble(off);
+						var im2:Number = Memory.readDouble(__cint(off - d0));
 						off = __cint(off + iB8);
-						var re3:Number = Memory.readDouble(__cint(in_re + off));
-						var im3:Number = Memory.readDouble(__cint(in_im + off));
+						var re3:Number = Memory.readDouble(off);
+						var im3:Number = Memory.readDouble(__cint(off - d0));
 						
 						// multiply
 						// skip first input since it is unchanged 
@@ -88,17 +90,17 @@ package ru.inspirit.fft
 										tmp02_re, tmp02_im, tmp03_re, tmp03_im
 										);
 						// write result back
-						Memory.writeDouble(re0, __cint(in_re + off0));
-						Memory.writeDouble(im0, __cint(in_im + off0));
+						Memory.writeDouble(re0, off0);
+						Memory.writeDouble(im0, __cint(off0 - d0));
 						off0 = __cint(off0 + iB8);
-						Memory.writeDouble(out1_re, __cint(in_re + off0));
-						Memory.writeDouble(out1_im, __cint(in_im + off0));
+						Memory.writeDouble(out1_re, off0);
+						Memory.writeDouble(out1_im, __cint(off0 - d0));
 						off0 = __cint(off0 + iB8);
-						Memory.writeDouble(out2_re, __cint(in_re + off0));
-						Memory.writeDouble(out2_im, __cint(in_im + off0));
+						Memory.writeDouble(out2_re, off0);
+						Memory.writeDouble(out2_im, __cint(off0 - d0));
 						off0 = __cint(off0 + iB8);
-						Memory.writeDouble(out3_re, __cint(in_re + off0));
-						Memory.writeDouble(out3_im, __cint(in_im + off0));
+						Memory.writeDouble(out3_re, off0);
+						Memory.writeDouble(out3_im, __cint(off0 - d0));
 						//
 						i = __cint(i + le);
 					}
@@ -128,6 +130,7 @@ package ru.inspirit.fft
 			var iB8:int = iB << 3;
 			
 			var lp:int = lut_ptr;
+			var d0:int = __cint(in_re - in_im);
 			
 			for (var i:int = 0; i < iB; )
 			{
@@ -136,12 +139,12 @@ package ru.inspirit.fft
 				lp = __cint(lp + 16);
 				//
 				// read input
-				off0 = off = i << 3;
-				re0 = Memory.readDouble(__cint(in_re + off));
-				im0 = Memory.readDouble(__cint(in_im + off));
+				off0 = off = __cint((i << 3) + in_re);
+				re0 = Memory.readDouble(off);
+				im0 = Memory.readDouble(__cint(off - d0));
 				off = __cint(off + iB8);
-				re1 = Memory.readDouble(__cint(in_re + off));
-				im1 = Memory.readDouble(__cint(in_im + off));
+				re1 = Memory.readDouble(off);
+				im1 = Memory.readDouble(__cint(off - d0));
 				
 				// mult
 				// skip first input since it is unchanged 
@@ -151,11 +154,11 @@ package ru.inspirit.fft
 				FFTMacro.doDFT2(re0, im0, out1_re, out1_im, tmp0_re, tmp0_im);
 				
 				// write result back
-				Memory.writeDouble(re0, __cint(in_re + off0));
-				Memory.writeDouble(im0, __cint(in_im + off0));
+				Memory.writeDouble(re0, off0);
+				Memory.writeDouble(im0, __cint(off0 - d0));
 				off0 = __cint(off0 + iB8);
-				Memory.writeDouble(out1_re, __cint(in_re + off0));
-				Memory.writeDouble(out1_im, __cint(in_im + off0));
+				Memory.writeDouble(out1_re, off0);
+				Memory.writeDouble(out1_im, __cint(off0 - d0));
 				//
 				__asm(IncLocalInt(i));
 			}
@@ -240,6 +243,27 @@ package ru.inspirit.fft
 			
 			rX3_re = tmp1_re - tmp3_re;
 			rX3_im = tmp1_im - tmp3_im;
+		}
+		
+		// bit reverse data before transforming
+		public static function bitReverse(re_ptr:int, im_ptr:int, bit_ptr:int, numBitRev:int):void
+		{
+			var d0:int = __cint(re_ptr - im_ptr);
+			while (numBitRev > 0)
+			{
+				var ind1:int = __cint(Memory.readInt(bit_ptr) + re_ptr);
+				var ind2:int = __cint(Memory.readInt(bit_ptr+4) + re_ptr);
+				bit_ptr = __cint(bit_ptr + 8);
+				
+				var tx:Number = Memory.readDouble(ind1);
+				var ty:Number = Memory.readDouble(__cint(ind1 - d0));
+				Memory.writeDouble(Memory.readDouble(ind2), ind1);
+				Memory.writeDouble(Memory.readDouble(__cint(ind2 - d0)), __cint(ind1 - d0));
+				Memory.writeDouble(tx, ind2);
+				Memory.writeDouble(ty, __cint(ind2 - d0));
+				
+				__asm(DecLocalInt(numBitRev));
+			}
 		}
 		
 	}

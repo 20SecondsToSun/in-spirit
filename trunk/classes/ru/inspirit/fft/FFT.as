@@ -80,20 +80,7 @@ package ru.inspirit.fft
 			
 			var i:int = numBitRev;
 			var ptr:int = bitPtr;
-			while (i > 0)
-			{
-				ind1 = Memory.readInt(ptr); ptr = __cint(ptr + 4);
-				ind2 = Memory.readInt(ptr); ptr = __cint(ptr + 4);
-				
-				var tx:Number = Memory.readDouble(__cint(re_ptr + ind1));
-				var ty:Number = Memory.readDouble(__cint(im_ptr + ind1));
-				Memory.writeDouble(Memory.readDouble(__cint(re_ptr + ind2)), __cint(re_ptr + ind1));
-				Memory.writeDouble(Memory.readDouble(__cint(im_ptr + ind2)), __cint(im_ptr + ind1));
-				Memory.writeDouble(tx, __cint(re_ptr + ind2));
-				Memory.writeDouble(ty, __cint(im_ptr + ind2));
-				
-				__asm(DecLocalInt(i));
-			}
+			FFTMacro.bitReverse(re_ptr, im_ptr, ptr, i);
 			
 			ptr = memPtr;
 			FFTMacro.isPowerOf4(n, isPow4, ptr);
@@ -130,20 +117,7 @@ package ru.inspirit.fft
 			// reverse bits
 			i = numBitRev;
 			ptr = bitPtr;
-			while (i > 0)
-			{
-				ind1 = Memory.readInt(ptr); ptr = __cint(ptr + 4);
-				ind2 = Memory.readInt(ptr); ptr = __cint(ptr + 4);
-
-				var tx:Number = Memory.readDouble(__cint(re_ptr + ind1));
-				var ty:Number = Memory.readDouble(__cint(im_ptr + ind1));
-				Memory.writeDouble(Memory.readDouble(__cint(re_ptr + ind2)), __cint(re_ptr + ind1));
-				Memory.writeDouble(Memory.readDouble(__cint(im_ptr + ind2)), __cint(im_ptr + ind1));
-				Memory.writeDouble(tx, __cint(re_ptr + ind2));
-				Memory.writeDouble(ty, __cint(im_ptr + ind2));
-				
-				__asm(DecLocalInt(i));
-			}
+			FFTMacro.bitReverse(re_ptr, im_ptr, ptr, i);
 			
 			ptr = memPtr;
 			FFTMacro.isPowerOf4(n, isPow4, ptr);
@@ -158,7 +132,7 @@ package ru.inspirit.fft
 				FFTMacro.doFFTL2(re_ptr, im_ptr, n, lut_ptr);
 			}
 			
-			// scale data
+			// scale & conj data
 			var invN:Number = lastInvP2Length;
 			ptr = im_ptr;
 			i = __cint(ptr + (n << 3));
