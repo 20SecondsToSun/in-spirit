@@ -3,7 +3,7 @@
 
 = Introduction =
 
-SORRY I'm busy with speaking at FOTB so expect some explanation later.
+SORRY I'm busy with speaking at $CONFERENCE_NAME$ so expect some explanation later.
 
 ==Download==
 [http://code.google.com/p/in-spirit/downloads/detail?name=ape.swc.zip&can=2 DOWNLOAD SWC]
